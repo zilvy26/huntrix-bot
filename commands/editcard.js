@@ -11,6 +11,8 @@ const {
 const Card = require('../models/Card');
 const generateStars = require('../utils/starGenerator');
 const awaitUserButton = require('../utils/awaitUserButton');
+const parseRarity = require('../utils/parseRarity');
+const uploadCardImage = require('../utils/imageUploader');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -33,7 +35,12 @@ module.exports = {
     .addStringOption(opt => opt.setName('setrarity').setDescription('Set new rarity (e.g. 1S to 5S)'))
     .addStringOption(opt => opt.setName('setemoji').setDescription('Override emoji used for rarity'))
     .addBooleanOption(opt => opt.setName('setpullable').setDescription('Set pullable?'))
-    .addUserOption(opt => opt.setName('designer').setDescription('Set new designer')),
+    .addUserOption(opt => opt.setName('designer').setDescription('Set new designer'))
+    .addAttachmentOption(opt =>
+  opt.setName('setimage')
+    .setDescription('Upload a new card image')
+    .setRequired(false)
+),
 
     async execute(interaction) {
   await interaction.deferReply();
@@ -52,18 +59,42 @@ module.exports = {
     if (!isNaN(rarityValue)) filters.rarity = rarityValue;
   }
 
+  const matchedCards = await Card.find(filters);
+if (!matchedCards.length) {
+  return interaction.editReply({ content: '❌ No cards matched your filters.' });
+}
+
   const updates = {};
 
   if (opts.getString('setcode')) updates.cardCode = opts.getString('setcode');
   if (opts.getString('setname')) updates.name = opts.getString('setname');
   if (opts.getString('setgroup')) updates.group = opts.getString('setgroup');
+  const imageAttachment = opts.getAttachment('setimage');
+if (imageAttachment) {
+  const uploadResult = await uploadCardImage(
+    interaction.client,
+    imageAttachment.url,
+    matchedCards[0].name,        // ← use actual card name
+    matchedCards[0].cardCode     // ← use actual card code
+  );
+
+  updates.discordPermalinkImage = uploadResult.discordUrl;
+  updates.imgurImageLink = uploadResult.imgurUrl;
+}
   if (opts.getString('setera')) updates.era = opts.getString('setera');
 
   if (opts.getString('setrarity')) {
-    const setRarity = opts.getString('setrarity');
-    const rarityValue = parseInt(setRarity);
-    if (!isNaN(rarityValue)) updates.rarity = rarityValue;
+  const setRarity = opts.getString('setrarity');
+  const rarityValue = parseRarity(setRarity);
+  if (!isNaN(rarityValue)) updates.rarity = rarityValue;
+
+  if (updates.rarity < 1 || updates.rarity > 5) {
+    return interaction.editReply({
+      content: '❌ Rarity must be between 1 and 5.',
+      ephemeral: true
+    });
   }
+}
 
   if (opts.getBoolean('setpullable') !== null) {
     updates.pullable = opts.getBoolean('setpullable');
@@ -83,21 +114,15 @@ module.exports = {
     return interaction.editReply('⚠️ You must provide at least one field to update.');
   }
 
-  const matched = await Card.find(filters);
 
-  if (matched.length === 0) {
-    return interaction.editReply('❌ No cards matched your filters.');
-  }
-
-  const pages = matched.map((card, index) => {
-    const rarityDisplay = generateStars(
-      updates.rarity ?? card.rarity,
-      overrideEmoji || '<:fullstar:1387609456824680528>',
-      '<:blankstar:1387609460385779792>'
-    );
+  const pages = matchedCards.map((card, index) => {
+    const rarityDisplay = generateStars({
+  rarity: updates.rarity ?? card.rarity,
+  overrideEmoji: updates.emoji || card.emoji
+});
 
     const embed = new EmbedBuilder()
-      .setTitle(`Card Preview ${index + 1} of ${matched.length}`)
+      .setTitle(`Card Preview ${index + 1} of ${matchedCards.length}`)
       .setDescription(`🆔 **${card.cardCode}** → \`${updates.cardCode || card.cardCode}\`\n` +
                       `🖋️ **${card.name}** → \`${updates.name || card.name}\``)
       .addFields(
@@ -111,9 +136,8 @@ module.exports = {
       )
       .setColor('Blurple');
 
-    if (card.discordPermalinkImage) {
-      embed.setImage(card.discordPermalinkImage);
-    }
+    const image = updates.discordPermalinkImage || card.discordPermalinkImage;
+if (image) embed.setImage(image);
 
     return embed;
   });
@@ -177,7 +201,7 @@ module.exports = {
     if (btn.customId === 'confirm') {
       collector.stop('confirmed');
       await Card.updateMany(filters, { $set: updates });
-      return btn.update({ content: `✅ Updated ${matched.length} card(s).`, embeds: [], components: [] });
+      return btn.update({ content: `✅ Updated ${matchedCards.length} card(s).`, embeds: [], components: [] });
     }
   });
 

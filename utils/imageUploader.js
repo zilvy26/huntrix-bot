@@ -1,4 +1,3 @@
-// utils/imageUploader.js
 const axios = require('axios');
 const FormData = require('form-data');
 
@@ -17,26 +16,37 @@ module.exports = async function uploadCardImage(client, imageUrl, name, cardCode
   }
 
   // 1. Upload to Discord
-  const msg = await channel.send({
-    content: `📤 Upload for card: ${cardCode} — ${name}`,
-    files: [imageUrl]
-  });
+  let discordUrl;
+  try {
+    const msg = await channel.send({
+      content: `📤 Upload for card: ${cardCode} — ${name}`,
+      files: [imageUrl]
+    });
+    discordUrl = msg.attachments.first()?.url;
 
-  const discordUrl = msg.attachments.first()?.url;
-  if (!discordUrl) throw new Error('❌ Failed to upload image to Discord');
+    if (!discordUrl) {
+      console.error('❌ No attachment URL returned from Discord upload.');
+      throw new Error('❌ Failed to upload image to Discord.');
+    }
+  } catch (err) {
+    console.error('❌ Discord upload failed:', err.message);
+    throw new Error('❌ Discord upload failed.');
+  }
 
-  // 2. Fetch image and upload to Imgur
+  // 2. Upload to Imgur (optional)
   let imgurUrl = null;
   try {
     const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
     const form = new FormData();
     form.append('image', Buffer.from(response.data).toString('base64'));
+
     const imgur = await axios.post('https://api.imgur.com/3/image', form, {
       headers: {
         Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`,
         ...form.getHeaders()
       }
     });
+
     imgurUrl = imgur.data?.data?.link || null;
   } catch (err) {
     console.error('❌ Imgur upload failed:', err.message);

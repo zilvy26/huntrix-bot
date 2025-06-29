@@ -10,6 +10,7 @@ const Card = require('../models/Card');
 const uploadCardImage = require('../utils/imageUploader');
 const awaitUserButton = require('../utils/awaitUserButton');
 const generateStars = require('../utils/starGenerator');
+const parseRarity = require('../utils/parseRarity');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -28,10 +29,19 @@ module.exports = {
           { name: 'GAME', value: 'game' },
           { name: 'OTHERS', value: 'others' }
         ).setRequired(true))
-    .addStringOption(opt =>
-      opt.setName('rarity').setDescription('Rarity (0–5 stars)').setRequired(true))
     .addAttachmentOption(opt =>
       opt.setName('image').setDescription('Upload the card image').setRequired(true))
+    .addStringOption(opt =>
+      opt.setName('rarity')
+        .setDescription('Rarity (1–5)')
+        .setRequired(false)
+        .addChoices(
+          { name: '1 Star', value: '1' },
+          { name: '2 Stars', value: '2' },
+          { name: '3 Stars', value: '3' },
+          { name: '4 Stars', value: '4' },
+          { name: '5 Stars', value: '5' }
+        ))
     .addStringOption(opt =>
       opt.setName('emoji').setDescription('Optional custom emoji (one) to override stars').setRequired(false))
     .addUserOption(opt =>
@@ -41,12 +51,10 @@ module.exports = {
     .addStringOption(opt =>
       opt.setName('era').setDescription('Era or event tag').setRequired(false))
     .addBooleanOption(opt =>
-  opt.setName('pullable')
-     .setDescription('Is this card available in pulls?')
-     .setRequired(false)),
+      opt.setName('pullable').setDescription('Is this card available in pulls?').setRequired(false)),
 
   async execute(interaction) {
-    await interaction.deferReply(); // ✅ Defer early
+    await interaction.deferReply();
 
     try {
       const allowedRole = process.env.CARD_CREATOR_ROLE_ID;
@@ -58,7 +66,8 @@ module.exports = {
       const cardCode = opts.getString('cardcode');
       const name = opts.getString('name');
       const category = opts.getString('category');
-      const rarityNum = parseInt(opts.getString('rarity')) || 0;
+      const rarityInput = opts.getString('rarity');
+      const rarity = parseRarity(rarityInput); // will be 0–5
       const emoji = opts.getString('emoji');
       const designer = opts.getUser('designer') || interaction.user;
       const pullable = opts.getBoolean('pullable') ?? true;
@@ -70,21 +79,22 @@ module.exports = {
         return interaction.editReply({ content: `⚠️ A card with code \`${cardCode}\` already exists.` });
       }
 
-      // ✅ Only use the uploader — handles both Discord + Imgur
       const { discordUrl, imgurUrl } = await uploadCardImage(interaction.client, attachment.url, name, cardCode);
       if (!discordUrl) throw new Error('❌ Discord upload failed.');
 
-      const starVisual = emoji
-        ? emoji.repeat(Math.min(5, Math.max(0, rarityNum)))
-        : generateStars(rarityNum);
+      const stars = generateStars({
+        rarity,
+        overrideEmoji: emoji
+      });
 
       const previewEmbed = new EmbedBuilder()
-        .setTitle(`${name} [${cardCode}]`)
+        .setTitle(stars)
         .setColor('Blurple')
         .setImage(discordUrl)
         .addFields(
+          { name: 'Name', value: name, inline: true },
+          { name: 'Code', value: cardCode, inline: true },
           { name: 'Category', value: category, inline: true },
-          { name: 'Rarity', value: starVisual, inline: true },
           { name: 'Group', value: group || '-', inline: true },
           { name: 'Era', value: era || '-', inline: true },
           { name: 'Designer', value: `<@${designer.id}>`, inline: true },
@@ -112,13 +122,14 @@ module.exports = {
         cardCode,
         name,
         category,
-        rarity: rarityNum,
+        rarity,
         group,
         era,
-        discordPermalinkImage: discordUrl,
+        discordPermlinkImage: discordUrl,
         imgurImageLink: imgurUrl,
         designerId: designer.id,
-        pullable
+        pullable,
+        emoji
       });
 
       return button.update({ content: `✅ Card **${name}** [${cardCode}] saved!`, embeds: [], components: [] });
