@@ -4,9 +4,8 @@ Huntrix is a collectible/trading Discord Anime, Kpop & Game card bot built with 
 
 ## Features
 
-- `!register` to create a new account
-- `!inventory` to see your cards (coming soon)
-- `!pull` to pull cards from the database
+- `/register` to create a new account
+- `createcard` creates card to the database
 - MongoDB database to store user profiles and cards
 - Deployable on Railway
 

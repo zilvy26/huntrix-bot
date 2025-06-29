@@ -25,13 +25,6 @@ for (const file of commandFiles) {
 
 (async () => {
   try {
-    // Step 1: Wipe old global commands (optional but clean)
-    console.log('🧹 Clearing global commands...');
-    await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID),
-      { body: [] }
-    );
-    console.log('✅ Cleared global commands.');
 
     // Step 2: Register fresh guild commands
     console.log('🛠️ Registering guild slash commands...');

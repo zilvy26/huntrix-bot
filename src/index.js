@@ -30,11 +30,15 @@ client.on('interactionCreate', async interaction => {
     await command.execute(interaction);
   } catch (error) {
     console.error('❌ Error running command:', error);
-    if (!interaction.replied) {
-      await interaction.reply({
-        content: '❌ There was an error executing the command.',
-      });
-    }
+    if (!interaction.replied && !interaction.deferred) {
+  await interaction.reply({
+    content: `❌ There was an error executing the command.`,
+  });
+} else {
+  await interaction.editReply({
+    content: `❌ There was an error executing the command.`,
+  });
+}
   }
 });
 
