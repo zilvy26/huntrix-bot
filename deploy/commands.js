@@ -20,7 +20,6 @@ for (const file of commandFiles) {
   }
 
   commands.push(command.data.toJSON());
-  console.log(`✅ Loaded command: ${command.data.name}`);
 }
 
 (async () => {

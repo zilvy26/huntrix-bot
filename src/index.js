@@ -4,6 +4,10 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 
+const Maintenance = require('../models/Maintenance');
+const User = require('../models/User');
+const getOrCreateUser = require('../utils/getOrCreateUser'); // 🔥 Import middleware util
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
@@ -22,8 +26,40 @@ for (const file of commandFiles) {
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  const command = client.commands.get(interaction.commandName);
+  const maintenance = await Maintenance.findOne();
+  const bypassRoleId = process.env.MAIN_BYPASS_ID;
+  const isBypassed = interaction.member?.roles?.cache.has(bypassRoleId);
+  const isDev = interaction.user.id === interaction.client.application?.owner?.id;
 
+  // 🔒 Maintenance mode check
+  if (maintenance?.active && !isBypassed && !isDev) {
+    return interaction.reply({
+      content: '🚧 The bot is currently under maintenance. Please try again later.'
+    });
+  }
+
+  // 🧠 Registration check (except for /register)
+  if (interaction.commandName !== 'register') {
+    const userExists = await User.exists({ userId: interaction.user.id });
+    if (!userExists) {
+      return interaction.reply({
+        content: '🧠 You must register first using `/register` to use this command.'
+      });
+    }
+  }
+
+  // 🧩 Inject user data into interaction for all commands
+  try {
+    interaction.userData = await getOrCreateUser(interaction);
+  } catch (err) {
+    console.error('❌ Failed to get user data:', err);
+    return interaction.reply({
+      content: '⚠️ Failed to load your profile. Please try again later.',
+      ephemeral: true
+    });
+  }
+
+  const command = client.commands.get(interaction.commandName);
   if (!command) return;
 
   try {
@@ -31,14 +67,14 @@ client.on('interactionCreate', async interaction => {
   } catch (error) {
     console.error('❌ Error running command:', error);
     if (!interaction.replied && !interaction.deferred) {
-  await interaction.reply({
-    content: `❌ There was an error executing the command.`,
-  });
-} else {
-  await interaction.editReply({
-    content: `❌ There was an error executing the command.`,
-  });
-}
+      await interaction.reply({
+        content: '❌ There was an error executing the command.'
+      });
+    } else {
+      await interaction.editReply({
+        content: '❌ There was an error executing the command.'
+      });
+    }
   }
 });
 

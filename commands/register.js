@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
-const User = require('../models/User');
+const getOrCreateUser = require('../utils/getOrCreateUser');
 const UserInventory = require('../models/UserInventory');
+const User = require('../models/User');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -9,31 +10,20 @@ module.exports = {
 
   async execute(interaction) {
     try {
-      const existing = await User.findOne({ userId: interaction.user.id });
+      const existed = await User.exists({ userId: interaction.user.id });
+      const user = await getOrCreateUser(interaction); // auto create or sync user
 
-      if (existing) {
-        await interaction.reply({
-          content: 'You already have an account!',
-        });
-        return;
+      // 🧠 Create empty inventory if not already present
+      const inventoryExists = await UserInventory.exists({ userId: interaction.user.id });
+      if (!inventoryExists) {
+        await UserInventory.create({ userId: interaction.user.id, cards: [] });
       }
 
-      const newUser = new User({
-        userId: interaction.user.id,
-        username: interaction.user.username
-      });
+      const message = existed
+        ? `Welcome back, ${user.username}! You're already registered.`
+        : `You have now debuted — let us build the Honmoon together!`;
 
-      await newUser.save();
-
-      // 🧠 Create empty inventory for new user
-      await UserInventory.create({
-        userId: interaction.user.id,
-        cards: []
-      });
-
-      await interaction.reply({
-        content: 'You have now debuted — let us build the Honmoon together!',
-      });
+      await interaction.reply({ content: message });
 
     } catch (err) {
       console.error('❌ Error in /register:', err);
