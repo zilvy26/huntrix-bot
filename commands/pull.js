@@ -5,6 +5,7 @@ const pickRarity = require('../utils/rarityPicker');
 const generateStars = require('../utils/starGenerator');
 const cooldowns = require('../utils/cooldownConfig');
 const { isOnCooldown, getCooldownTimestamp, setCooldown } = require('../utils/cooldownManager');
+const handleReminders = require('../utils/reminderHandler'); // ✅ Import this
 const User = require('../models/User');
 
 module.exports = {
@@ -25,32 +26,13 @@ module.exports = {
     const commandName = 'pull';
     const cooldownDuration = cooldowns[commandName];
 
-    const user = interaction.userData;
-
-    const remind = interaction.options.getBoolean('reminder') 
-  ?? user?.reminderPreferences?.reminder ?? false;
-
-const remindInChannel = interaction.options.getBoolean('remindinchannel') 
-  ?? user?.reminderPreferences?.remindInChannel ?? true;
-
-// ✅ Save to DB only if changed
-if (
-  user.reminderPreferences?.reminder !== remind ||
-  user.reminderPreferences?.remindInChannel !== remindInChannel
-) {
-  user.reminderPreferences = {
-    reminder: remind,
-    remindInChannel: remindInChannel
-  };
-  await user.save();
-}
-
     // 🔒 Cooldown check
     if (isOnCooldown(userId, commandName)) {
       const nextTime = getCooldownTimestamp(userId, commandName);
-  return interaction.reply({
-  content: `⏳ You must wait until ${nextTime} before using \`/pull\` again.`,
-    });
+      return interaction.reply({
+        content: `⏳ You must wait until ${nextTime} before using \`/pull\` again.`,
+        
+      });
     }
 
     await interaction.deferReply();
@@ -103,22 +85,8 @@ if (
     // ✅ Set cooldown
     setCooldown(userId, commandName, cooldownDuration);
 
-    // 🔔 Schedule reminder (if selected)
-    if (remind) {
-      setTimeout(async () => {
-        const msg = `🔔 <@${interaction.user.id}>, your \`/pull\` cooldown is over!`;
-
-        try {
-          if (remindInChannel) {
-            await interaction.channel.send(msg);
-          } else {
-            await interaction.user.send(msg);
-          }
-        } catch (err) {
-          console.warn('❌ Reminder failed:', err.message);
-        }
-      }, cooldownDuration);
-    }
+    // ✅ Handle reminders via utility
+    await handleReminders(interaction, commandName, cooldownDuration);
 
     return interaction.editReply({ embeds: [embed] });
   }

@@ -57,5 +57,6 @@ module.exports = {
   isOnCooldown,
   getCooldownTime,
   getCooldownTimestamp,
+  cooldowns,
   setCooldown
 };
