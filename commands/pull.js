@@ -7,6 +7,7 @@ const cooldowns = require('../utils/cooldownConfig');
 const { isOnCooldown, getCooldownTimestamp, setCooldown } = require('../utils/cooldownManager');
 const handleReminders = require('../utils/reminderHandler'); // ✅ Import this
 const User = require('../models/User');
+const UserRecord = require('../models/UserRecord');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -30,7 +31,7 @@ module.exports = {
     if (isOnCooldown(userId, commandName)) {
       const nextTime = getCooldownTimestamp(userId, commandName);
       return interaction.reply({
-        content: `⏳ You must wait until ${nextTime} before using \`/pull\` again.`,
+        content: `⏳ You must wait ${nextTime} before using \`/pull\` again.`,
         
       });
     }
@@ -87,6 +88,12 @@ module.exports = {
 
     // ✅ Handle reminders via utility
     await handleReminders(interaction, commandName, cooldownDuration);
+
+    await UserRecord.create({
+  userId: userId,
+  type: 'pull',
+  detail: `Pulled ${card.name} (${card.cardCode}) [${card.rarity}]`
+});
 
     return interaction.editReply({ embeds: [embed] });
   }

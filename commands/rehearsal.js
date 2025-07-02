@@ -12,6 +12,7 @@ const handleReminders = require('../utils/reminderHandler');
 const giveCurrency = require('../utils/giveCurrency');
 const Card = require('../models/Card');
 const UserInventory = require('../models/UserInventory');
+const UserRecord = require('../models/UserRecord');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -23,14 +24,15 @@ module.exports = {
       opt.setName('remindinchannel').setDescription('Remind in channel instead of DM').setRequired(false)),
 
   async execute(interaction) {
+    await interaction.deferReply();
     const userId = interaction.user.id;
     const commandName = 'rehearsal';
     const cooldownDuration = cooldowns[commandName];
 
     if (isOnCooldown(userId, commandName)) {
       const nextTime = getCooldownTimestamp(userId, commandName);
-      return interaction.reply({
-        content: `⏳ You must wait until **${nextTime}** before rehearsing again.`,
+      return interaction.editReply({
+        content: `⏳ You must wait **${nextTime}** before rehearsing again.`,
         
       });
     }
@@ -42,7 +44,7 @@ module.exports = {
     ]);
 
     if (cards.length < 3) {
-      return interaction.reply({
+      return interaction.editReply({
         content: '❌ Not enough pullable cards in the database.',
         
       });
@@ -88,7 +90,7 @@ module.exports = {
       )
     );
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
       files: [attachment],
       components: [row]
@@ -107,7 +109,9 @@ module.exports = {
       const selected = cards[idx];
 
       // 🎁 Sopop reward only
-      const sopop = Math.random() < 0.05 ? Math.floor(Math.random() * 3) : 0;
+      const sopop = Math.random() < 0.58 
+        ? (Math.random() < 0.75 ? 1 : 2) // 75% for 1, 25% for 2
+        : 0;
       const user = await giveCurrency(userId, { sopop });
 
       // 💾 Add to UserInventory
@@ -128,6 +132,13 @@ module.exports = {
       setCooldown(userId, commandName, cooldownDuration);
       await handleReminders(interaction, commandName, cooldownDuration);
 
+      // ✅ Log the rehearsal pull
+  await UserRecord.create({
+    userId: userId,
+    type: 'rehearsal',
+    detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
+  });
+
       // 🎯 Replace old canvas embed with final result
       const resultEmbed = new EmbedBuilder()
         .setTitle(`🎶 You chose: ${selected.name}`)
@@ -138,11 +149,10 @@ module.exports = {
           `**Group:** ${selected.group}`,
           `**Code:** \`${selected.cardCode}\``,
           `**Copies Owned:** ${copies}`,
-          `\n__Reward__:\n${sopop ? `• **${sopop}** sopop 🌟` : '• No sopop this time'}`
+          `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
         ].join('\n'))
         .setImage(selected.discordPermLinkImage || selected.imgurImageLink)
         .setColor('#FFD700')
-        .setFooter({ text: `Your sopop balance: ${user.sopop}` });
 
       await btn.editReply({
         embeds: [resultEmbed],
@@ -150,6 +160,7 @@ module.exports = {
         components: []
       });
     });
+
 
     collector.on('end', async collected => {
       if (collected.size === 0) {

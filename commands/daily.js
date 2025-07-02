@@ -26,7 +26,7 @@ module.exports = {
     if (cooldowns.isOnCooldown(userId, commandName)) {
       const nextTime = cooldowns.getCooldownTimestamp(userId, commandName);
       return interaction.reply({
-        content: `⏳ You already claimed your daily reward. Try again at: **${nextTime}**.`,
+        content: `⏳ You already claimed your daily reward. Try again **${nextTime}**.`,
         
       });
     }
@@ -48,8 +48,8 @@ module.exports = {
     // Response embed
     const embed = new EmbedBuilder()
       .setTitle('🎁 Daily Reward Claimed!')
-      .setDescription([`You've received:\n• **${reward.patterns}** patterns\n• **${reward.sopop}** sopop`,
-        `\n__Your Balance__:\n• ${user.patterns} patterns\n• ${user.sopop} sopop`
+      .setDescription([`You've received:\n• <:ehx_patterns:1389584144895315978> **${reward.patterns}** Patterns\n• <:ehx_sopop:1389584273337618542> **${reward.sopop}** Sopop`,
+        `\n__Your Balance__:\n• <:ehx_patterns:1389584144895315978> ${user.patterns} Patterns\n• <:ehx_sopop:1389584273337618542> ${user.sopop} Sopop`
       ].join('\n'))
       .setColor('#78c5f1');
 

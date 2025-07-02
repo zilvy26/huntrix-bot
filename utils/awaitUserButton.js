@@ -9,23 +9,16 @@ const { ComponentType } = require('discord.js');
  * @param {number} timeout - How long to wait for interaction (in ms, default: 60s)
  * @returns {Promise<ButtonInteraction|null>} - The interaction if confirmed, or null on timeout
  */
-module.exports = async function awaitUserButton(interaction, user, customIds = [], timeout = 60000) {
-  if (!interaction.replied && !interaction.deferred) {
-    throw new Error('Interaction must be replied or deferred before awaiting a button.');
-  }
-
-  const msg = await interaction.fetchReply();
-
+module.exports = async function awaitUserButton(interaction, userId, ids, timeout = 120000) {
+  const message = await interaction.fetchReply();
   return new Promise((resolve) => {
-    const collector = msg.createMessageComponentCollector({
-      componentType: ComponentType.Button,
-      time: timeout,
-      filter: (btn) => {
-        return btn.user.id === user.id && customIds.includes(btn.customId);
-      }
+    const collector = message.createMessageComponentCollector({
+      filter: i => i.user.id === userId && ids.includes(i.customId),
+      time: timeout
     });
 
-    collector.on('collect', (btnInteraction) => {
+    collector.on('collect', async (btnInteraction) => {
+      await btnInteraction.deferUpdate(); // ✅ Auto-defers all buttons
       collector.stop('collected');
       resolve(btnInteraction);
     });

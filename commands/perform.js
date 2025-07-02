@@ -9,8 +9,8 @@ function getRandomInt(min, max) {
 }
 
 function shouldDropSopop() {
-  // ~10% chance to get sopop
-  return Math.random() < 0.10;
+  // ~25% chance to get sopop
+  return Math.random() < 0.25;
 }
 
 module.exports = {
@@ -34,7 +34,7 @@ module.exports = {
     if (cooldowns.isOnCooldown(userId, commandName)) {
       const nextTime = cooldowns.getCooldownTimestamp(userId, commandName);
       return interaction.reply({
-        content: `🎭 You're tired from your last performance. Come back at **${nextTime}**.`,
+        content: `You're tired from your last performance. Come back **${nextTime}**.`,
         
       });
     }
@@ -55,9 +55,9 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setTitle('🎤 Performance Complete!')
       .setDescription([
-        `You earned:\n• **${patterns}** patterns`,
-        sopop ? `• 🌟 **1** sopop` : `• 💤 No sopop this time`,
-        `\n__Your Balance__:\n• ${user.patterns} patterns\n• ${user.sopop} sopop`
+        `You earned:\n• <:ehx_patterns:1389584144895315978> **${patterns}** Patterns`,
+        sopop ? `• <:ehx_sopop:1389584273337618542> **1** Sopop` : `• <:ehx_sopop:1389584273337618542> **0** Sopop`,
+        `\n__Your Balance__:\n• <:ehx_patterns:1389584144895315978> ${user.patterns} Patterns\n• <:ehx_sopop:1389584273337618542> ${user.sopop} Sopop`
       ].join('\n'))
       .setColor('#f9a825');
 

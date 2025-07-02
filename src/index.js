@@ -34,7 +34,7 @@ client.on('interactionCreate', async interaction => {
   // 🔒 Maintenance mode check
   if (maintenance?.active && !isBypassed && !isDev) {
     return interaction.reply({
-      content: '🚧 The bot is currently under maintenance. Please try again later.'
+      content: 'The bot is currently under maintenance. Please try again later.'
     });
   }
 
@@ -43,7 +43,7 @@ client.on('interactionCreate', async interaction => {
     const userExists = await User.exists({ userId: interaction.user.id });
     if (!userExists) {
       return interaction.reply({
-        content: '🧠 You must register first using `/register` to use this command.'
+        content: 'You must register first using `/register` to use this command.'
       });
     }
   }

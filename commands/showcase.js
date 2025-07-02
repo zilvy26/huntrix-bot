@@ -6,6 +6,7 @@ const {
   ButtonStyle
 } = require('discord.js');
 const Card = require('../models/Card');
+const UserInventory = require('../models/UserInventory');
 const generateStars = require('../utils/starGenerator');
 
 module.exports = {
@@ -20,43 +21,51 @@ module.exports = {
   async execute(interaction) {
     const rawInput = interaction.options.getString('cardcodes');
     const codes = rawInput.split(',').map(c => c.trim().toUpperCase()).filter(Boolean);
+    const userId = interaction.user.id;
 
     if (!codes.length) {
       return interaction.reply({ content: '❌ You must provide at least one valid card code.' });
     }
 
-    const cards = await Card.find({ cardCode: { $in: codes } });
+    const [cards, userInventory] = await Promise.all([
+      Card.find({ cardCode: { $in: codes } }),
+      UserInventory.findOne({ userId })
+    ]);
 
     if (!cards.length) {
-      return interaction.reply({ content: '❌ No cards found for those codes.' });
+      return interaction.reply({ content: '❌ No cards found for those codes.'});
     }
 
     const embeds = cards.map(card => {
       const stars = generateStars({ rarity: card.rarity });
+      const owned = userInventory?.cards?.find(c => c.cardCode === card.cardCode);
+      const copies = owned?.quantity || 0;
+
       const desc = [
         `**${stars}**`,
         `**Name:** ${card.name}`,
         ...(card.category?.toLowerCase() === 'kpop' ? [`**Era:** ${card.era}`] : []),
         `**Group:** ${card.group}`,
         `**Card Code:** \`${card.cardCode}\``,
-        `**Designer:** <@${card.designerId || 'Unknown'}>`,
-        `**Pullable:** ${card.pullable ? '✅ Yes' : '❌ No'}`
+        `**Copies Owned:** ${copies}`,
+        `**Designer:** <@${card.designerId || 'Unknown'}>`
       ];
 
       return new EmbedBuilder()
-        .setTitle(`🎴 Card Showcase`)
+        .setTitle(`Card Showcase`)
         .setDescription(desc.join('\n'))
         .setImage(card.discordPermLinkImage || card.imgurImageLink)
+        .setFooter({ text: `Pullable: ${card.pullable ? 'Yes' : 'No'}` })
         .setColor('#2f3136');
     });
 
     let current = 0;
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('first').setLabel('⏮ First').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId('prev').setLabel('◀ Back').setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId('next').setLabel('Next ▶').setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId('last').setLabel('Last ⏭').setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId('first').setLabel('⏮ First').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1),
+      new ButtonBuilder().setCustomId('prev').setLabel('◀ Back').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1),
+      new ButtonBuilder().setCustomId('next').setLabel('Next ▶').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1),
+      new ButtonBuilder().setCustomId('last').setLabel('Last ⏭').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1)
     );
 
     await interaction.reply({ embeds: [embeds[current]], components: [row] });

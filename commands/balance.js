@@ -25,10 +25,10 @@ module.exports = {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle(`💰 Balance for ${targetUser.username}`)
+      .setTitle(`Balance for ${targetUser.username}`)
       .addFields(
-        { name: 'Patterns', value: `${userData.patterns}`, inline: true },
-        { name: 'Sopop', value: `${userData.sopop}`, inline: true }
+        { name: '__Patterns__', value: `<:ehx_patterns:1389584144895315978> ${userData.patterns}`, inline: true },
+        { name: '__Sopop__', value: `<:ehx_sopop:1389584273337618542> ${userData.sopop}`, inline: true }
       )
       .setColor('#FFD700')
       .setFooter({ text: `Requested by ${interaction.user.username}` });

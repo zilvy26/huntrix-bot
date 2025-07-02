@@ -30,7 +30,7 @@ module.exports = {
 
     if (isOnCooldown(userId, commandName)) {
       return interaction.reply({
-        content: `⏳ You must wait until **${getCooldownTimestamp(userId, commandName)}** to pull again.`,
+        content: `⏳ You must wait **${getCooldownTimestamp(userId, commandName)}** to pull again.`,
         
       });
     }
@@ -81,17 +81,17 @@ module.exports = {
       const found = inv.cards.find(v => v.cardCode === c.cardCode);
       if (found) {
         found.quantity += 1;
-        pullLines.push(`${emoji} ${c.name} \(${c.cardCode})\ ×1 (Total: ${found.quantity})`);
+        pullLines.push(`${emoji} **${c.name}** \`${c.cardCode}\` (Total: **${found.quantity}**)`);
       } else {
         inv.cards.push({ cardCode: c.cardCode, quantity: 1 });
-        pullLines.push(`${emoji} ${c.name} \(${c.cardCode})\ ×1 (Total: 1)`);
+        pullLines.push(`${emoji} **${c.name}** · \`${c.cardCode}\` · (Total: **1**)`);
       }
     }
     await inv.save();
 
     // 🧾 Final embed
     const embed = new EmbedBuilder()
-      .setTitle('🎉 Multi Pull Complete!')
+      .setTitle('Special Pull Complete!')
       .setImage('attachment://pull10.png')
       .setColor('#2f3136')
       .setDescription(pullLines.join('\n'))
@@ -101,6 +101,16 @@ module.exports = {
       embeds: [embed],
       files: [attachment]
     });
+
+    const UserRecord = require('../models/UserRecord');
+
+for (const card of cards) {
+  await UserRecord.create({
+    userId: userId,
+    type: 'pull10',
+    detail: `Pulled ${card.name} (${card.cardCode}) [${card.rarity}]`
+  });
+}
 
     // 🕒 Set cooldown & reminders
     setCooldown(userId, commandName, cooldownDuration);
