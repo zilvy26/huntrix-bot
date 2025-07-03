@@ -142,9 +142,9 @@ for (const o of matches) {
       for (let i = 0; i < g.qty; i++) {
         await UserRecord.create({
           userId: target.id,
-          type: 'tradecard',
+          type: 'trademulti',
           targetId: giver.id,
-          detail: `Received ${g.card.name} (${g.card.cardCode}) [${g.card.rarity}]`
+          detail: `Received ${g.card.name} (${g.card.cardCode}) [${g.card.rarity}] from <@${interaction.user.id}>`
         });
       }
     }

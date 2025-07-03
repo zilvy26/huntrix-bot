@@ -69,27 +69,25 @@ module.exports = {
       components: [getRow(current)]
     });
 
-    while (true) {
-      const btn = await awaitUserButton(interaction, interaction.user, ['first', 'prev', 'next', 'last'], 120000);
-      if (!btn) break;
-
-      await btn.deferUpdate();
-
-      if (btn.customId === 'first') current = 0;
-      if (btn.customId === 'prev') current = Math.max(current - 1, 0);
-      if (btn.customId === 'next') current = Math.min(current + 1, totalPages - 1);
-      if (btn.customId === 'last') current = totalPages - 1;
-
-      await interaction.editReply({
-        embeds: [getPage(current)],
-        components: [getRow(current)]
-      });
-    }
-
-    try {
-      await interaction.editReply({ components: [] });
-    } catch (err) {
-      console.warn('Pagination cleanup failed:', err.message);
-    }
-  }
-};
+    await interaction.editReply({ embeds: [getPage(current)], components: [getRow()] });
+    
+        while (true) {
+          const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
+          if (!btn) break;
+    
+          if (btn.customId === 'first') current = 0;
+          if (btn.customId === 'prev') current = Math.max(0, current - 1);
+          if (btn.customId === 'next') current = Math.min(totalPages - 1, current + 1);
+          if (btn.customId === 'last') current = totalPages - 1;
+    
+          await interaction.editReply({ embeds: [getPage(current)], components: [getRow()] });
+        }
+    
+        // Final cleanup
+        try {
+          await interaction.editReply({ components: [] });
+        } catch (err) {
+          console.warn('Pagination cleanup failed:', err.message);
+        }
+      }
+    };

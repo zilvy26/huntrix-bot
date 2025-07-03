@@ -40,7 +40,7 @@ module.exports = {
     }
 
     // Generate randomized rewards
-    const patterns = getRandomInt(750, 1500);
+    const patterns = getRandomInt(1000, 1750);
     const sopop = shouldDropSopop() ? 1 : 0;
 
     // Give currency

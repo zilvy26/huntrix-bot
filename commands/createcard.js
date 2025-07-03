@@ -28,6 +28,8 @@ module.exports = {
           { name: 'KPOP', value: 'kpop' },
           { name: 'ANIME', value: 'anime' },
           { name: 'GAME', value: 'game' },
+          { name: 'EVENT', value: 'event' },
+          { name: 'ZODIAC', value: 'zodiac' },
           { name: 'OTHERS', value: 'others' }
         ).setRequired(true))
     .addAttachmentOption(opt =>
@@ -37,11 +39,11 @@ module.exports = {
         .setDescription('Rarity (1–5)')
         .setRequired(false)
         .addChoices(
-          { name: '1 Soul', value: '1' },
-          { name: '2 Souls', value: '2' },
-          { name: '3 Souls', value: '3' },
-          { name: '4 Souls', value: '4' },
-          { name: '5 Souls', value: '5' }
+          { name: '1 Star', value: '1' },
+          { name: '2 Stars', value: '2' },
+          { name: '3 Stars', value: '3' },
+          { name: '4 Stars', value: '4' },
+          { name: '5 Stars', value: '5' }
         ))
     .addStringOption(opt =>
       opt.setName('emoji').setDescription('Optional custom emoji (one) to override stars').setRequired(false))
