@@ -18,10 +18,17 @@ module.exports = async function awaitUserButton(interaction, userId, ids, timeou
     });
 
     collector.on('collect', async (btnInteraction) => {
-      await btnInteraction.deferUpdate(); // ✅ Auto-defers all buttons
-      collector.stop('collected');
-      resolve(btnInteraction);
-    });
+  try {
+    if (!btnInteraction.replied && !btnInteraction.deferred) {
+      await btnInteraction.deferUpdate(); // Prevent "already acknowledged" error
+    }
+  } catch (e) {
+    console.warn('Button defer failed:', e.message);
+  }
+
+  collector.stop('collected');
+  resolve(btnInteraction);
+});
 
     collector.on('end', (_, reason) => {
       if (reason !== 'collected') resolve(null);

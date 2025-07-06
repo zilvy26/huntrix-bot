@@ -179,40 +179,70 @@ if (image) embed.setImage(image);
   });
 
   collector.on('collect', async btn => {
-    if (btn.user.id !== interaction.user.id) {
-      return btn.reply({ content: '❌ These buttons aren’t for you!', ephemeral: true });
-    }
+  if (btn.user.id !== interaction.user.id) {
+    return btn.reply({ content: '⚠️ Only the command invoker can use these buttons.', ephemeral: true });
+  }
 
-    if (btn.customId === 'next') {
-      index = (index + 1) % pages.length;
-      return btn.update({ embeds: [pages[index]] });
+  // Safely handle deferring the button interaction
+  const safeDefer = async () => {
+    if (!btn.replied && !btn.deferred) {
+      try {
+        await btn.deferUpdate();
+      } catch (err) {
+        console.warn('Failed to defer update:', err.message);
+      }
     }
+  };
 
-    if (btn.customId === 'back') {
-      index = (index - 1 + pages.length) % pages.length;
-      return btn.update({ embeds: [pages[index]] });
-    }
+  if (btn.customId === 'next') {
+    index = (index + 1) % pages.length;
+    await safeDefer();
+    return interaction.editReply({ embeds: [pages[index]], components: [new ActionRowBuilder().addComponents(backBtn, nextBtn, confirmBtn, cancelBtn)] });
+  }
 
-    if (btn.customId === 'cancel') {
-      collector.stop('cancelled');
-      return btn.update({ content: '❌ Update cancelled.', embeds: [], components: [] });
-    }
+  if (btn.customId === 'back') {
+    index = (index - 1 + pages.length) % pages.length;
+    await safeDefer();
+    return interaction.editReply({ embeds: [pages[index]], components: [new ActionRowBuilder().addComponents(backBtn, nextBtn, confirmBtn, cancelBtn)] });
+  }
 
-    if (btn.customId === 'confirm') {
-      collector.stop('confirmed');
-      await Card.updateMany(filters, { $set: updates });
-      return btn.update({ content: `✅ Updated ${matchedCards.length} card(s).`, embeds: [], components: [] });
-    }
-  });
+  if (btn.customId === 'confirm') {
+    collector.stop('confirmed');
+    await safeDefer();
+    await Card.updateMany(filters, { $set: updates });
+    return interaction.editReply({
+      content: `✅ Updated ${matchedCards.length} card(s).`,
+      embeds: [],
+      components: []
+    });
+  }
 
-  collector.on('end', (_, reason) => {
-    if (!['confirmed', 'cancelled'].includes(reason)) {
-      interaction.editReply({
-        content: '⌛ Command timed out with no action.',
-        embeds: [],
-        components: []
-      });
+  if (btn.customId === 'cancel') {
+    collector.stop('cancelled');
+    await safeDefer();
+    return interaction.editReply({
+      content: '❌ Edit operation cancelled.',
+      embeds: [],
+      components: []
+    });
+  }
+});
+
+  collector.on('end', async (_, reason) => {
+  if (!['confirmed', 'cancelled'].includes(reason)) {
+    try {
+      const reply = await interaction.fetchReply();
+      if (!reply.ephemeral && !reply.deleted) {
+        await interaction.editReply({
+          content: '⌛ Command timed out with no action.',
+          embeds: [],
+          components: []
+        });
+      }
+    } catch (err) {
+      console.warn('❗ Attempted to edit an already handled interaction:', err.message);
     }
-  });
+  }
+});
 }
 };

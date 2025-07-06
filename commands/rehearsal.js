@@ -37,6 +37,10 @@ module.exports = {
       });
     }
 
+    // 🧠 Cooldown & Reminder
+    setCooldown(userId, commandName, cooldownDuration);
+    await handleReminders(interaction, commandName, cooldownDuration);
+
     // 🔄 Get 3 random pullable cards
     const cards = await Card.aggregate([
       { $match: { pullable: true } },
@@ -104,75 +108,80 @@ module.exports = {
     });
 
     collector.on('collect', async btn => {
+  try {
+    if (!btn.deferred && !btn.replied) {
       await btn.deferUpdate();
-      const idx = parseInt(btn.customId.split('_')[1]);
-      const selected = cards[idx];
+    }
 
-      // 🎁 Sopop reward only
-      const sopop = Math.random() < 0.58 
-        ? (Math.random() < 0.75 ? 1 : 2) // 75% for 1, 25% for 2
-        : 0;
-      const user = await giveCurrency(userId, { sopop });
+    const idx = parseInt(btn.customId.split('_')[1]);
+    const selected = cards[idx];
 
-      // 💾 Add to UserInventory
-      let inv = await UserInventory.findOne({ userId });
-      if (!inv) inv = await UserInventory.create({ userId, cards: [] });
+    // 🎁 Reward logic
+    const sopop = Math.random() < 0.58 
+      ? (Math.random() < 0.75 ? 1 : 2)
+      : 0;
+    const user = await giveCurrency(userId, { sopop });
 
-      const existing = inv.cards.find(c => c.cardCode === selected.cardCode);
-      let copies = 1;
-      if (existing) {
-        existing.quantity += 1;
-        copies = existing.quantity;
-      } else {
-        inv.cards.push({ cardCode: selected.cardCode, quantity: 1 });
-      }
-      await inv.save();
+    // 🧩 Update inventory
+    let inv = await UserInventory.findOne({ userId });
+    if (!inv) inv = await UserInventory.create({ userId, cards: [] });
 
-      // ⏱ Cooldown + Reminder
-      setCooldown(userId, commandName, cooldownDuration);
-      await handleReminders(interaction, commandName, cooldownDuration);
+    const existing = inv.cards.find(c => c.cardCode === selected.cardCode);
+    let copies = 1;
+    if (existing) {
+      existing.quantity += 1;
+      copies = existing.quantity;
+    } else {
+      inv.cards.push({ cardCode: selected.cardCode, quantity: 1 });
+    }
+    await inv.save();
 
-      // ✅ Log the rehearsal pull
-  await UserRecord.create({
-    userId: userId,
-    type: 'rehearsal',
-    detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
-  });
+    // 📝 Log
+    await UserRecord.create({
+      userId: userId,
+      type: 'rehearsal',
+      detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
+    });
 
-      // 🎯 Replace old canvas embed with final result
-      const resultEmbed = new EmbedBuilder()
-        .setTitle(`🎶 You chose: ${selected.name}`)
-        .setDescription([
-          `**Rarity:** ${selected.rarity}`,
-          `**Name:** ${selected.name}`,
-          ...(selected.category?.toLowerCase() === 'kpop' ? [`**Era:** ${selected.era}`] : []),
-          `**Group:** ${selected.group}`,
-          `**Code:** \`${selected.cardCode}\``,
-          `**Copies Owned:** ${copies}`,
-          `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
-        ].join('\n'))
-        .setImage(selected.discordPermLinkImage || selected.imgurImageLink)
-        .setColor('#FFD700')
+    // 🖼️ Result embed
+    const resultEmbed = new EmbedBuilder()
+      .setTitle(`🎶 You chose: ${selected.name}`)
+      .setDescription([
+        `**Rarity:** ${selected.rarity}`,
+        `**Name:** ${selected.name}`,
+        ...(selected.category?.toLowerCase() === 'kpop' ? [`**Era:** ${selected.era}`] : []),
+        `**Group:** ${selected.group}`,
+        `**Code:** \`${selected.cardCode}\``,
+        `**Copies Owned:** ${copies}`,
+        `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
+      ].join('\n'))
+      .setImage(selected.discordPermLinkImage || selected.imgurImageLink)
+      .setColor('#FFD700');
 
-      await btn.editReply({
-        embeds: [resultEmbed],
-        files: [],
+    await btn.editReply({
+      embeds: [resultEmbed],
+      files: [],
+      components: []
+    });
+
+    collector.stop(); // ✅ Ensure we stop early to avoid future interactions
+  } catch (err) {
+    console.error('❌ Rehearsal button error:', err);
+    await btn.followUp({ content: 'Something went wrong while selecting your card.' }).catch(() => {});
+  }
+});
+
+  collector.on('end', async (_, reason) => {
+  if (reason === 'time') {
+    try {
+      await interaction.editReply({
+        content: '⏰ Time ran out. Please try again.',
         components: []
       });
-    });
-
-
-    collector.on('end', async collected => {
-      if (collected.size === 0) {
-        try {
-          await interaction.editReply({
-            content: '⏰ You took too long. Try `/rehearsal` again later!',
-            components: []
-          });
-        } catch (err) {
-          console.warn('⏱️ Timeout edit failed:', err.message);
-        }
-      }
-    });
+    } catch (err) {
+      console.warn('⚠️ Failed to disable components after timeout:', err.message);
+    }
+  }
+});
   }
 };

@@ -93,12 +93,20 @@ module.exports = {
   return `**${i + 1 + (page * pageSize)}.** ${userTag} • ${metric}`;
 }));
 
-      return new EmbedBuilder()
-        .setTitle(`📊 Chart Rankings (${sortBy === 'cards' ? 'Cards' : 'Stars'})`)
-        .setColor('#2f3136')
-        .setDescription(lines.join('\n\n') || 'No matching users.')
-        .setFooter({ text: `Page ${page + 1} of ${totalPages}` });
-    };
+      const filters = [
+  groupFilter ? `Group: ${groupFilter}` : null,
+  nameFilter ? `Name: ${nameFilter}` : null,
+  eraFilter ? `Era: ${eraFilter}` : null
+].filter(Boolean).join(' | ');
+
+const filterTitle = filters ? `Filtered by ${filters}` : (sortBy === 'cards' ? 'Cards' : 'Stars');
+
+return new EmbedBuilder()
+  .setTitle(`Chart Rankings (${filterTitle})`)
+  .setColor('#2f3136')
+  .setDescription(lines.join('\n\n') || 'No matching users.')
+  .setFooter({ text: `Page ${page + 1} of ${totalPages}` });
+};
 
     const renderRow = () => new ActionRowBuilder().addComponents(
                   new ButtonBuilder().setCustomId('first').setLabel('⏮ First').setStyle(ButtonStyle.Secondary).setDisabled(current === 0),

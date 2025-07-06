@@ -25,16 +25,33 @@ module.exports = {
   async execute(interaction) {
     const userId = interaction.user.id;
     const commandName = 'pull';
+    
     const cooldownDuration = cooldowns[commandName];
+  if (!cooldownDuration) {
+    console.warn(`⚠️ Cooldown not defined for command: ${commandName}`);
+    return; // Or skip cooldown logic
+  }
+
+    // 🔎 Check if user has booster role
+  const boosterRoleId = '1387230787929243780';
+  const hasBooster = interaction.member.roles.cache.has(boosterRoleId);
+
+// ⏱ Calculate correct cooldown
+  const cooldownMs = typeof cooldownDuration === 'object'
+  ? (hasBooster ? cooldownDuration.booster : cooldownDuration.default)
+  : cooldownDuration;
 
     // 🔒 Cooldown check
     if (isOnCooldown(userId, commandName)) {
-      const nextTime = getCooldownTimestamp(userId, commandName);
+      const nextTime = getCooldownTimestamp(userId, commandName, cooldownMs);
       return interaction.reply({
         content: `⏳ You must wait ${nextTime} before using \`/pull\` again.`,
         
       });
     }
+
+    // ✅ Set cooldown
+    setCooldown(userId, commandName, cooldownMs);
 
     await interaction.deferReply();
 
@@ -83,11 +100,8 @@ module.exports = {
       .setImage(card.discordPermLinkImage || card.imgurImageLink)
       .setFooter({ text: `Pulled ${pulledReadable}` });
 
-    // ✅ Set cooldown
-    setCooldown(userId, commandName, cooldownDuration);
-
     // ✅ Handle reminders via utility
-    await handleReminders(interaction, commandName, cooldownDuration);
+    await handleReminders(interaction, commandName, cooldownMs);
 
     await UserRecord.create({
   userId: userId,

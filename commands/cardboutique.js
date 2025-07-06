@@ -22,8 +22,12 @@ const rarityWeights = {
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('cardboutique')
-    .setDescription('Spend Patterns or Sopops for card pulls')
+    .setName('boutique')
+.setDescription('Spend Patterns or Sopops for card pulls')
+.addSubcommand(subcommand =>
+  subcommand
+    .setName('cards')
+    .setDescription('Buy cards from Boutique')
     .addStringOption(opt =>
       opt.setName('shop')
         .setDescription('Choose a shop pull type')
@@ -32,23 +36,29 @@ module.exports = {
           { name: '20 Random & Guaranteed 5S | 10K Patterns', value: 'random20' },
           { name: '10 Chosen | 6K Patterns', value: 'choice10' },
           { name: 'Special Pull | 1K Patterns & 1 Sopop', value: 'special' }
-        ))
+        )
+    )
     .addIntegerOption(opt =>
       opt.setName('amount')
         .setDescription('How many pulls (1–50)')
         .setRequired(true)
         .setMinValue(1)
-        .setMaxValue(50))
+        .setMaxValue(50)
+    )
     // *** For choice10 filters ***
     .addStringOption(opt =>
       opt.setName('groups')
-        .setDescription('Comma‑separated groups'))
+        .setDescription('Comma‑separated groups')
+    )
     .addStringOption(opt =>
       opt.setName('names')
-        .setDescription('Comma‑separated names'))
+        .setDescription('Comma‑separated names')
+    )
     .addStringOption(opt =>
       opt.setName('eras')
-        .setDescription('Comma‑separated eras')),
+        .setDescription('Comma‑separated eras')
+    )
+),
 
   async execute(interaction) {
     await interaction.deferReply();
@@ -192,7 +202,7 @@ for (let i = 0; i < amount; i++) {
       for (let i = 0; i < info.qty; i++) {
         await UserRecord.create({
           userId,
-          type: 'cardboutique',
+          type: 'boutiquecard',
           detail: `Granted ${info.card.name} (${code}) [${info.card.rarity}] via ${shopType}`
         });
       }
@@ -216,7 +226,7 @@ for (let i = 0; i < amount; i++) {
       }).join('\n');
 
       return new EmbedBuilder()
-        .setTitle(`Card Boutique Results`)
+        .setTitle(`Boutique Card Results`)
         .setColor('#009688')
         .setDescription(desc)
         .addFields(

@@ -57,93 +57,107 @@ module.exports = {
       opt.setName('pullable').setDescription('Is this card available in pulls?').setRequired(false)),
 
   async execute(interaction) {
-    await interaction.deferReply();
+  await interaction.deferReply();
 
-    try {
-      const allowedRole = process.env.CARD_CREATOR_ROLE_ID;
-      if (!interaction.member.roles.cache.has(allowedRole)) {
-        return interaction.editReply({ content: '🚫 You do not have permission to use this command.' });
-      }
+  try {
+    const allowedRole = process.env.CARD_CREATOR_ROLE_ID;
+    if (!interaction.member.roles.cache.has(allowedRole)) {
+      return interaction.editReply({ content: '🚫 You do not have permission to use this command.' });
+    }
 
-      const opts = interaction.options;
-      const cardCode = opts.getString('cardcode');
-      const name = opts.getString('name');
-      const category = opts.getString('category');
-      const rarityInput = opts.getString('rarity');
-      const rarity = parseRarity(rarityInput); // will be 0–5
-      const emoji = opts.getString('emoji');
-      const designer = opts.getUser('designer') || interaction.user;
-      const pullable = opts.getBoolean('pullable') ?? true;
-      const group = opts.getString('group');
-      const era = opts.getString('era');
-      const attachment = opts.getAttachment('image');
+    const opts = interaction.options;
+    const cardCode = opts.getString('cardcode');
+    const name = opts.getString('name');
+    const category = opts.getString('category');
+    const rarityInput = opts.getString('rarity');
+    const rarity = parseRarity(rarityInput); // 0–5
+    const emoji = opts.getString('emoji');
+    const designerUser = opts.getUser('designer') || interaction.user;
+    const designerId = designerUser.id;
+    const pullable = opts.getBoolean('pullable') ?? true;
+    const group = opts.getString('group');
+    const era = opts.getString('era');
+    const attachment = opts.getAttachment('image');
 
-      if (await Card.findOne({ cardCode })) {
-        return interaction.editReply({ content: `⚠️ A card with code \`${cardCode}\` already exists.` });
-      }
+    if (await Card.findOne({ cardCode })) {
+      return interaction.editReply({ content: `⚠️ A card with code \`${cardCode}\` already exists.` });
+    }
 
-      const { discordUrl, imgurUrl } = await uploadCardImage(interaction.client, attachment.url, name, cardCode);
-      if (!discordUrl) throw new Error('❌ Discord upload failed.');
+    const { discordUrl, imgurUrl } = await uploadCardImage(interaction.client, attachment.url, name, cardCode);
+    if (!discordUrl) throw new Error('❌ Discord upload failed.');
+    const image = discordUrl;
 
-      const stars = generateStars({
-        rarity,
-        overrideEmoji: emoji
-      });
+    const stars = generateStars({ rarity, overrideEmoji: emoji });
 
-      const previewEmbed = new EmbedBuilder()
-        .setTitle(stars)
-        .setColor('Blurple')
-        .setImage(discordUrl)
-        .addFields(
-          { name: 'Name', value: name, inline: true },
-          { name: 'Code', value: cardCode, inline: true },
-          { name: 'Category', value: category, inline: true },
-          { name: 'Group', value: group || '-', inline: true },
-          { name: 'Era', value: era || '-', inline: true },
-          { name: 'Designer', value: `<@${designer.id}>`, inline: true },
-          { name: 'Imgur Link', value: imgurUrl || '⚠️ Failed', inline: false }
-        );
-
-      const confirmRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('confirm').setLabel('Confirm').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('cancel').setLabel('Cancel').setStyle(ButtonStyle.Danger)
+    const previewEmbed = new EmbedBuilder()
+      .setTitle(stars)
+      .setColor('Blurple')
+      .setImage(discordUrl)
+      .addFields(
+        { name: 'Name', value: name, inline: true },
+        { name: 'Code', value: cardCode, inline: true },
+        { name: 'Category', value: category, inline: true },
+        { name: 'Group', value: group || '-', inline: true },
+        { name: 'Era', value: era || '-', inline: true },
+        { name: 'Designer', value: `<@${designerId}>`, inline: true },
+        { name: 'Imgur Link', value: imgurUrl || '⚠️ Failed', inline: false }
       );
 
-      await interaction.editReply({ embeds: [previewEmbed], components: [confirmRow] });
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('confirm').setLabel('✅ Confirm').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('cancel').setLabel('❌ Cancel').setStyle(ButtonStyle.Danger)
+    );
 
-      const button = await awaitUserButton(interaction, interaction.user, ['confirm', 'cancel'], 60000);
+    await interaction.editReply({ embeds: [previewEmbed], components: [row] });
 
-      if (!button) {
-        return interaction.editReply({ content: '⌛ No response — cancelled.', components: [] });
+    const btn = await awaitUserButton(interaction, interaction.user.id, ['confirm', 'cancel'], 120000);
+
+    if (!btn) {
+      return btn.update({ content: '⌛ No response — cancelled.', components: [] });
+    }
+
+    if (!btn.deferred && !btn.replied) {
+      try {
+        await btn.deferUpdate();
+      } catch (err) {
+        console.warn('Failed to defer update:', err);
       }
+    }
 
-      if (button.customId === 'cancel') {
-        return button.update({ content: '❌ Cancelled.', embeds: [], components: [] });
-      }
-
+    if (btn.customId === 'confirm') {
       await Card.create({
         cardCode,
         name,
         category,
         rarity,
-        group,
-        era,
-        discordPermlinkImage: discordUrl,
+        emoji: emoji || null,
+        designerId,
+        discordPermalinkImage: image,
         imgurImageLink: imgurUrl,
-        designerId: designer.id,
         pullable,
-        emoji
+        group,
+        era
       });
 
-      return button.update({ content: `✅ Card **${name}** [${cardCode}] saved!`, embeds: [], components: [] });
-
-    } catch (err) {
-      console.error('❌ Error in /createcard:', err);
-      if (!interaction.replied && !interaction.deferred) {
-        return interaction.reply({ content: '❌ There was an error executing the command.', ephemeral: true });
-      } else {
-        return interaction.editReply({ content: '❌ There was an error executing the command.', embeds: [], components: [] });
-      }
+      return interaction.editReply({
+        content: `✅ Card \`${cardCode}\` created successfully.`,
+        embeds: [],
+        components: []
+      });
+    } else if (btn.customId === 'cancel') {
+      return interaction.editReply({
+        content: '❌ Card creation cancelled.',
+        components: []
+      });
+    }
+  } catch (err) {
+    console.error('❌ Error in /createcard:', err);
+    if (!interaction.replied && !interaction.deferred) {
+      return interaction.reply({
+        content: '❌ There was an error executing the command.',
+        ephemeral: true
+      });
     }
   }
+}
 };

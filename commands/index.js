@@ -101,7 +101,7 @@ const filters = {
     await interaction.editReply({ embeds: [makeEmbed(page)], components: [makeRow()] });
 
     while (true) {
-      const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last', 'copy'], 120_000);
+      const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last', 'copy'], 120000);
       if (!btn) break;
 
       if (btn.customId === 'first') page = 0;

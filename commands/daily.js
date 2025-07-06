@@ -31,6 +31,9 @@ module.exports = {
       });
     }
 
+    // Set cooldown
+    cooldowns.setCooldown(userId, commandName, cooldownDuration);
+
     // Reward values
     const reward = {
       patterns: 10000,
@@ -39,9 +42,6 @@ module.exports = {
 
     // Grant currency
     const user = await giveCurrency(userId, reward);
-
-    // Set cooldown
-    cooldowns.setCooldown(userId, commandName, cooldownDuration);
 
     await handleReminders(interaction, 'daily', cooldownDuration);
 

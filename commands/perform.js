@@ -39,15 +39,15 @@ module.exports = {
       });
     }
 
+    // Set cooldown
+    cooldowns.setCooldown(userId, commandName, cooldownDuration);
+
     // Generate randomized rewards
     const patterns = getRandomInt(1000, 1750);
     const sopop = shouldDropSopop() ? 1 : 0;
 
     // Give currency
     const user = await giveCurrency(userId, { patterns, sopop });
-
-    // Set cooldown
-    cooldowns.setCooldown(userId, commandName, cooldownDuration);
 
     await handleReminders(interaction, 'perform', cooldownDuration);
 

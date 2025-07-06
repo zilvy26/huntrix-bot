@@ -35,6 +35,10 @@ module.exports = {
       });
     }
 
+    // 🕒 Set cooldown & reminders
+    setCooldown(userId, commandName, cooldownDuration);
+    await handleReminders(interaction, commandName, cooldownDuration);
+
     await interaction.deferReply();
 
     // 🃏 Fetch 10 random pullable cards
@@ -111,9 +115,5 @@ for (const card of cards) {
     detail: `Pulled ${card.name} (${card.cardCode}) [${card.rarity}]`
   });
 }
-
-    // 🕒 Set cooldown & reminders
-    setCooldown(userId, commandName, cooldownDuration);
-    await handleReminders(interaction, commandName, cooldownDuration);
   }
 };
