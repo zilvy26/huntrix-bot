@@ -91,11 +91,11 @@ const filters = {
     };
 
     const makeRow = () => new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('first').setLabel('⏮').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
-      new ButtonBuilder().setCustomId('prev').setLabel('◀').setStyle(ButtonStyle.Primary).setDisabled(page === 0),
-      new ButtonBuilder().setCustomId('next').setLabel('▶').setStyle(ButtonStyle.Primary).setDisabled(page >= totalPages - 1),
-      new ButtonBuilder().setCustomId('last').setLabel('⏭').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1),
-      new ButtonBuilder().setCustomId('copy').setLabel('📋 Copy Codes').setStyle(ButtonStyle.Success)
+      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(page === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(page === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(page >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+      new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+      new ButtonBuilder().setCustomId('copy').setLabel('Copy Codes').setStyle(ButtonStyle.Success)
     );
 
     await interaction.editReply({ embeds: [makeEmbed(page)], components: [makeRow()] });

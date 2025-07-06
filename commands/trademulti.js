@@ -34,6 +34,11 @@ module.exports = {
   opt.setName('maxstars')
     .setDescription('Max total rarity (Stars) allowed to be gifted')
     .setRequired(false)
+)
+.addStringOption(opt =>
+  opt.setName('rarityrange')
+    .setDescription('Rarity range in format like 1-3 or 2-5')
+    .setRequired(false)
 ),
 
   async execute(interaction) {
@@ -51,6 +56,23 @@ module.exports = {
 };
     const mode = interaction.options.getString('mode');
     const maxStars = interaction.options.getInteger('maxstars') ?? Infinity;
+
+    const rarityRangeRaw = interaction.options.getString('rarityrange');
+let minRarity = 1, maxRarity = 5;
+
+if (rarityRangeRaw) {
+  const match = rarityRangeRaw.match(/^(\d+)-(\d+)$/);
+  if (match) {
+    minRarity = Math.max(1, Math.min(5, parseInt(match[1])));
+    maxRarity = Math.max(1, Math.min(5, parseInt(match[2])));
+    if (minRarity > maxRarity) [minRarity, maxRarity] = [maxRarity, minRarity]; // auto-swap if reversed
+  } else {
+    return interaction.reply({
+      content: `❌ Invalid rarity range format. Please use \`1-3\`, \`2-5\`, etc.`,
+      
+    });
+  }
+}
 
     if (target.id === giver.id) {
       return interaction.editReply('❌ You can’t gift cards to yourself.');
@@ -83,6 +105,8 @@ module.exports = {
   if (filters.exclude_group.length && filters.exclude_group.includes(group)) return false;
   if (filters.exclude_name.length && filters.exclude_name.some(n => name.includes(n))) return false;
   if (filters.exclude_era.length && filters.exclude_era.includes(era)) return false;
+
+  if (card.rarity < minRarity || card.rarity > maxRarity) return false;
 
   return true;
 });
@@ -174,10 +198,10 @@ for (const o of matches) {
     };
 
      const renderRow = () => new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId('first').setLabel('⏮ First').setStyle(ButtonStyle.Secondary).setDisabled(current === 0),
-          new ButtonBuilder().setCustomId('prev').setLabel('◀ Back').setStyle(ButtonStyle.Primary).setDisabled(current === 0),
-          new ButtonBuilder().setCustomId('next').setLabel('Next ▶').setStyle(ButtonStyle.Primary).setDisabled(current >= pages - 1),
-          new ButtonBuilder().setCustomId('last').setLabel('Last ⏭').setStyle(ButtonStyle.Secondary).setDisabled(current >= pages - 1)
+          new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+          new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+          new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= pages - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+          new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= pages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
         );
     
         await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });

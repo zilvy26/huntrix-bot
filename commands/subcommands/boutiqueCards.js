@@ -5,13 +5,13 @@ const {
   ButtonBuilder,
   ButtonStyle
 } = require('discord.js');
-const UserCurrency = require('../models/User');
-const UserInventory = require('../models/UserInventory');
-const UserRecord = require('../models/UserRecord');
-const Card = require('../models/Card');
-const generateStars = require('../utils/starGenerator');
-const awaitUserButton = require('../utils/awaitUserButton');
-const BoutiqueCooldown = require('../models/BoutiqueCooldown');
+const UserCurrency = require('../../models/User');
+const UserInventory = require('../../models/UserInventory');
+const UserRecord = require('../../models/UserRecord');
+const Card = require('../../models/Card');
+const generateStars = require('../../utils/starGenerator');
+const awaitUserButton = require('../../utils/awaitUserButton');
+const BoutiqueCooldown = require('../../models/BoutiqueCooldown');
 const rarityWeights = {
   '5': 0.01,
   '4': 0.11,
@@ -20,47 +20,7 @@ const rarityWeights = {
   '1': 0.40
 };
 
-module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('boutique')
-.setDescription('Spend Patterns or Sopops for card pulls')
-.addSubcommand(subcommand =>
-  subcommand
-    .setName('cards')
-    .setDescription('Buy cards from Boutique')
-    .addStringOption(opt =>
-      opt.setName('shop')
-        .setDescription('Choose a shop pull type')
-        .setRequired(true)
-        .addChoices(
-          { name: '20 Random & Guaranteed 5S | 10K Patterns', value: 'random20' },
-          { name: '10 Chosen | 6K Patterns', value: 'choice10' },
-          { name: 'Special Pull | 1K Patterns & 1 Sopop', value: 'special' }
-        )
-    )
-    .addIntegerOption(opt =>
-      opt.setName('amount')
-        .setDescription('How many pulls (1–50)')
-        .setRequired(true)
-        .setMinValue(1)
-        .setMaxValue(50)
-    )
-    // *** For choice10 filters ***
-    .addStringOption(opt =>
-      opt.setName('groups')
-        .setDescription('Comma‑separated groups')
-    )
-    .addStringOption(opt =>
-      opt.setName('names')
-        .setDescription('Comma‑separated names')
-    )
-    .addStringOption(opt =>
-      opt.setName('eras')
-        .setDescription('Comma‑separated eras')
-    )
-),
-
-  async execute(interaction) {
+module.exports = async function(interaction) {
     await interaction.deferReply();
     const userId = interaction.user.id;
     const shopType = interaction.options.getString('shop');
@@ -95,18 +55,18 @@ await BoutiqueCooldown.findOneAndUpdate(
     if (currency.patterns < patternCost) {
       return interaction.editReply(`❌ You need ${patternCost} Patterns (have ${currency.patterns}).`);
     }
-    if (currency.sopops < sopopCost) {
-      return interaction.editReply(`❌ You need ${sopopCost} Sopop${sopopCost > 1 ? 's' : ''} (have ${currency.sopops}).`);
+    if (currency.sopop < sopopCost) {
+      return interaction.editReply(`❌ You need ${sopopCost} Sopop${sopopCost > 1 ? 's' : ''} (have ${currency.sopop}).`);
     }
 
     // ➖ Deduct currency & log transaction
     currency.patterns -= patternCost;
-    currency.sopops -= sopopCost;
+    currency.sopop -= sopopCost;
     await currency.save();
     await UserRecord.create({
       userId,
       type: 'cardboutique',
-      detail: `Spent ${patternCost} Patterns & ${sopopCost} Sopops on ${shopType} x${amount}`
+      detail: `Spent ${patternCost} Patterns & ${sopopCost} Sopop on ${shopType} x${amount}`
     });
 
     function getWeightedRandomCard(cards) {
@@ -236,10 +196,10 @@ for (let i = 0; i < amount; i++) {
         .setFooter({ text: `Page ${current + 1} of ${totalPages}` });
     };
     const renderRow = () => new ActionRowBuilder().addComponents(
-                      new ButtonBuilder().setCustomId('first').setLabel('⏮ First').setStyle(ButtonStyle.Secondary).setDisabled(current === 0),
-                      new ButtonBuilder().setCustomId('prev').setLabel('◀ Back').setStyle(ButtonStyle.Primary).setDisabled(current === 0),
-                      new ButtonBuilder().setCustomId('next').setLabel('Next ▶').setStyle(ButtonStyle.Primary).setDisabled(current >= totalPages - 1),
-                      new ButtonBuilder().setCustomId('last').setLabel('Last ⏭').setStyle(ButtonStyle.Secondary).setDisabled(current >= totalPages - 1)
+                      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+                      new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+                      new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+                      new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
                     );
                 
                     await interaction.editReply({ embeds: [await renderEmbed(current)], components: [renderRow()] });
@@ -262,5 +222,5 @@ for (let i = 0; i < amount; i++) {
                     } catch (err) {
                       console.warn('Pagination cleanup failed:', err.message);
                     }
-                  }
-                };
+                  };
+                

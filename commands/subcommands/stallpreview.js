@@ -12,6 +12,8 @@ const generateStars = require('../../utils/starGenerator');
 const listingsPerPage = 1;
 const maxDefaultPages = 100;
 
+let activeCollector = null;
+
 module.exports = async function(interaction) {
   const options = {
     group: interaction.options.getString('group'),
@@ -53,7 +55,6 @@ async function renderPreview(interaction, options) {
 
   const skip = (page - 1) * listingsPerPage;
   const listings = await MarketListing.find(filter).sort(sort).skip(skip).limit(listingsPerPage).exec();
-
   if (!listings.length) {
     return interaction.reply({ content: "❌ No listings found for that page or filter." });
   }
@@ -79,14 +80,14 @@ async function renderPreview(interaction, options) {
     .setTitle(`🛍️ Stall Preview — Page ${page}/${totalPages}`)
     .setColor('#ffc800')
     .setImage(imageUrl)
-    .setDescription(`**${stars} ${listing.cardName}**\n💰 ${listing.price} | 🛒 \`${listing.buyCode}\` | 👤 <@${listing.sellerId}>`)
+    .setDescription(`**${stars} ${listing.cardName}**\n<:ehx_patterns:1389584144895315978> ${listing.price} | 🛒 \`${listing.buyCode}\` | 👤 <@${listing.sellerId}>`)
     .setFooter({ text: `Use /stall buy [buycode] to purchase a card` });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('stall_first').setLabel('🔙 First').setStyle(ButtonStyle.Secondary).setDisabled(page <= 1),
-    new ButtonBuilder().setCustomId('stall_prev').setLabel('⬅️ Prev').setStyle(ButtonStyle.Secondary).setDisabled(page <= 1),
-    new ButtonBuilder().setCustomId('stall_next').setLabel('Next ➡️').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages),
-    new ButtonBuilder().setCustomId('stall_last').setLabel('Last 🔚').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages)
+    new ButtonBuilder().setCustomId('stall_first').setStyle(ButtonStyle.Secondary).setDisabled(page === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+    new ButtonBuilder().setCustomId('stall_prev').setStyle(ButtonStyle.Primary).setDisabled(page === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+    new ButtonBuilder().setCustomId('stall_next').setStyle(ButtonStyle.Primary).setDisabled(page >= totalPages).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+    new ButtonBuilder().setCustomId('stall_last').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
   );
 
   if (interaction.replied || interaction.deferred) {
@@ -95,22 +96,46 @@ async function renderPreview(interaction, options) {
     await interaction.reply({ embeds: [embed], components: [row] });
   }
 
-  const collector = interaction.channel.createMessageComponentCollector({
+  const replyMessage = interaction.replied ? await interaction.fetchReply() : null;
+
+  if (activeCollector) {
+    
+    activeCollector.stop('replaced');
+  }
+
+  const collector = replyMessage?.createMessageComponentCollector({
     filter: i => i.user.id === interaction.user.id,
     time: 60000
   });
 
+  activeCollector = collector;
+
   collector.on('collect', async i => {
-    if (!i.deferred && !i.replied) await i.deferUpdate();
+    
 
-    let newPage = page;
-    switch (i.customId) {
-      case 'stall_first': newPage = 1; break;
-      case 'stall_prev': newPage = Math.max(1, page - 1); break;
-      case 'stall_next': newPage = Math.min(totalPages, page + 1); break;
-      case 'stall_last': newPage = totalPages; break;
+    try {
+      if (!i.deferred && !i.replied) {
+        
+        await i.deferUpdate();
+      }
+
+      let newPage = page;
+      switch (i.customId) {
+        case 'stall_first': newPage = 1; break;
+        case 'stall_prev': newPage = Math.max(1, page - 1); break;
+        case 'stall_next': newPage = Math.min(totalPages, page + 1); break;
+        case 'stall_last': newPage = totalPages; break;
+      }
+
+      
+      await renderPreview(i, { ...options, page: newPage });
+
+    } catch (err) {
+      console.error(`[Collector] Error during interaction handling: ${err}`);
     }
+  });
 
-    await renderPreview(i, { ...options, page: newPage });
+  collector.on('end', (_, reason) => {
+    
   });
 }

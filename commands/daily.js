@@ -3,6 +3,7 @@ const cooldowns = require('../utils/cooldownManager');
 const cooldownConfig = require('../utils/cooldownConfig');
 const giveCurrency = require('../utils/giveCurrency');
 const handleReminders = require('../utils/reminderHandler');
+const User = require('../models/User'); // Adjust path if needed
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -22,33 +23,59 @@ module.exports = {
     const commandName = 'daily';
     const cooldownDuration = cooldownConfig[commandName];
 
-    // Cooldown check
+    // Check cooldown
     if (cooldowns.isOnCooldown(userId, commandName)) {
       const nextTime = cooldowns.getCooldownTimestamp(userId, commandName);
       return interaction.reply({
         content: `⏳ You already claimed your daily reward. Try again **${nextTime}**.`,
-        
       });
     }
 
-    // Set cooldown
-    cooldowns.setCooldown(userId, commandName, cooldownDuration);
+    // Calculate streak logic
+    const now = new Date();
+    const oneDay = 24 * 60 * 60 * 1000;
 
-    // Reward values
+    let userData = await User.findOne({ userId });
+    if (!userData) {
+      userData = await User.create({ userId, dailyStreak: { count: 0, lastClaim: now } });
+    }
+
+    const lastClaim = new Date(userData.dailyStreak?.lastClaim || 0);
+    const diff = now - lastClaim;
+    let streak = userData.dailyStreak?.count || 0;
+
+    if (diff < oneDay) {
+      return interaction.reply({
+        content: `⏳ You already claimed your daily reward. Try again later.`,
+        
+      });
+    } else if (diff < oneDay * 2) {
+      streak++;
+    } else {
+      streak = 1;
+    }
+
+    // Calculate scaling reward
     const reward = {
-      patterns: 10000,
-      sopop: 3,
+      patterns: 10000 + streak * 500,
+      sopop: 3 + Math.floor(streak / 3),
     };
+
+    // Save streak data and set cooldown
+    userData.dailyStreak = { count: streak, lastClaim: now };
+    await userData.save();
+    cooldowns.setCooldown(userId, commandName, cooldownDuration);
 
     // Grant currency
     const user = await giveCurrency(userId, reward);
-
-    await handleReminders(interaction, 'daily', cooldownDuration);
+    await handleReminders(interaction, commandName, cooldownDuration);
 
     // Response embed
     const embed = new EmbedBuilder()
-      .setTitle('🎁 Daily Reward Claimed!')
-      .setDescription([`You've received:\n• <:ehx_patterns:1389584144895315978> **${reward.patterns}** Patterns\n• <:ehx_sopop:1389584273337618542> **${reward.sopop}** Sopop`,
+      .setTitle('Daily Reward Claimed!')
+      .setDescription([
+        `Current Streak: **${streak} days**`,
+        `You've received:\n• <:ehx_patterns:1389584144895315978> **${reward.patterns}** Patterns\n• <:ehx_sopop:1389584273337618542> **${reward.sopop}** Sopop`,
         `\n__Your Balance__:\n• <:ehx_patterns:1389584144895315978> ${user.patterns} Patterns\n• <:ehx_sopop:1389584273337618542> ${user.sopop} Sopop`
       ].join('\n'))
       .setColor('#78c5f1');

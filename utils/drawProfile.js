@@ -1,6 +1,7 @@
 const { createCanvas, loadImage } = require('canvas');
 const path = require('path');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+const templateOptions = require('../data/templateOptions');
 const wrapText = require('./wrapText'); // Ensure this exists
 
 module.exports = async function drawProfile(user, userProfile, favoriteCardImageURL) {
@@ -9,7 +10,9 @@ module.exports = async function drawProfile(user, userProfile, favoriteCardImage
 
   // === Load Background Template ===
   const templateId = userProfile.template || 'profile_base';
-  const templatePath = path.join(__dirname, '../assets/templates/', `${templateId}.png`);
+  const selectedTemplate = templateOptions.find(t => t.id === templateId);
+  const filename = selectedTemplate?.file || 'profile_base.png';
+  const templatePath = path.join(__dirname, '../assets/templates/', filename);
   const background = await loadImage(templatePath);
   ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
 
@@ -25,7 +28,7 @@ module.exports = async function drawProfile(user, userProfile, favoriteCardImage
   ctx.restore();
 
   // === Username ===
-  ctx.font = '28px sans-serif';
+  ctx.font = '19px sans-serif';
   ctx.fillStyle = '#2f1b39';
   ctx.fillText(`${user.username}#${user.discriminator}`, 400, 225);
 

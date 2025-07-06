@@ -62,10 +62,10 @@ module.exports = {
     let current = 0;
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-      new ButtonBuilder().setCustomId('prev').setLabel('◀ Back').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1),
-      new ButtonBuilder().setCustomId('next').setLabel('Next ▶').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1),
-      new ButtonBuilder().setCustomId('last').setLabel('Last').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1),
+      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+      new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
     );
 
     await interaction.reply({ embeds: [embeds[current]], components: [row] });
