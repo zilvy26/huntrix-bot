@@ -1,7 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const cooldownManager = require('../utils/cooldownManager');
 const cooldownConfig = require('../utils/cooldownConfig');
-const cooldowns = cooldownManager.cooldowns;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,8 +15,7 @@ module.exports = {
     const cooldownLines = [];
 
     for (const command of Object.keys(cooldownConfig)) {
-      const userCooldowns = cooldowns[command] || {};
-      const expires = userCooldowns[userId];
+      const expires = cooldownManager.getCooldowns(command, userId);
 
       if (expires && expires > now) {
         const unix = Math.floor(expires / 1000);
@@ -27,12 +25,10 @@ module.exports = {
       }
     }
 
-    const lines = [...readyLines, ...cooldownLines];
-
     const embed = new EmbedBuilder()
       .setTitle('Your Cooldowns')
       .setColor('#2f3136')
-      .setDescription(lines.join('\n'));
+      .setDescription([...readyLines, ...cooldownLines].join('\n') || 'No cooldowns tracked.');
 
     await interaction.reply({ embeds: [embed] });
   }

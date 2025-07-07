@@ -45,7 +45,7 @@ module.exports = {
       const endsAt = await cooldowns.getCooldownTimestamp(userId, commandName);
       return interaction.reply({
         content: `You must wait before battling again. Try ${endsAt}`,
-        ephemeral: true
+        
       });
     }
 

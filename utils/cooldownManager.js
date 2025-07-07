@@ -28,9 +28,19 @@ async function setCooldown(userId, commandName, durationMs) {
   );
 }
 
+async function getCooldowns(userId) {
+  const userCooldowns = await Cooldown.find({ userId });
+  const cooldownMap = {};
+  for (const cd of userCooldowns) {
+    cooldownMap[cd.commandName] = cd.expiresAt;
+  }
+  return cooldownMap;
+}
+
 module.exports = {
   isOnCooldown,
   getCooldownTime,
+  getCooldowns,
   getCooldownTimestamp,
   setCooldown
 };

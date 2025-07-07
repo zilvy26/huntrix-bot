@@ -33,7 +33,7 @@ module.exports = {
       const ts = await cooldowns.getCooldownTimestamp(userId, commandName);
       return interaction.reply({
         content: `You must wait **${ts}** to pull again.`,
-        ephemeral: true
+        
       });
     }
 
