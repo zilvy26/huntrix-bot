@@ -99,10 +99,10 @@ module.exports = {
         let rewardSopop = 0;
 
         if (difficulty === 'easy') {
-          rewardPatterns = getRandomInt(75, 150);
+          rewardPatterns = getRandomInt(500, 900);
         } else if (difficulty === 'hard') {
-          rewardPatterns = getRandomInt(250, 400);
-          rewardSopop = getRandomInt(0, 2);
+          rewardPatterns = getRandomInt(1400, 1800);
+          rewardSopop = getRandomInt(0, 1);
         }
 
         // 🎲 5% chance bonus
@@ -141,7 +141,7 @@ module.exports = {
     collector.on('end', collected => {
       if (collected.size === 0) {
         interaction.editReply({
-          content: `⏱Time's up! No answer selected.`,
+          content: `Time's up! No answer selected.`,
           embeds: [],
           components: []
         });

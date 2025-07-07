@@ -5,10 +5,10 @@ module.exports = {
     default: 60 * 1000,
     booster: 30 * 1000
   },        
-  daily: 60 * 1000,  
-  perform: 60 * 1000,
-  rehearsal: 60 * 1000,
-  pull10: 60 * 1000,
-  battle: 60 * 1000,
+  daily: 24 * 60 * 60 * 1000,  
+  perform: 30 * 60 * 1000,
+  rehearsal: 2 * 60 * 60 * 1000,
+  pull10: 2 * 60 * 60 * 1000,
+  battle: 20 * 60 * 1000,
   // Add more as needed
 };
