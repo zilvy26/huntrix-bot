@@ -3,9 +3,9 @@ const UserInventory = require('../models/UserInventory');
 const getRandomCardByRarity = require('../utils/randomCardFromRarity');
 const pickRarity = require('../utils/rarityPicker');
 const generateStars = require('../utils/starGenerator');
-const cooldowns = require('../utils/cooldownConfig');
-const { isOnCooldown, getCooldownTimestamp, setCooldown } = require('../utils/cooldownManager');
-const handleReminders = require('../utils/reminderHandler'); // ✅ Import this
+const cooldowns = require('../utils/cooldownManager');
+const cooldownConfig = require('../utils/cooldownConfig');
+const handleReminders = require('../utils/reminderHandler');
 const User = require('../models/User');
 const UserRecord = require('../models/UserRecord');
 
@@ -14,44 +14,36 @@ module.exports = {
     .setName('pull')
     .setDescription('Pull a random card from any pullable category')
     .addBooleanOption(opt =>
-      opt.setName('reminder')
-        .setDescription('Remind you when cooldown ends')
-        .setRequired(false))
+      opt.setName('reminder').setDescription('Remind you when cooldown ends').setRequired(false))
     .addBooleanOption(opt =>
-      opt.setName('remindinchannel')
-        .setDescription('Remind in the command channel instead of DM (default: true)')
-        .setRequired(false)),
+      opt.setName('remindinchannel').setDescription('Remind in the command channel instead of DM').setRequired(false)),
 
   async execute(interaction) {
     const userId = interaction.user.id;
     const commandName = 'pull';
-    
-    const cooldownDuration = cooldowns[commandName];
-  if (!cooldownDuration) {
-    console.warn(`Cooldown not defined for command: ${commandName}`);
-    return; // Or skip cooldown logic
-  }
 
-    // 🔎 Check if user has booster role
-  const boosterRoleId = '1387230787929243780';
-  const hasBooster = interaction.member.roles.cache.has(boosterRoleId);
+    const cooldownDuration = cooldownConfig[commandName]; // ✅ fixed
+    if (!cooldownDuration) {
+      console.warn(`Cooldown not defined for command: ${commandName}`);
+      return;
+    }
 
-// ⏱ Calculate correct cooldown
-  const cooldownMs = typeof cooldownDuration === 'object'
-  ? (hasBooster ? cooldownDuration.booster : cooldownDuration.default)
-  : cooldownDuration;
+    // 🔎 Booster role check
+    const boosterRoleId = '1387230787929243780';
+    const hasBooster = interaction.member.roles.cache.has(boosterRoleId);
 
-    // 🔒 Cooldown check
+    const cooldownMs = typeof cooldownDuration === 'object'
+      ? (hasBooster ? cooldownDuration.booster : cooldownDuration.default)
+      : cooldownDuration;
+
     if (await cooldowns.isOnCooldown(userId, commandName)) {
-  const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
-  return interaction.reply({
-    content: `You must wait ${nextTime} before using \`/pull\` again.`,
-  });
-}
+      const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
+      return interaction.reply({
+        content: `You must wait ${nextTime} before using \`/pull\` again.`,
+      });
+    }
 
-    // ✅ Set cooldown
     await cooldowns.setCooldown(userId, commandName, cooldownMs);
-
     await interaction.deferReply();
 
     const rarity = pickRarity();
@@ -62,11 +54,9 @@ module.exports = {
     }
 
     let userInventory = await UserInventory.findOne({ userId });
-    if (!userInventory) {
-      userInventory = await UserInventory.create({ userId, cards: [] });
-    }
+    if (!userInventory) userInventory = await UserInventory.create({ userId, cards: [] });
 
-    const existing = (userInventory.cards || []).find(c => c.cardCode === card.cardCode);
+    const existing = userInventory.cards.find(c => c.cardCode === card.cardCode);
     let copies = 1;
 
     if (existing) {
@@ -83,30 +73,25 @@ module.exports = {
       overrideEmoji: card.emoji || '<:fullstar:1387609456824680528>'
     });
 
-    const lines = [
-      `**Group:** ${card.group}`,
-      `**Name:** ${card.name}`,
-      ...(card.category.toLowerCase() === 'kpop' ? [`**Era:** ${card.era}`] : []),
-      `**Code:** \`${card.cardCode}\``,
-      `**Copies:** ${copies}`
-    ];
-
-    const pulledReadable = new Date().toUTCString();
-
     const embed = new EmbedBuilder()
       .setTitle(stars)
-      .setDescription(lines.join('\n'))
+      .setDescription([
+        `**Group:** ${card.group}`,
+        `**Name:** ${card.name}`,
+        ...(card.category?.toLowerCase() === 'kpop' ? [`**Era:** ${card.era}`] : []),
+        `**Code:** \`${card.cardCode}\``,
+        `**Copies:** ${copies}`
+      ].join('\n'))
       .setImage(card.discordPermLinkImage || card.imgurImageLink)
-      .setFooter({ text: `Pulled ${pulledReadable}` });
+      .setFooter({ text: `Pulled ${new Date().toUTCString()}` });
 
-    // ✅ Handle reminders via utility
     await handleReminders(interaction, commandName, cooldownMs);
 
     await UserRecord.create({
-  userId: userId,
-  type: 'pull',
-  detail: `Pulled ${card.name} (${card.cardCode}) [${card.rarity}]`
-});
+      userId,
+      type: 'pull',
+      detail: `Pulled ${card.name} (${card.cardCode}) [${card.rarity}]`
+    });
 
     return interaction.editReply({ embeds: [embed] });
   }
