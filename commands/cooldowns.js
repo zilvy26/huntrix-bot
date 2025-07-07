@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const cooldownManager = require('../utils/cooldownManager');
 const cooldownConfig = require('../utils/cooldownConfig');
 
@@ -11,36 +11,27 @@ module.exports = {
     const userId = interaction.user.id;
     const now = Date.now();
 
-    const cooldowns = await cooldownManager.getCooldowns(userId);
+    const readyLines = [];
+    const cooldownLines = [];
 
-    const lines = [];
+    const allCooldowns = await cooldownManager.getCooldowns(userId); // ✅ fix here
 
-    for (const command in cooldownConfig) {
-      const cdDurationMs = cooldownConfig[command];
-      const expiresAt = cooldowns[command];
+    for (const command of Object.keys(cooldownConfig)) {
+      const expires = allCooldowns[command]; // ✅ read from MongoDB result
 
-      if (!expiresAt || expiresAt < now) {
-        lines.push(`\`${command}\` — ready to use`);
+      if (expires && expires > now) {
+        const unix = Math.floor(expires / 1000);
+        cooldownLines.push(`\`/${command}\` — <t:${unix}:F> — <t:${unix}:R>`);
       } else {
-        const remainingMs = expiresAt - now;
-        const seconds = Math.floor((remainingMs / 1000) % 60);
-        const minutes = Math.floor((remainingMs / (1000 * 60)) % 60);
-        const hours = Math.floor(remainingMs / (1000 * 60 * 60));
-
-        let timeStr = '';
-        if (hours > 0) timeStr += `${hours}h `;
-        if (minutes > 0) timeStr += `${minutes}m `;
-        timeStr += `${seconds}s`;
-
-        lines.push(`\`${command}\` — ${timeStr} remaining`);
+        readyLines.push(`\`/${command}\` — ready to use`);
       }
     }
 
-    const response = lines.join('\n');
+    const embed = new EmbedBuilder()
+      .setTitle('Your Cooldowns')
+      .setColor('#2f3136')
+      .setDescription([...readyLines, ...cooldownLines].join('\n') || 'No cooldowns tracked.');
 
-    await interaction.reply({
-      content: `Cooldowns for <@${userId}>:\n\n${response}`,
-      ephemeral: true
-    });
+    await interaction.reply({ embeds: [embed] });
   }
 };
