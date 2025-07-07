@@ -99,9 +99,9 @@ module.exports = {
         let rewardSopop = 0;
 
         if (difficulty === 'easy') {
-          rewardPatterns = getRandomInt(500, 900);
+          rewardPatterns = getRandomInt(600, 850);
         } else if (difficulty === 'hard') {
-          rewardPatterns = getRandomInt(1400, 1800);
+          rewardPatterns = getRandomInt(1000, 1250);
           rewardSopop = getRandomInt(0, 1);
         }
 
