@@ -69,7 +69,7 @@ module.exports = async function drawProfile(user, userProfile, favoriteCardImage
       ctx.drawImage(cardImage, 890, 177, 500, 770); // Adjust as needed
       cardImage.src = '';
       buffer.fill(0);
-      arrayBuffer = null;
+      
     } catch (err) {
       console.warn('⚠️ Failed to load favorite card image:', err.message);
     }
