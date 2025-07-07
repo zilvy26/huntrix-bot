@@ -13,12 +13,12 @@ module.exports = async function(interaction) {
   ];
 
   const embed = new EmbedBuilder()
-    .setTitle('🛍️ Boutique Price List')
+    .setTitle('Boutique Price List')
     .setColor('#f39c12')
     .setDescription(
-      `**🃏 Card Pulls**\n` +
+      `**Card Pulls**\n` +
       cardOptions.map(o => `• **${o.name}** — ${o.price}`).join('\n') +
-      `\n\n**🎨 Profile Templates**\n` +
+      `\n\n**Profile Templates**\n` +
       templateOptions.map(t => {
         const owned = user.templatesOwned?.includes(t.id);
         return `• **${t.name}**${owned ? ' *(Owned)*' : ''} — ${t.price.toLocaleString()} Sopop`;

@@ -38,7 +38,7 @@ module.exports = {
     if (isOnCooldown(userId, 'battle')) {
       const endsAt = getCooldownTimestamp(userId, 'battle');
       return interaction.reply({
-        content: `⏳ You must wait before battling again. Try ${endsAt}`,
+        content: `You must wait before battling again. Try ${endsAt}`,
         
       });
     }
@@ -51,7 +51,7 @@ module.exports = {
     ]);
 
     if (!questions.length) {
-      return interaction.reply({ content: '❌ No questions found for this difficulty.' });
+      return interaction.reply({ content: 'No questions found for this difficulty.' });
     }
 
     const selected = questions[0];
@@ -122,7 +122,7 @@ module.exports = {
         await user.save();
 
         await interaction.editReply({
-          content: `✅ Correct! You earned <:ehx_patterns:1389584144895315978> **+${rewardPatterns} Patterns**${rewardSopop ? ` and <:ehx_sopop:1389584273337618542> **+${rewardSopop} Sopop**` : ''}.\n🔥 Current streak: **${user.correctStreak}**${streakBonus}`,
+          content: `Correct! You earned <:ehx_patterns:1389584144895315978> **${rewardPatterns} Patterns**${rewardSopop ? ` and <:ehx_sopop:1389584273337618542> **${rewardSopop} Sopop**` : ''}.\nCurrent streak: **${user.correctStreak}**${streakBonus}`,
           embeds: [],
           components: []
         });
@@ -131,7 +131,7 @@ module.exports = {
         // Reset streak
         await User.findOneAndUpdate({ userId }, { $set: { correctStreak: 0 } });
         await interaction.editReply({
-          content: `❌ Incorrect! The correct answer was **${selected.correct}**.\n💥 Your streak has been reset.`,
+          content: `Incorrect! The correct answer was **${selected.correct}**.\nYour streak has been reset.`,
           embeds: [],
           components: []
         });
@@ -141,7 +141,7 @@ module.exports = {
     collector.on('end', collected => {
       if (collected.size === 0) {
         interaction.editReply({
-          content: `⏱️ Time's up! No answer selected.`,
+          content: `⏱Time's up! No answer selected.`,
           embeds: [],
           components: []
         });

@@ -24,7 +24,7 @@ module.exports = {
     const userId = interaction.user.id;
 
     if (!codes.length) {
-      return interaction.reply({ content: '❌ You must provide at least one valid card code.' });
+      return interaction.reply({ content: 'You must provide at least one valid card code.' });
     }
 
     const [cards, userInventory] = await Promise.all([
@@ -33,7 +33,7 @@ module.exports = {
     ]);
 
     if (!cards.length) {
-      return interaction.reply({ content: '❌ No cards found for those codes.'});
+      return interaction.reply({ content: 'No cards found for those codes.'});
     }
 
     const embeds = cards.map(card => {

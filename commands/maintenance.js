@@ -13,7 +13,7 @@ module.exports = {
     await current.save();
 
     return interaction.reply({
-      content: `🧰 Maintenance mode is now **${current.active ? 'ENABLED' : 'DISABLED'}**.`,
+      content: `Maintenance mode is now **${current.active ? 'ENABLED' : 'DISABLED'}**.`,
     });
   }
 };

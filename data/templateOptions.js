@@ -6,9 +6,9 @@ module.exports = [
     file: 'profile_twilight.png'
   },
   {
-    id: 'profile_cherry',
-    name: 'Cherry Blossom',
+    id: 'profile_blue',
+    name: 'Blueberry Sunrise',
     price: 2,
-    file: 'profile_cherry.png'
+    file: 'profile_blue.png'
   }
 ];

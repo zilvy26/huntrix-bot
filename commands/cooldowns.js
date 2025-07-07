@@ -21,16 +21,16 @@ module.exports = {
 
       if (expires && expires > now) {
         const unix = Math.floor(expires / 1000);
-        cooldownLines.push(`⏳ \`/${command}\` — <t:${unix}:F> — <t:${unix}:R>`);
+        cooldownLines.push(`\`/${command}\` — <t:${unix}:F> — <t:${unix}:R>`);
       } else {
-        readyLines.push(`✅ \`/${command}\` — ready to use`);
+        readyLines.push(`\`/${command}\` — ready to use`);
       }
     }
 
     const lines = [...readyLines, ...cooldownLines];
 
     const embed = new EmbedBuilder()
-      .setTitle('🕒 Your Cooldowns')
+      .setTitle('Your Cooldowns')
       .setColor('#2f3136')
       .setDescription(lines.join('\n'));
 

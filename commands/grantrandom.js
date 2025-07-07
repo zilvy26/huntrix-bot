@@ -59,7 +59,7 @@ module.exports = {
     });
 
     if (pool.length === 0) {
-      return interaction.editReply('❌ No cards match those filters.');
+      return interaction.editReply('No cards match those filters.');
     }
 
     // Prepare recipient inventory
@@ -98,7 +98,7 @@ module.exports = {
     await recInv.save();
 
     if (!granted.length) {
-      return interaction.editReply('❌ No cards could be granted under the star/amount limits.');
+      return interaction.editReply('No cards could be granted under the star/amount limits.');
     }
 
     // Build paginated embed and buttons
@@ -134,7 +134,7 @@ const desc = pageItems.map(g =>
 ).join('\n') || 'No cards granted.';
 
       return new EmbedBuilder()
-        .setTitle(`🎲 Random Cards Given to ${recipient.username}`)
+        .setTitle(`Random Cards Given to ${recipient.username}`)
         .setColor('#2f3136')
         .setDescription(desc)
         .addFields(

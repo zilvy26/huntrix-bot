@@ -56,7 +56,7 @@ async function renderPreview(interaction, options) {
   const skip = (page - 1) * listingsPerPage;
   const listings = await MarketListing.find(filter).sort(sort).skip(skip).limit(listingsPerPage).exec();
   if (!listings.length) {
-    return interaction.reply({ content: "❌ No listings found for that page or filter." });
+    return interaction.reply({ content: "No listings found for that page or filter." });
   }
 
   const count = await MarketListing.countDocuments(filter);
@@ -77,7 +77,7 @@ async function renderPreview(interaction, options) {
   }
 
   const embed = new EmbedBuilder()
-    .setTitle(`🛍️ Stall Preview — Page ${page}/${totalPages}`)
+    .setTitle(`Stall Preview — Page ${page}/${totalPages}`)
     .setColor('#ffc800')
     .setImage(imageUrl)
     .setDescription(`**${stars} ${listing.cardName}**\n<:ehx_patterns:1389584144895315978> ${listing.price} | 🛒 \`${listing.buyCode}\` | 👤 <@${listing.sellerId}>`)

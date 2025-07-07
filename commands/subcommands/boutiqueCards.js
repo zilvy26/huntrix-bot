@@ -42,7 +42,7 @@ await BoutiqueCooldown.findOneAndUpdate(
 
     // ➖ Load currency
     const currency = await UserCurrency.findOne({ userId });
-    if (!currency) return interaction.editReply('❌ No currency account found.');
+    if (!currency) return interaction.editReply('No currency account found.');
     // ➖ Determine cost
     let patternCost = 0, sopopCost = 0;
     if (shopType === 'random20') patternCost = 10000 * amount;
@@ -53,10 +53,10 @@ await BoutiqueCooldown.findOneAndUpdate(
     }
 
     if (currency.patterns < patternCost) {
-      return interaction.editReply(`❌ You need ${patternCost} Patterns (have ${currency.patterns}).`);
+      return interaction.editReply(`You need ${patternCost} Patterns (have ${currency.patterns}).`);
     }
     if (currency.sopop < sopopCost) {
-      return interaction.editReply(`❌ You need ${sopopCost} Sopop${sopopCost > 1 ? 's' : ''} (have ${currency.sopop}).`);
+      return interaction.editReply(`You need ${sopopCost} Sopop${sopopCost > 1 ? 's' : ''} (have ${currency.sopop}).`);
     }
 
     // ➖ Deduct currency & log transaction
@@ -96,7 +96,7 @@ await BoutiqueCooldown.findOneAndUpdate(
       const pool = await Card.find(filter);
       const fives = pool.filter(c => c.rarity === 5);
       if (pool.length < 20 || fives.length === 0) {
-        return interaction.editReply('❌ Not enough cards in database for random20.');
+        return interaction.editReply('Not enough cards in database for random20.');
       }
       for (let i = 0; i < amount; i++) {
         const guaranteed = fives[Math.floor(Math.random() * fives.length)];
@@ -122,7 +122,7 @@ await BoutiqueCooldown.findOneAndUpdate(
       if (rawEras) filter.era = { $in: rawEras.split(',').map(s => new RegExp(s.trim(), 'i')) };
       const pool = await Card.find(filter);
       if (pool.length === 0) {
-  return interaction.editReply('❌ No cards match those filters.');
+  return interaction.editReply('No cards match those filters.');
 }
 
 for (let i = 0; i < amount * 10; i++) {
@@ -136,7 +136,7 @@ for (let i = 0; i < amount * 10; i++) {
       filter = { pullable: true, category: { $in: ['EVENT', 'ZODIAC'] } };
       const pool = await Card.find(filter);
       if (pool.length === 0) {
-  return interaction.editReply('❌ No special cards found for that filter.');
+  return interaction.editReply('No special cards found for that filter.');
 }
 
 for (let i = 0; i < amount; i++) {

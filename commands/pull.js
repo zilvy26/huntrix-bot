@@ -28,7 +28,7 @@ module.exports = {
     
     const cooldownDuration = cooldowns[commandName];
   if (!cooldownDuration) {
-    console.warn(`⚠️ Cooldown not defined for command: ${commandName}`);
+    console.warn(`Cooldown not defined for command: ${commandName}`);
     return; // Or skip cooldown logic
   }
 
@@ -45,7 +45,7 @@ module.exports = {
     if (isOnCooldown(userId, commandName)) {
       const nextTime = getCooldownTimestamp(userId, commandName, cooldownMs);
       return interaction.reply({
-        content: `⏳ You must wait ${nextTime} before using \`/pull\` again.`,
+        content: `You must wait ${nextTime} before using \`/pull\` again.`,
         
       });
     }
@@ -59,7 +59,7 @@ module.exports = {
     const card = await getRandomCardByRarity(rarity);
 
     if (!card) {
-      return interaction.editReply({ content: `❌ No pullable cards found for rarity ${rarity}.` });
+      return interaction.editReply({ content: `No pullable cards found for rarity ${rarity}.` });
     }
 
     let userInventory = await UserInventory.findOne({ userId });

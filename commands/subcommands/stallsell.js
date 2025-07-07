@@ -12,30 +12,30 @@ module.exports = async function(interaction) {
   
 
   if (price <= 0) {
-    return interaction.reply({ content: '❌ Price must be greater than 0.' });
+    return interaction.reply({ content: 'Price must be greater than 0.' });
   }
 
   const listingCount = await MarketListing.countDocuments({ sellerId: userId });
   if (listingCount >= 50) {
-    return interaction.reply({ content: '❌ You can only have 50 listings at a time.' });
+    return interaction.reply({ content: 'You can only have 50 listings at a time.' });
   }
 
   const inventoryDoc = await UserInventory.findOne({ userId });
   
 
   if (!inventoryDoc) {
-    return interaction.reply({ content: '❌ You have no inventory record.' });
+    return interaction.reply({ content: 'You have no inventory record.' });
   }
 
   const ownedCard = inventoryDoc.cards.find(c => c.cardCode.trim().toUpperCase() === cardCode);
   
   if (!ownedCard || ownedCard.quantity <= 0) {
-    return interaction.reply({ content: `❌ You do not own the card with code **${cardCode}**.` });
+    return interaction.reply({ content: `You do not own the card with code **${cardCode}**.` });
   }
 
   const cardData = await Card.findOne({ cardCode });
   if (!cardData) {
-    return interaction.reply({ content: `❌ Metadata for **${cardCode}** not found in card database.` });
+    return interaction.reply({ content: `Metadata for **${cardCode}** not found in card database.` });
   }
 
   const buyCode = shortid.generate().toUpperCase();
@@ -63,6 +63,6 @@ module.exports = async function(interaction) {
   await inventoryDoc.save();
 
   await interaction.reply({
-    content: `✅ <@${userId}> listed **${cardData.name}** for **${price} Patterns**!\n🛒 Buy Code: \`${buyCode}\``
+    content: `<@${userId}> listed **${cardData.name}** for **${price} Patterns**!\n🛒 Buy Code: \`${buyCode}\``
   });
 };

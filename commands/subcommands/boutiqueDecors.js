@@ -8,11 +8,11 @@ module.exports = async function(interaction) {
   const user = await User.findOne({ userId });
 
   if (!user) {
-    return interaction.reply({ content: '❌ User not found.' });
+    return interaction.reply({ content: 'User not found.' });
   }
 
   const embed = new EmbedBuilder()
-    .setTitle('🎨 Boutique Templates')
+    .setTitle('Boutique Templates')
     .setDescription('Select a template to purchase from the dropdown below.')
     .setFooter({ text: `Your balance: ${user.sopop.toLocaleString()} Sopop` })
     .setColor('#f39c12');
@@ -53,16 +53,16 @@ module.exports = async function(interaction) {
     const template = templateOptions.find(t => t.id === selectedId);
 
     if (!template) {
-      return select.reply({ content: '❌ Invalid template selected.' });
+      return select.reply({ content: 'Invalid template selected.' });
     }
 
     if (user.templatesOwned?.includes(template.id)) {
-      return select.reply({ content: `❌ You already own **${template.name}**.` });
+      return select.reply({ content: `You already own **${template.name}**.` });
     }
 
     if (user.sopop < template.price) {
       return select.reply({
-        content: `❌ You need ${template.price.toLocaleString()} Sopop (you have ${user.sopop.toLocaleString()}).`,
+        content: `You need ${template.price.toLocaleString()} Sopop (you have ${user.sopop.toLocaleString()}).`,
         
       });
     }
@@ -79,7 +79,7 @@ module.exports = async function(interaction) {
     });
 
     return select.reply({
-      content: `✅ You bought **${template.name}** for ${template.price.toLocaleString()} Sopop!`,
+      content: `You bought **${template.name}** for ${template.price.toLocaleString()} Sopop!`,
       
     });
   });
@@ -87,7 +87,7 @@ module.exports = async function(interaction) {
   collector.on('end', collected => {
     if (collected.size === 0) {
       interaction.editReply({
-        content: '⏱️ You didn’t select anything in time. Purchase cancelled.',
+        content: 'You didn’t select anything in time. Purchase cancelled.',
         embeds: [],
         components: []
       });

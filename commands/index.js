@@ -63,7 +63,7 @@ const filters = {
     cardList.sort((a, b) => parseInt(b.rarity) - parseInt(a.rarity));
 
     if (!cardList.length) {
-      return interaction.editReply({ content: '📭 No cards match your filters.' });
+      return interaction.editReply({ content: 'No cards match your filters.' });
     }
 
     const totalCopies = cardList.reduce((acc, card) => acc + (inventoryMap.get(card.cardCode) || 0), 0);
@@ -82,7 +82,7 @@ const filters = {
       }).join('\n\n');
 
       return new EmbedBuilder()
-        .setTitle(`📦 ${user.username}'s Inventory`)
+        .setTitle(`${user.username}'s Inventory`)
         .setDescription(description)
         .setColor('#FF69B4')
         .setFooter({
@@ -111,7 +111,7 @@ const filters = {
       else if (btn.customId === 'copy') {
         const slice = cardList.slice(page * perPage, page * perPage + perPage);
         const codes = slice.map(c => c.cardCode).join(', ');
-        await btn.editReply({ content: `🧾 Codes:\n\`\`\`${codes}\`\`\`` });
+        await btn.editReply({ content: `Codes:\n\`\`\`${codes}\`\`\`` });
         continue;
       }
 

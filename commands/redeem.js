@@ -22,10 +22,10 @@ module.exports = {
     const selectedCardInput = interaction.options.getString('cardcode')?.trim().toUpperCase();
 
     const code = await RedeemCode.findOne({ code: codeInput });
-    if (!code) return interaction.reply({ content: '❌ Invalid code.' });
-    if (code.expiresAt && code.expiresAt < new Date()) return interaction.reply({ content: '⏳ This code has expired.' });
-    if (code.maxUses && code.usedBy.length >= code.maxUses) return interaction.reply({ content: '⚠️ This code has reached its usage limit.' });
-    if (code.usedBy.includes(userId)) return interaction.reply({ content: '⚠️ You already used this code.' });
+    if (!code) return interaction.reply({ content: 'Invalid code.' });
+    if (code.expiresAt && code.expiresAt < new Date()) return interaction.reply({ content: 'This code has expired.' });
+    if (code.maxUses && code.usedBy.length >= code.maxUses) return interaction.reply({ content: 'This code has reached its usage limit.' });
+    if (code.usedBy.includes(userId)) return interaction.reply({ content: 'You already used this code.' });
 
     // Currency reward
     if (code.reward && (code.reward.patterns || code.reward.sopop)) {
@@ -66,7 +66,7 @@ module.exports = {
       if (selectedCardInput) {
         const validCard = await Card.findOne({ cardCode: selectedCardInput, category: { $ne: 'others' } });
         if (!validCard) {
-          return interaction.reply({ content: '❌ Invalid card code or card is in the "others" category.' });
+          return interaction.reply({ content: 'Invalid card code or card is in the "others" category.' });
         }
 
         const inv = await UserInventory.findOneAndUpdate(
@@ -82,7 +82,7 @@ module.exports = {
           );
         }
 
-        return interaction.reply({ content: `✅ Redeemed and received card **${selectedCardInput}**!` });
+        return interaction.reply({ content: `Redeemed and received card **${selectedCardInput}**!` });
       }
 
       // Fallback to dropdown
@@ -100,7 +100,7 @@ module.exports = {
       );
 
       const reply = await interaction.reply({
-        content: '🎴 Pick one card from the list:',
+        content: 'Pick one card from the list:',
         components: [row],
         
       });
@@ -125,12 +125,12 @@ module.exports = {
             { upsert: true }
           );
         }
-        await i.update({ content: `✅ You received card **${selectedCard}**!`, components: [] });
+        await i.update({ content: `You received card **${selectedCard}**!`, components: [] });
       });
 
       collector.on('end', async (_, reason) => {
         if (reason === 'time') {
-          await interaction.editReply({ content: '⏰ Selection expired.', components: [] });
+          await interaction.editReply({ content: 'Selection expired.', components: [] });
         }
       });
 
@@ -139,10 +139,10 @@ module.exports = {
 
     // Final fallback
     const summary = [
-      `🎉 Redeemed **${code.code}**!`,
-      code.reward?.patterns ? `• 🪙 ${code.reward.patterns} Patterns` : null,
-      code.reward?.sopop ? `• 💎 ${code.reward.sopop} Sopop` : null,
-      code.cardCode ? `• 📦 Card Code: ${code.cardCode}` : null
+      `Redeemed **${code.code}**!`,
+      code.reward?.patterns ? `• ${code.reward.patterns} Patterns` : null,
+      code.reward?.sopop ? `• ${code.reward.sopop} Sopop` : null,
+      code.cardCode ? `• Card Code: ${code.cardCode}` : null
     ].filter(Boolean).join('\n');
 
     return interaction.reply({ content: summary });

@@ -8,11 +8,11 @@ module.exports = async function(interaction) {
   const listing = await MarketListing.findOne({ buyCode });
 
   if (!listing) {
-    return interaction.reply({ content: `❌ No listing found for Buy Code \`${buyCode}\`.` });
+    return interaction.reply({ content: `No listing found for Buy Code \`${buyCode}\`.` });
   }
 
   if (listing.sellerId !== userId) {
-    return interaction.reply({ content: `❌ You can only remove your own listings.` });
+    return interaction.reply({ content: `You can only remove your own listings.` });
   }
 
   // Restore the card to inventory
@@ -35,6 +35,6 @@ module.exports = async function(interaction) {
   await MarketListing.deleteOne({ _id: listing._id });
 
   return interaction.reply({
-    content: `🗑️ Successfully removed your listing for **${listing.cardName}**.\n💼 The card has been returned to your inventory.`,
+    content: `Successfully removed your listing for **${listing.cardName}**.\n💼 The card has been returned to your inventory.`,
   });
 };

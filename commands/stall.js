@@ -63,7 +63,7 @@ module.exports = {
       return interaction.reply({ content: `Unknown subcommand: ${sub}` });
     } catch (err) {
       console.error(`[STALL/${sub}] Error:`, err);
-      return interaction.reply({ content: `❌ Something went wrong.` });
+      return interaction.reply({ content: `Something went wrong.` });
     }
   }
 };

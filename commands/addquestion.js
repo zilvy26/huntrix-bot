@@ -41,7 +41,7 @@ module.exports = {
 
     if (!options.includes(correct)) {
       return interaction.editReply({
-        content: "❌ The correct answer must be one of the provided options."
+        content: "The correct answer must be one of the provided options."
       });
     }
 
@@ -52,12 +52,12 @@ module.exports = {
         imageUrl = imgurUrl;
         if (!imgurUrl) {
           return interaction.editReply({
-            content: "⚠️ Failed to upload image to Imgur. Try again or use another image."
+            content: "Failed to upload image to Imgur. Try again or use another image."
           });
         }
       } catch (err) {
         return interaction.editReply({
-          content: `❌ Image upload failed: ${err.message}`
+          content: `Image upload failed: ${err.message}`
         });
       }
     }
@@ -71,7 +71,7 @@ module.exports = {
     });
 
     await interaction.editReply({
-      content: "✅ Question added successfully!"
+      content: "Question added successfully!"
     });
   }
 };

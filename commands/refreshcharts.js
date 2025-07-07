@@ -20,7 +20,7 @@ module.exports = {
       const timePassed = now - cooldownDoc.lastUsed;
       if (timePassed < cooldownLimit) {
         const remaining = Math.ceil((cooldownLimit - timePassed) / 60000);
-        return interaction.reply({ content: `⏳ Please wait ${remaining} more minute(s) before refreshing again.` });
+        return interaction.reply({ content: `Please wait ${remaining} more minute(s) before refreshing again.` });
       }
     }
 
@@ -33,7 +33,7 @@ module.exports = {
 
     const inv = await UserInventory.findOne({ userId });
     if (!inv || inv.cards.length === 0) {
-      return interaction.reply({ content: '📭 You have no cards to calculate.' });
+      return interaction.reply({ content: 'You have no cards to calculate.' });
     }
 
     const allCardCodes = inv.cards.map(c => c.cardCode);
@@ -56,6 +56,6 @@ module.exports = {
       { upsert: true }
     );
 
-    return interaction.reply({ content: '✅ Your chart stats have been refreshed!' });
+    return interaction.reply({ content: 'Your chart stats have been refreshed!' });
   }
 };

@@ -29,11 +29,11 @@ module.exports = {
     const sopop = interaction.options.getInteger('sopop') || 0;
 
     if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
-      return interaction.reply({ content: '❌ You do not have permission to use this command.', ephemeral: true });
+      return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
     }
 
     if (!patterns && !sopop) {
-      return interaction.reply({ content: '❌ You must specify patterns or sopop to grant or remove.', ephemeral: true });
+      return interaction.reply({ content: 'You must specify patterns or sopop to grant or remove.', ephemeral: true });
     }
 
     const userDoc = await User.findOneAndUpdate(

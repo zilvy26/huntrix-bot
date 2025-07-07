@@ -49,7 +49,7 @@ module.exports = {
     if (template !== 'profile_base') {
       if (!userData?.templatesOwned?.includes(template)) {
         return interaction.editReply({
-          content: `❌ You don’t own the template \`${template}\`. Use /boutique decors to buy it.`,
+          content: `You don’t own the template \`${template}\`. Use /boutique decors to buy it.`,
         });
       }
     }
@@ -65,7 +65,7 @@ module.exports = {
 
     if (!ownsCard) {
       return interaction.editReply({
-        content: `❌ You don’t own a card with code \`${favoriteCard}\`.`,
+        content: `You don’t own a card with code \`${favoriteCard}\`.`,
       });
     }
 
@@ -75,7 +75,7 @@ module.exports = {
   await profile.save();
 
   return interaction.editReply({
-    content: '✅ Your profile has been updated.',
+    content: 'Your profile has been updated.',
   });
 }
 };

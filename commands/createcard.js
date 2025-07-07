@@ -62,7 +62,7 @@ module.exports = {
   try {
     const allowedRole = process.env.CARD_CREATOR_ROLE_ID;
     if (!interaction.member.roles.cache.has(allowedRole)) {
-      return interaction.editReply({ content: '🚫 You do not have permission to use this command.' });
+      return interaction.editReply({ content: 'You do not have permission to use this command.' });
     }
 
     const opts = interaction.options;
@@ -80,11 +80,11 @@ module.exports = {
     const attachment = opts.getAttachment('image');
 
     if (await Card.findOne({ cardCode })) {
-      return interaction.editReply({ content: `⚠️ A card with code \`${cardCode}\` already exists.` });
+      return interaction.editReply({ content: `A card with code \`${cardCode}\` already exists.` });
     }
 
     const { discordUrl, imgurUrl } = await uploadCardImage(interaction.client, attachment.url, name, cardCode);
-    if (!discordUrl) throw new Error('❌ Discord upload failed.');
+    if (!discordUrl) throw new Error('Discord upload failed.');
     const image = discordUrl;
 
     const stars = generateStars({ rarity, overrideEmoji: emoji });
@@ -100,12 +100,12 @@ module.exports = {
         { name: 'Group', value: group || '-', inline: true },
         { name: 'Era', value: era || '-', inline: true },
         { name: 'Designer', value: `<@${designerId}>`, inline: true },
-        { name: 'Imgur Link', value: imgurUrl || '⚠️ Failed', inline: false }
+        { name: 'Imgur Link', value: imgurUrl || 'Failed', inline: false }
       );
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('confirm').setLabel('✅ Confirm').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('cancel').setLabel('❌ Cancel').setStyle(ButtonStyle.Danger)
+      new ButtonBuilder().setCustomId('confirm').setLabel('Confirm').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('cancel').setLabel('Cancel').setStyle(ButtonStyle.Danger)
     );
 
     await interaction.editReply({ embeds: [previewEmbed], components: [row] });
@@ -113,7 +113,7 @@ module.exports = {
     const btn = await awaitUserButton(interaction, interaction.user.id, ['confirm', 'cancel'], 120000);
 
     if (!btn) {
-      return btn.update({ content: '⌛ No response — cancelled.', components: [] });
+      return btn.update({ content: 'No response — cancelled.', components: [] });
     }
 
     if (!btn.deferred && !btn.replied) {
@@ -140,21 +140,21 @@ module.exports = {
       });
 
       return interaction.editReply({
-        content: `✅ Card \`${cardCode}\` created successfully.`,
+        content: `Card \`${cardCode}\` created successfully.`,
         embeds: [],
         components: []
       });
     } else if (btn.customId === 'cancel') {
       return interaction.editReply({
-        content: '❌ Card creation cancelled.',
+        content: 'Card creation cancelled.',
         components: []
       });
     }
   } catch (err) {
-    console.error('❌ Error in /createcard:', err);
+    console.error('Error in /createcard:', err);
     if (!interaction.replied && !interaction.deferred) {
       return interaction.reply({
-        content: '❌ There was an error executing the command.',
+        content: 'There was an error executing the command.',
         ephemeral: true
       });
     }

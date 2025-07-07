@@ -13,7 +13,7 @@ const generateStars = require('../utils/starGenerator');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('pull10')
-    .setDescription('Pull 10 cards at once 🎴')
+    .setDescription('Pull 10 cards at once')
     .addBooleanOption(opt =>
       opt.setName('reminder')
         .setDescription('Remind when cooldown ends')
@@ -30,7 +30,7 @@ module.exports = {
 
     if (isOnCooldown(userId, commandName)) {
       return interaction.reply({
-        content: `⏳ You must wait **${getCooldownTimestamp(userId, commandName)}** to pull again.`,
+        content: `You must wait **${getCooldownTimestamp(userId, commandName)}** to pull again.`,
         
       });
     }
@@ -48,7 +48,7 @@ module.exports = {
     ]);
 
     if (cards.length < 10) {
-      return interaction.editReply({ content: '❌ Not enough cards available to pull 10.' });
+      return interaction.editReply({ content: 'Not enough cards available to pull 10.' });
     }
 
     // 🖼️ Canvas 5x2 layout

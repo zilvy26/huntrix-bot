@@ -34,7 +34,7 @@ module.exports = {
     }).sort({ createdAt: -1 });
 
     if (!allLogs.length) {
-      return interaction.editReply({ content: `📭 No records found for ${target.username}.` });
+      return interaction.editReply({ content: `No records found for ${target.username}.` });
     }
 
     const logsPerPage = 10;
@@ -44,7 +44,7 @@ module.exports = {
     const getPage = (page) => {
       const logs = allLogs.slice(page * logsPerPage, (page + 1) * logsPerPage);
       const embed = new EmbedBuilder()
-        .setTitle(`📑 Activity Logs — ${target.username}`)
+        .setTitle(`Activity Logs — ${target.username}`)
         .setColor('#2f3136')
         .setDescription(
           logs.map(log => {

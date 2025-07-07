@@ -54,10 +54,10 @@ module.exports = {
         } else if (card.discordPermalinkImage?.startsWith('http')) {
           favoriteCardImageURL = card.discordPermalinkImage;
         } else {
-          console.warn("⚠️ No valid image URL found for favoriteCard:", profile.favoriteCard);
+          console.warn("No valid image URL found for favoriteCard:", profile.favoriteCard);
         }
       } else {
-        console.warn("❌ Inventory entry or card not found for favoriteCard:", profile.favoriteCard);
+        console.warn("Inventory entry or card not found for favoriteCard:", profile.favoriteCard);
       }
     }
 
@@ -71,7 +71,7 @@ module.exports = {
       const attachment = new AttachmentBuilder(buffer, { name: 'profile.png' });
       await interaction.editReply({ files: [attachment] });
     } catch (error) {
-      console.error("❌ Error generating profile:", error);
+      console.error("Error generating profile:", error);
       await interaction.editReply({ content: "There was an error generating the profile image." });
     }
   }

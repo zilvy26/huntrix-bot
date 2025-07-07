@@ -68,18 +68,18 @@ if (rarityRangeRaw) {
     if (minRarity > maxRarity) [minRarity, maxRarity] = [maxRarity, minRarity]; // auto-swap if reversed
   } else {
     return interaction.reply({
-      content: `❌ Invalid rarity range format. Please use \`1-3\`, \`2-5\`, etc.`,
+      content: `Invalid rarity range format. Please use \`1-3\`, \`2-5\`, etc.`,
       
     });
   }
 }
 
     if (target.id === giver.id) {
-      return interaction.editReply('❌ You can’t gift cards to yourself.');
+      return interaction.editReply('You can’t gift cards to yourself.');
     }
     const invDoc = await UserInventory.findOne({ userId: giver.id });
     if (!invDoc || !invDoc.cards.length) {
-      return interaction.editReply('❌ You have no cards to gift.');
+      return interaction.editReply('You have no cards to gift.');
     }
 
     // Prepare filtered list
@@ -112,7 +112,7 @@ if (rarityRangeRaw) {
 });
 
     if (!matches.length) {
-      return interaction.editReply('❌ No matching cards found in your inventory.');
+      return interaction.editReply('No matching cards found in your inventory.');
     }
 
     // Determine gift quantities
@@ -136,7 +136,7 @@ for (const o of matches) {
 }
 
     if (!gifts.length) {
-      return interaction.editReply('❌ No cards available to gift under this mode.');
+      return interaction.editReply('No cards available to gift under this mode.');
     }
 
     // Fetch or create receiver's inventory

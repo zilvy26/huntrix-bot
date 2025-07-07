@@ -37,7 +37,7 @@ module.exports = {
     const rawCodes = interaction.options.getString('cardcodes');
 
     if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
-      return interaction.editReply({ content: '❌ You lack permission to use this.' });
+      return interaction.editReply({ content: 'You lack permission to use this.' });
     }
 
     // Count quantity per code
@@ -59,7 +59,7 @@ module.exports = {
     const cards = await Card.find({ cardCode: { $in: uniqueCodes } });
 
     if (!cards.length) {
-      return interaction.editReply({ content: '❌ No valid cards found for those codes.' });
+      return interaction.editReply({ content: 'No valid cards found for those codes.' });
     }
 
     let inv = await UserInventory.findOne({ userId: targetUser.id });

@@ -90,7 +90,7 @@ if (imageAttachment) {
 
   if (updates.rarity < 1 || updates.rarity > 5) {
     return interaction.editReply({
-      content: '❌ Rarity must be between 1 and 5.',
+      content: 'Rarity must be between 1 and 5.',
       ephemeral: true
     });
   }
@@ -107,11 +107,11 @@ if (imageAttachment) {
   const overrideEmoji = opts.getString('setemoji') || null;
 
   if (Object.keys(filters).length === 0) {
-    return interaction.editReply('⚠️ You must provide at least one filter (name, code, etc).');
+    return interaction.editReply('You must provide at least one filter (name, code, etc).');
   }
 
   if (Object.keys(updates).length === 0) {
-    return interaction.editReply('⚠️ You must provide at least one field to update.');
+    return interaction.editReply('You must provide at least one field to update.');
   }
 
 
@@ -123,8 +123,8 @@ if (imageAttachment) {
 
     const embed = new EmbedBuilder()
       .setTitle(`Card Preview ${index + 1} of ${matchedCards.length}`)
-      .setDescription(`🆔 **${card.cardCode}** → \`${updates.cardCode || card.cardCode}\`\n` +
-                      `🖋️ **${card.name}** → \`${updates.name || card.name}\``)
+      .setDescription(`**${card.cardCode}** → \`${updates.cardCode || card.cardCode}\`\n` +
+                      `**${card.name}** → \`${updates.name || card.name}\``)
       .addFields(
         { name: 'Group', value: updates.group || card.group || '—', inline: true },
         { name: 'Era', value: updates.era || card.era || '—', inline: true },
@@ -180,7 +180,7 @@ if (image) embed.setImage(image);
 
   collector.on('collect', async btn => {
   if (btn.user.id !== interaction.user.id) {
-    return btn.reply({ content: '⚠️ Only the command invoker can use these buttons.', ephemeral: true });
+    return btn.reply({ content: 'Only the command invoker can use these buttons.', ephemeral: true });
   }
 
   // Safely handle deferring the button interaction
@@ -211,7 +211,7 @@ if (image) embed.setImage(image);
     await safeDefer();
     await Card.updateMany(filters, { $set: updates });
     return interaction.editReply({
-      content: `✅ Updated ${matchedCards.length} card(s).`,
+      content: `Updated ${matchedCards.length} card(s).`,
       embeds: [],
       components: []
     });
@@ -221,7 +221,7 @@ if (image) embed.setImage(image);
     collector.stop('cancelled');
     await safeDefer();
     return interaction.editReply({
-      content: '❌ Edit operation cancelled.',
+      content: 'Edit operation cancelled.',
       embeds: [],
       components: []
     });
@@ -234,13 +234,13 @@ if (image) embed.setImage(image);
       const reply = await interaction.fetchReply();
       if (!reply.ephemeral && !reply.deleted) {
         await interaction.editReply({
-          content: '⌛ Command timed out with no action.',
+          content: 'Command timed out with no action.',
           embeds: [],
           components: []
         });
       }
     } catch (err) {
-      console.warn('❗ Attempted to edit an already handled interaction:', err.message);
+      console.warn('Attempted to edit an already handled interaction:', err.message);
     }
   }
 });

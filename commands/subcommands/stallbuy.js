@@ -9,16 +9,16 @@ module.exports = async function(interaction) {
 
   const listing = await MarketListing.findOne({ buyCode });
   if (!listing) {
-    return interaction.reply({ content: '❌ No listing found with that Buy Code.' });
+    return interaction.reply({ content: 'No listing found with that Buy Code.' });
   }
 
   if (listing.sellerId === interaction.user.id) {
-    return interaction.reply({ content: '❌ You cannot buy your own listing.' });
+    return interaction.reply({ content: 'You cannot buy your own listing.' });
   }
 
   const buyer = await User.findOne({ userId: interaction.user.id });
   if (!buyer || buyer.patterns < listing.price) {
-    return interaction.reply({ content: `❌ You need ${listing.price} Patterns to buy this card.` });
+    return interaction.reply({ content: `You need ${listing.price} Patterns to buy this card.` });
   }
 
   // Deduct Patterns from buyer
@@ -67,13 +67,13 @@ module.exports = async function(interaction) {
     const sellerUser = await interaction.client.users.fetch(listing.sellerId);
     await sellerUser.send(`Your card **${listing.cardName}** \`${listing.cardCode}\` has been purchased by <@${buyer.userId}> for **${listing.price} Patterns**!`);
   } catch (err) {
-    console.warn('⚠️ Could not DM seller:', err.message);
+    console.warn('Could not DM seller:', err.message);
   }
 
   // Remove listing
   await listing.deleteOne();
 
   await interaction.reply({
-    content: `✅ You bought **${listing.cardName}** for **${listing.price} Patterns** from <@${listing.sellerId}>!`
+    content: `You bought **${listing.cardName}** for **${listing.price} Patterns** from <@${listing.sellerId}>!`
   });
 };

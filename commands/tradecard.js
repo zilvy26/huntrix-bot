@@ -33,7 +33,7 @@ module.exports = {
     const rawCodes = interaction.options.getString('cardcodes');
 
     if (giver.id === receiver.id) {
-      return interaction.editReply({ content: '❌ You cannot trade cards to yourself.' });
+      return interaction.editReply({ content: 'You cannot trade cards to yourself.' });
     }
 
     // Parse codes and quantities
@@ -50,11 +50,11 @@ module.exports = {
     const uniqueCodes = Object.keys(counts);
     const cards = await Card.find({ cardCode: { $in: uniqueCodes } });
     if (!cards.length) {
-      return interaction.editReply({ content: '❌ No valid cards found for those codes.' });
+      return interaction.editReply({ content: 'No valid cards found for those codes.' });
     }
 
     const giverInv = await UserInventory.findOne({ userId: giver.id });
-    if (!giverInv) return interaction.editReply({ content: '❌ You have no cards to trade.' });
+    if (!giverInv) return interaction.editReply({ content: 'You have no cards to trade.' });
 
     let receiverInv = await UserInventory.findOne({ userId: receiver.id });
     if (!receiverInv) receiverInv = await UserInventory.create({ userId: receiver.id, cards: [] });
@@ -102,7 +102,7 @@ module.exports = {
     await receiverInv.save();
 
     if (!traded.length) {
-      return interaction.editReply({ content: '❌ No cards were successfully traded.' });
+      return interaction.editReply({ content: 'No cards were successfully traded.' });
     }
 
     // Pagination Setup

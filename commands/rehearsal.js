@@ -32,7 +32,7 @@ module.exports = {
     if (isOnCooldown(userId, commandName)) {
       const nextTime = getCooldownTimestamp(userId, commandName);
       return interaction.editReply({
-        content: `⏳ You must wait **${nextTime}** before rehearsing again.`,
+        content: `You must wait **${nextTime}** before rehearsing again.`,
         
       });
     }
@@ -49,7 +49,7 @@ module.exports = {
 
     if (cards.length < 3) {
       return interaction.editReply({
-        content: '❌ Not enough pullable cards in the database.',
+        content: 'Not enough pullable cards in the database.',
         
       });
     }
@@ -81,7 +81,7 @@ module.exports = {
     const attachment = { attachment: buffer, name: 'rehearsal.png' };
 
     const embed = new EmbedBuilder()
-      .setTitle('🎭 Choose Your Rehearsal Card')
+      .setTitle('Choose Your Rehearsal Card')
       .setImage('attachment://rehearsal.png')
       .setColor('#2f3136');
 
@@ -145,7 +145,7 @@ module.exports = {
 
     // 🖼️ Result embed
     const resultEmbed = new EmbedBuilder()
-      .setTitle(`🎶 You chose: ${selected.name}`)
+      .setTitle(`You chose: ${selected.name}`)
       .setDescription([
         `**Rarity:** ${selected.rarity}`,
         `**Name:** ${selected.name}`,
@@ -166,7 +166,7 @@ module.exports = {
 
     collector.stop(); // ✅ Ensure we stop early to avoid future interactions
   } catch (err) {
-    console.error('❌ Rehearsal button error:', err);
+    console.error('Rehearsal button error:', err);
     await btn.followUp({ content: 'Something went wrong while selecting your card.' }).catch(() => {});
   }
 });
@@ -175,11 +175,11 @@ module.exports = {
   if (reason === 'time') {
     try {
       await interaction.editReply({
-        content: '⏰ Time ran out. Please try again.',
+        content: 'Time ran out. Please try again.',
         components: []
       });
     } catch (err) {
-      console.warn('⚠️ Failed to disable components after timeout:', err.message);
+      console.warn('Failed to disable components after timeout:', err.message);
     }
   }
 });

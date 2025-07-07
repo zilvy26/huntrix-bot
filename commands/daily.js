@@ -27,7 +27,7 @@ module.exports = {
     if (cooldowns.isOnCooldown(userId, commandName)) {
       const nextTime = cooldowns.getCooldownTimestamp(userId, commandName);
       return interaction.reply({
-        content: `⏳ You already claimed your daily reward. Try again **${nextTime}**.`,
+        content: `You already claimed your daily reward. Try again **${nextTime}**.`,
       });
     }
 
@@ -37,16 +37,16 @@ module.exports = {
 
     let userData = await User.findOne({ userId });
     if (!userData) {
-      userData = await User.create({ userId, dailyStreak: { count: 0, lastClaim: now } });
+      userData = await User.create({ userId, dailystreak: { count: 0, lastClaim: now } });
     }
 
-    const lastClaim = new Date(userData.dailyStreak?.lastClaim || 0);
+    const lastClaim = new Date(userData.dailystreak?.lastClaim || 0);
     const diff = now - lastClaim;
-    let streak = userData.dailyStreak?.count || 0;
+    let streak = userData.dailystreak?.count || 0;
 
     if (diff < oneDay) {
       return interaction.reply({
-        content: `⏳ You already claimed your daily reward. Try again later.`,
+        content: `You already claimed your daily reward. Try again later.`,
         
       });
     } else if (diff < oneDay * 2) {
@@ -62,7 +62,7 @@ module.exports = {
     };
 
     // Save streak data and set cooldown
-    userData.dailyStreak = { count: streak, lastClaim: now };
+    userData.dailystreak = { count: streak, lastClaim: now };
     await userData.save();
     cooldowns.setCooldown(userId, commandName, cooldownDuration);
 
