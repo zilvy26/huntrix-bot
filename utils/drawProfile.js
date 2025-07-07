@@ -67,6 +67,9 @@ module.exports = async function drawProfile(user, userProfile, favoriteCardImage
       const cardImage = await loadImage(buffer);
 
       ctx.drawImage(cardImage, 890, 177, 500, 770); // Adjust as needed
+      cardImage.src = '';
+      buffer.fill(0);
+      arrayBuffer = null;
     } catch (err) {
       console.warn('⚠️ Failed to load favorite card image:', err.message);
     }
@@ -79,9 +82,6 @@ canvas.width = 0;
 canvas.height = 0;
 
 // Optional cleanup
-cardImage.src = '';
-buffer.fill(0);
-arrayBuffer = null;
 
 return finalBuffer;
 };
