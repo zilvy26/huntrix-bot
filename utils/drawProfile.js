@@ -72,5 +72,16 @@ module.exports = async function drawProfile(user, userProfile, favoriteCardImage
     }
   }
 
-  return canvas.toBuffer();
+  const finalBuffer = canvas.toBuffer();
+
+// Optional: help GC by clearing large vars
+canvas.width = 0;
+canvas.height = 0;
+
+// Optional cleanup
+cardImage.src = '';
+buffer.fill(0);
+arrayBuffer = null;
+
+return finalBuffer;
 };

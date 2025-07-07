@@ -44,5 +44,21 @@ module.exports = async function drawBinder(userId, page = 1) {
     }
   }
 
-  return canvas.toBuffer('image/png');
+  const finalBuffer = canvas.toBuffer('image/png');
+
+// Optional: Help garbage collection
+canvas.width = 0;
+canvas.height = 0;
+
+// Free card images if needed
+for (let i = 0; i < 8; i++) {
+  if (slots[i]) {
+    slots[i] = null;
+  }
+}
+
+// Force GC if available
+global.gc?.();
+
+return finalBuffer;
 };
