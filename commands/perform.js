@@ -31,16 +31,15 @@ module.exports = {
     const commandName = 'perform';
     const cooldownDuration = cooldownConfig[commandName];
 
-    if (cooldowns.isOnCooldown(userId, commandName)) {
-      const nextTime = cooldowns.getCooldownTimestamp(userId, commandName);
-      return interaction.reply({
-        content: `You're tired from your last performance. Come back **${nextTime}**.`,
-        
-      });
-    }
+    if (await cooldowns.isOnCooldown(userId, commandName)) {
+  const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
+  return interaction.reply({
+    content: `You're tired from your last performance. Come back **${nextTime}**.`,
+  });
+}
 
     // Set cooldown
-    cooldowns.setCooldown(userId, commandName, cooldownDuration);
+    await cooldowns.setCooldown(userId, commandName, cooldownDuration);
 
     // Generate randomized rewards
     const patterns = getRandomInt(1000, 1750);

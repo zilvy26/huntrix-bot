@@ -42,16 +42,15 @@ module.exports = {
   : cooldownDuration;
 
     // 🔒 Cooldown check
-    if (isOnCooldown(userId, commandName)) {
-      const nextTime = getCooldownTimestamp(userId, commandName, cooldownMs);
-      return interaction.reply({
-        content: `You must wait ${nextTime} before using \`/pull\` again.`,
-        
-      });
-    }
+    if (await cooldowns.isOnCooldown(userId, commandName)) {
+  const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
+  return interaction.reply({
+    content: `You must wait ${nextTime} before using \`/pull\` again.`,
+  });
+}
 
     // ✅ Set cooldown
-    setCooldown(userId, commandName, cooldownMs);
+    await cooldowns.setCooldown(userId, commandName, cooldownMs);
 
     await interaction.deferReply();
 

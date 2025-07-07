@@ -6,8 +6,8 @@ const {
   ButtonStyle
 } = require('discord.js');
 const Canvas = require('canvas');
-const { isOnCooldown, setCooldown, getCooldownTimestamp } = require('../utils/cooldownManager');
-const cooldowns = require('../utils/cooldownConfig');
+const cooldowns = require('../utils/cooldownManager');
+const cooldownConfig = require('../utils/cooldownConfig');
 const handleReminders = require('../utils/reminderHandler');
 const giveCurrency = require('../utils/giveCurrency');
 const Card = require('../models/Card');
@@ -27,34 +27,27 @@ module.exports = {
     await interaction.deferReply();
     const userId = interaction.user.id;
     const commandName = 'rehearsal';
-    const cooldownDuration = cooldowns[commandName];
+    const cooldownDuration = cooldownConfig[commandName];
 
-    if (isOnCooldown(userId, commandName)) {
-      const nextTime = getCooldownTimestamp(userId, commandName);
+    if (await cooldowns.isOnCooldown(userId, commandName)) {
+      const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
       return interaction.editReply({
-        content: `You must wait **${nextTime}** before rehearsing again.`,
-        
+        content: `You must wait **${nextTime}** before rehearsing again.`
       });
     }
 
-    // 🧠 Cooldown & Reminder
-    setCooldown(userId, commandName, cooldownDuration);
+    await cooldowns.setCooldown(userId, commandName, cooldownDuration);
     await handleReminders(interaction, commandName, cooldownDuration);
 
-    // 🔄 Get 3 random pullable cards
     const cards = await Card.aggregate([
       { $match: { pullable: true } },
       { $sample: { size: 3 } }
     ]);
 
     if (cards.length < 3) {
-      return interaction.editReply({
-        content: 'Not enough pullable cards in the database.',
-        
-      });
+      return interaction.editReply({ content: 'Not enough pullable cards in the database.' });
     }
 
-    // 🖼️ Canvas setup
     const canvas = Canvas.createCanvas(600, 340);
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#2f3136';
@@ -66,15 +59,12 @@ module.exports = {
       const cardX = i * 200 + 10;
       const cardY = 10;
       ctx.drawImage(img, cardX, cardY, 180, 240);
-
-      // Text under card
-      const textX = cardX;
       let textY = cardY + 260;
       ctx.fillStyle = '#ffffff';
       ctx.font = '15px Sans';
-      ctx.fillText(`Rarity: ${c.rarity}`, textX, textY); textY += 18;
-      ctx.fillText(`Group: ${c.group}`, textX, textY); textY += 18;
-      ctx.fillText(`Code: ${c.cardCode}`, textX, textY);
+      ctx.fillText(`Rarity: ${c.rarity}`, cardX, textY); textY += 18;
+      ctx.fillText(`Group: ${c.group}`, cardX, textY); textY += 18;
+      ctx.fillText(`Code: ${c.cardCode}`, cardX, textY);
     }
 
     const buffer = canvas.toBuffer();
@@ -100,7 +90,6 @@ module.exports = {
       components: [row]
     });
 
-    // 🎮 Button selection logic
     const collector = interaction.channel.createMessageComponentCollector({
       filter: btn => btn.user.id === userId && btn.customId.startsWith('rehearsal_'),
       time: 60000,
@@ -108,80 +97,74 @@ module.exports = {
     });
 
     collector.on('collect', async btn => {
-  try {
-    if (!btn.deferred && !btn.replied) {
-      await btn.deferUpdate();
-    }
+      try {
+        if (!btn.deferred && !btn.replied) await btn.deferUpdate();
 
-    const idx = parseInt(btn.customId.split('_')[1]);
-    const selected = cards[idx];
+        const idx = parseInt(btn.customId.split('_')[1]);
+        const selected = cards[idx];
 
-    // 🎁 Reward logic
-    const sopop = Math.random() < 0.58 
-      ? (Math.random() < 0.75 ? 1 : 2)
-      : 0;
-    const user = await giveCurrency(userId, { sopop });
+        const sopop = Math.random() < 0.58
+          ? (Math.random() < 0.75 ? 1 : 2)
+          : 0;
+        const user = await giveCurrency(userId, { sopop });
 
-    // 🧩 Update inventory
-    let inv = await UserInventory.findOne({ userId });
-    if (!inv) inv = await UserInventory.create({ userId, cards: [] });
+        let inv = await UserInventory.findOne({ userId });
+        if (!inv) inv = await UserInventory.create({ userId, cards: [] });
 
-    const existing = inv.cards.find(c => c.cardCode === selected.cardCode);
-    let copies = 1;
-    if (existing) {
-      existing.quantity += 1;
-      copies = existing.quantity;
-    } else {
-      inv.cards.push({ cardCode: selected.cardCode, quantity: 1 });
-    }
-    await inv.save();
+        const existing = inv.cards.find(c => c.cardCode === selected.cardCode);
+        let copies = 1;
+        if (existing) {
+          existing.quantity += 1;
+          copies = existing.quantity;
+        } else {
+          inv.cards.push({ cardCode: selected.cardCode, quantity: 1 });
+        }
+        await inv.save();
 
-    // 📝 Log
-    await UserRecord.create({
-      userId: userId,
-      type: 'rehearsal',
-      detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
+        await UserRecord.create({
+          userId,
+          type: 'rehearsal',
+          detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
+        });
+
+        const resultEmbed = new EmbedBuilder()
+          .setTitle(`You chose: ${selected.name}`)
+          .setDescription([
+            `**Rarity:** ${selected.rarity}`,
+            `**Name:** ${selected.name}`,
+            ...(selected.category?.toLowerCase() === 'kpop' ? [`**Era:** ${selected.era}`] : []),
+            `**Group:** ${selected.group}`,
+            `**Code:** \`${selected.cardCode}\``,
+            `**Copies Owned:** ${copies}`,
+            `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
+          ].join('\n'))
+          .setImage(selected.discordPermLinkImage || selected.imgurImageLink)
+          .setColor('#FFD700');
+
+        await btn.editReply({
+          embeds: [resultEmbed],
+          files: [],
+          components: []
+        });
+
+        collector.stop();
+      } catch (err) {
+        console.error('Rehearsal button error:', err);
+        await btn.followUp({ content: 'Something went wrong while selecting your card.' }).catch(() => {});
+      }
     });
 
-    // 🖼️ Result embed
-    const resultEmbed = new EmbedBuilder()
-      .setTitle(`You chose: ${selected.name}`)
-      .setDescription([
-        `**Rarity:** ${selected.rarity}`,
-        `**Name:** ${selected.name}`,
-        ...(selected.category?.toLowerCase() === 'kpop' ? [`**Era:** ${selected.era}`] : []),
-        `**Group:** ${selected.group}`,
-        `**Code:** \`${selected.cardCode}\``,
-        `**Copies Owned:** ${copies}`,
-        `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
-      ].join('\n'))
-      .setImage(selected.discordPermLinkImage || selected.imgurImageLink)
-      .setColor('#FFD700');
-
-    await btn.editReply({
-      embeds: [resultEmbed],
-      files: [],
-      components: []
+    collector.on('end', async (_, reason) => {
+      if (reason === 'time') {
+        try {
+          await interaction.editReply({
+            content: 'Time ran out. Please try again.',
+            components: []
+          });
+        } catch (err) {
+          console.warn('Failed to disable components after timeout:', err.message);
+        }
+      }
     });
-
-    collector.stop(); // ✅ Ensure we stop early to avoid future interactions
-  } catch (err) {
-    console.error('Rehearsal button error:', err);
-    await btn.followUp({ content: 'Something went wrong while selecting your card.' }).catch(() => {});
-  }
-});
-
-  collector.on('end', async (_, reason) => {
-  if (reason === 'time') {
-    try {
-      await interaction.editReply({
-        content: 'Time ran out. Please try again.',
-        components: []
-      });
-    } catch (err) {
-      console.warn('Failed to disable components after timeout:', err.message);
-    }
-  }
-});
   }
 };

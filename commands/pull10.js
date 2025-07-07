@@ -1,12 +1,12 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const Canvas = require('canvas');
-const { isOnCooldown, setCooldown, getCooldownTimestamp } = require('../utils/cooldownManager');
-const cooldowns = require('../utils/cooldownConfig');
+const cooldowns = require('../utils/cooldownManager'); // ✅ use full object
+const cooldownConfig = require('../utils/cooldownConfig');
 const handleReminders = require('../utils/reminderHandler');
 const giveCurrency = require('../utils/giveCurrency');
 const Card = require('../models/Card');
 const UserInventory = require('../models/UserInventory');
-const rarityEmoji = require('../utils/rarityEmoji'); // ➕ your rarity emoji helper
+const rarityEmoji = require('../utils/rarityEmoji');
 const pickRarity = require('../utils/rarityPicker');
 const generateStars = require('../utils/starGenerator');
 
@@ -26,22 +26,24 @@ module.exports = {
   async execute(interaction) {
     const userId = interaction.user.id;
     const commandName = 'pull10';
-    const cooldownDuration = cooldowns[commandName];
+    const cooldownDuration = cooldownConfig[commandName];
 
-    if (isOnCooldown(userId, commandName)) {
+    // ✅ Await Mongo-based cooldown
+    if (await cooldowns.isOnCooldown(userId, commandName)) {
+      const ts = await cooldowns.getCooldownTimestamp(userId, commandName);
       return interaction.reply({
-        content: `You must wait **${getCooldownTimestamp(userId, commandName)}** to pull again.`,
-        
+        content: `You must wait **${ts}** to pull again.`,
+        ephemeral: true
       });
     }
 
-    // 🕒 Set cooldown & reminders
-    setCooldown(userId, commandName, cooldownDuration);
+    // ✅ Set cooldown & reminders
+    await cooldowns.setCooldown(userId, commandName, cooldownDuration);
     await handleReminders(interaction, commandName, cooldownDuration);
 
     await interaction.deferReply();
 
-    // 🃏 Fetch 10 random pullable cards
+    // 🎴 Pull logic
     const cards = await Card.aggregate([
       { $match: { pullable: true } },
       { $sample: { size: 10 } }
@@ -50,8 +52,7 @@ module.exports = {
     if (cards.length < 10) {
       return interaction.editReply({ content: 'Not enough cards available to pull 10.' });
     }
-
-    // 🖼️ Canvas 5x2 layout
+    // 🖼️ Canvas generation
     const cols = 5, rows = 2;
     const cardW = 160, cardH = 240;
     const padding = 10;
@@ -75,7 +76,7 @@ module.exports = {
     const buffer = canvas.toBuffer();
     const attachment = { attachment: buffer, name: 'pull10.png' };
 
-    // 📦 Inventory logic
+    // 📦 Add cards to inventory
     let inv = await UserInventory.findOne({ userId });
     if (!inv) inv = await UserInventory.create({ userId, cards: [] });
 
@@ -93,7 +94,7 @@ module.exports = {
     }
     await inv.save();
 
-    // 🧾 Final embed
+    // 📜 Build embed
     const embed = new EmbedBuilder()
       .setTitle('Special Pull Complete!')
       .setImage('attachment://pull10.png')
@@ -106,14 +107,14 @@ module.exports = {
       files: [attachment]
     });
 
+    // 📝 Log records
     const UserRecord = require('../models/UserRecord');
-
-for (const card of cards) {
-  await UserRecord.create({
-    userId: userId,
-    type: 'pull10',
-    detail: `Pulled ${card.name} (${card.cardCode}) [${card.rarity}]`
-  });
-}
+    for (const card of cards) {
+      await UserRecord.create({
+        userId,
+        type: 'pull10',
+        detail: `Pulled ${card.name} (${card.cardCode}) [${card.rarity}]`
+      });
+    }
   }
 };

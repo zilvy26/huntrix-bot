@@ -7,12 +7,9 @@ const {
 } = require('discord.js');
 const Question = require('../models/Question');
 const User = require('../models/User');
-const {
-  isOnCooldown,
-  getCooldownTimestamp,
-  setCooldown
-} = require('../utils/cooldownManager');
-const { battle: battleCooldown } = require('../utils/cooldownConfig');
+const cooldowns = require('../utils/cooldownManager');
+const cooldownConfig = require('../utils/cooldownConfig');
+const handleReminders = require('../utils/reminderHandler');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -29,24 +26,33 @@ module.exports = {
         .addChoices(
           { name: 'Demons (Easy)', value: 'easy' },
           { name: 'Hunters (Hard)', value: 'hard' }
-        )),
+        ))
+    .addBooleanOption(opt =>
+      opt.setName('reminder')
+        .setDescription('Remind you when cooldown ends')
+        .setRequired(false))
+    .addBooleanOption(opt =>
+      opt.setName('remindinchannel')
+        .setDescription('Remind in the command channel instead of DM')
+        .setRequired(false)),
 
   async execute(interaction) {
     const userId = interaction.user.id;
-    const difficulty = interaction.options.getString('difficulty');
+    const commandName = 'battle';
+    const cooldownDuration = cooldownConfig[commandName] || (2 * 60 * 60 * 1000); // 2h
 
-    if (isOnCooldown(userId, 'battle')) {
-      const endsAt = getCooldownTimestamp(userId, 'battle');
+    if (await cooldowns.isOnCooldown(userId, commandName)) {
+      const endsAt = await cooldowns.getCooldownTimestamp(userId, commandName);
       return interaction.reply({
         content: `You must wait before battling again. Try ${endsAt}`,
-        
+        ephemeral: true
       });
     }
 
-    setCooldown(userId, 'battle', battleCooldown);
-
+    await cooldowns.setCooldown(userId, commandName, cooldownDuration);
+    await handleReminders(interaction, commandName, cooldownDuration);
     const questions = await Question.aggregate([
-      { $match: { difficulty } },
+      { $match: { difficulty: interaction.options.getString('difficulty') } },
       { $sample: { size: 1 } }
     ]);
 
@@ -64,6 +70,7 @@ module.exports = {
           .setStyle(ButtonStyle.Primary)
       )
     );
+
     const embed = new EmbedBuilder()
       .setTitle('Battle Question')
       .setDescription(`**${selected.question}**`)
@@ -87,7 +94,6 @@ module.exports = {
       const selectedAnswer = selected.options[selectedIndex];
 
       if (selectedAnswer === selected.correct) {
-        // Load or create user
         const user = await User.findOne({ userId }) || new User({
           userId,
           username: interaction.user.username
@@ -98,25 +104,21 @@ module.exports = {
         let rewardPatterns = 0;
         let rewardSopop = 0;
 
-        if (difficulty === 'easy') {
+        if (interaction.options.getString('difficulty') === 'easy') {
           rewardPatterns = getRandomInt(600, 850);
-        } else if (difficulty === 'hard') {
+        } else {
           rewardPatterns = getRandomInt(1000, 1250);
           rewardSopop = getRandomInt(0, 1);
         }
 
-        // 🎲 5% chance bonus
         if (Math.random() < 0.05) rewardSopop++;
 
-        // 🔥 Streak bonus every 3 wins
         let streakBonus = '';
         if (user.correctStreak % 3 === 0) {
           rewardPatterns += 200;
-          rewardSopop += 0;
           streakBonus = '\n🔥 **Streak bonus activated!** Extra rewards granted!';
         }
 
-        // Save rewards
         user.patterns += rewardPatterns;
         user.sopop += rewardSopop;
         await user.save();
@@ -128,7 +130,6 @@ module.exports = {
         });
 
       } else {
-        // Reset streak
         await User.findOneAndUpdate({ userId }, { $set: { correctStreak: 0 } });
         await interaction.editReply({
           content: `Incorrect! The correct answer was **${selected.correct}**.\nYour streak has been reset.`,

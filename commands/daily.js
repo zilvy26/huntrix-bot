@@ -24,12 +24,12 @@ module.exports = {
     const cooldownDuration = cooldownConfig[commandName];
 
     // Check cooldown
-    if (cooldowns.isOnCooldown(userId, commandName)) {
-      const nextTime = cooldowns.getCooldownTimestamp(userId, commandName);
-      return interaction.reply({
-        content: `You already claimed your daily reward. Try again **${nextTime}**.`,
-      });
-    }
+    if (await cooldowns.isOnCooldown(userId, commandName)) {
+  const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
+  return interaction.reply({
+    content: `You already claimed your daily reward. Try again **${nextTime}**.`,
+  });
+}
 
     // Calculate streak logic
     const now = new Date();
@@ -64,7 +64,7 @@ module.exports = {
     // Save streak data and set cooldown
     userData.dailystreak = { count: streak, lastClaim: now };
     await userData.save();
-    cooldowns.setCooldown(userId, commandName, cooldownDuration);
+    await cooldowns.setCooldown(userId, commandName, cooldownDuration);
 
     // Grant currency
     const user = await giveCurrency(userId, reward);
