@@ -24,10 +24,16 @@ for (const file of commandFiles) {
 
 // Handle slash command interactions
 client.on('interactionCreate', async interaction => {
+   if (!isBotReady) {
+    return interaction.reply({
+      content: '🕒 Bot is still starting up. Try again in a moment.',
+      
+    }).catch(() => {});
+  }
   if (!interaction.isChatInputCommand()) {
     // 🛡️ Prevent ghost button/select interactions after restarts
     if (interaction.isButton() || interaction.isSelectMenu()) {
-      return interaction.reply({ content: '⚠️ This interaction has expired.', ephemeral: true }).catch(() => {});
+      return interaction.reply({ content: '⚠️ This interaction has expired.' }).catch(() => {});
     }
     return;
   }
@@ -61,7 +67,7 @@ client.on('interactionCreate', async interaction => {
     console.error('❌ Failed to get user data:', err);
     return interaction.reply({
       content: '⚠️ Failed to load your profile. Please try again later.',
-      ephemeral: true
+      
     });
   }
 
@@ -76,7 +82,7 @@ client.on('interactionCreate', async interaction => {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
           content: '❌ There was an error executing the command.',
-          ephemeral: true
+          
         });
       } else {
         await interaction.editReply({
