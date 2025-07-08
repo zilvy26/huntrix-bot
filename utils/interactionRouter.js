@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Question = require('../models/Question');
+const mongoose = require('mongoose');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -9,8 +10,15 @@ module.exports = async function interactionRouter(interaction) {
   const { customId, user } = interaction;
 
   // 🎯 Battle Answer Buttons
-  if (customId.startsWith('question_')) {
-    const selectedIndex = parseInt(customId.split('_')[1]);
+  if (customId.startsWith('question')) {
+  const [, questionId, selectedIndexRaw] = customId.split('_');
+  const selectedIndex = parseInt(selectedIndexRaw);
+
+  if (!mongoose.Types.ObjectId.isValid(questionId)) {
+  return interaction.reply({
+    content: '❌ Invalid question ID format.',
+  });
+}
 
     try {
       const message = await interaction.message.fetch();
@@ -19,11 +27,10 @@ module.exports = async function interactionRouter(interaction) {
         return interaction.reply({ content: '❌ Question data missing.' });
       }
 
-      const questionText = embed.description.replace(/\*\*/g, '');
-      const selected = await Question.findOne({ question: questionText });
-      if (!selected) return interaction.reply({ content: '❌ Could not find the question in database.' });
+      const selected = await Question.findById(questionId);
+    if (!selected) return interaction.reply({ content: '❌ Could not find the question in database.' });
 
-      const selectedAnswer = selected.options[selectedIndex];
+    const selectedAnswer = selected.options[selectedIndex];
       await interaction.deferUpdate();
 
       const userDoc = await User.findOne({ userId: user.id }) || new User({
@@ -115,60 +122,28 @@ module.exports = async function interactionRouter(interaction) {
     return interaction.update({ embeds: [updatedEmbed] });
   }
 
-  // 📘 Binder navigation buttons
-if (customId === 'binder_prev' || customId === 'binder_next') {
-  const pageDelta = customId === 'binder_next' ? 1 : -1;
-
-  try {
-    const userId = interaction.user.id;
-    const drawBinder = require('./drawBinder');
-    const { AttachmentBuilder } = require('discord.js');
-
-    const user = await User.findOne({ userId });
-    if (!user || !user.binder) {
-      return interaction.reply({ content: '❌ No binder found.', ephemeral: true });
-    }
-
-    const currentPage = parseInt(interaction.message.embeds[0]?.footer?.text?.match(/Page (\d+)/)?.[1]) || 1;
-    let newPage = currentPage + pageDelta;
-
-    if (newPage < 1) newPage = 3;
-    if (newPage > 3) newPage = 1;
-
-    const buffer = await drawBinder(userId, newPage);
-    const image = new AttachmentBuilder(buffer, { name: `binder_page${newPage}.png` });
-
-    await interaction.update({
-      content: `📘 ${interaction.user.username}'s Binder — Page ${newPage}`,
-      files: [image]
-    });
-  } catch (err) {
-    console.error('❌ Binder button error:', err);
-    return interaction.reply({ content: '❌ Error handling binder navigation.', ephemeral: true });
-  }
-    }
-
     // ⬇️ Template select menu handler (select_template)
-router.select('select_template', async (interaction) => {
+    if (customId === 'select_template') {
+        await interaction.deferReply();
   const UserRecord = require('../models/UserRecord');
   const templateOptions = require('../data/templateOptions');
-
+  const userId = interaction.user.id;
   const user = await User.findOne({ userId });
-  if (!user) return interaction.reply({ content: 'User not found.' });
+  if (!user) return interaction.editReply({ content: 'User not found.' });
 
   const selectedId = interaction.values[0];
   const template = templateOptions.find(t => t.id === selectedId);
 
   if (!template) {
-    return interaction.reply({ content: 'Invalid template selected.' });
+    return interaction.editReply({ content: 'Invalid template selected.' });
   }
 
   if (user.templatesOwned?.includes(template.id)) {
-    return interaction.reply({ content: `You already own **${template.name}**.` });
+    return interaction.editReply({ content: `You already own **${template.name}**.` });
   }
 
   if (user.sopop < template.price) {
-    return interaction.reply({
+    return interaction.editReply({
       content: `You need ${template.price.toLocaleString()} Sopop (you have ${user.sopop.toLocaleString()}).`,
       
     });
@@ -184,65 +159,81 @@ router.select('select_template', async (interaction) => {
     detail: `Bought ${template.name} for ${template.price}`
   });
 
-  return interaction.reply({
+  return interaction.editReply({
     content: `You bought **${template.name}** for ${template.price.toLocaleString()} Sopop!`,
     
   });
+    };
+
+
+
+    if (customId.startsWith('rehearsal')) {
+  const index = parseInt(interaction.customId.split('_')[1], 10);
+  const userId = interaction.user.id;
+
+  await interaction.deferUpdate().catch(() => {});
+
+  try {
+    const UserInventory = require('../models/UserInventory');
+    const UserRecord = require('../models/UserRecord');
+    const giveCurrency = require('./giveCurrency');
+
+    // Pull 3 random cards just like in the original command
+    const cards = interaction.client.cache?.rehearsal?.[userId];
+if (!cards || cards.length < 3) {
+  return interaction.followUp({ content: '❌ Rehearsal session not found or expired.', ephemeral: true });
+}
+
+    if (cards.length < 3) {
+      return interaction.followUp({ content: 'Not enough pullable cards.', ephemeral: true });
+    }
+
+    const selected = cards[index];
+    const sopop = Math.random() < 0.58 ? (Math.random() < 0.75 ? 1 : 2) : 0;
+    await giveCurrency(userId, { sopop });
+
+    let inv = await UserInventory.findOne({ userId });
+    if (!inv) inv = await UserInventory.create({ userId, cards: [] });
+
+    const existing = inv.cards.find(c => c.cardCode === selected.cardCode);
+    let copies = 1;
+    if (existing) {
+      existing.quantity += 1;
+      copies = existing.quantity;
+    } else {
+      inv.cards.push({ cardCode: selected.cardCode, quantity: 1 });
+    }
+    await inv.save();
+
+    await UserRecord.create({
+      userId,
+      type: 'rehearsal',
+      detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
     });
 
-    // Confirm or Cancel Card Creation/Edit
-router.button('confirm', async (interaction) => {
-  await interaction.deferUpdate().catch(() => {});
+    const { EmbedBuilder } = require('discord.js');
+    const resultEmbed = new EmbedBuilder()
+      .setTitle(`You chose: ${selected.name}`)
+      .setDescription([
+        `**Rarity:** ${selected.rarity}`,
+        `**Name:** ${selected.name}`,
+        ...(selected.category?.toLowerCase() === 'kpop' ? [`**Era:** ${selected.era}`] : []),
+        `**Group:** ${selected.group}`,
+        `**Code:** \`${selected.cardCode}\``,
+        `**Copies Owned:** ${copies}`,
+        `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
+      ].join('\n'))
+      .setImage(selected.discordPermLinkImage || selected.imgurImageLink)
+      .setColor('#FFD700');
 
-  const originalMessage = interaction.message;
-  const embed = originalMessage.embeds?.[0];
-  if (!embed) return interaction.followUp({ content: '⚠️ Missing card embed data.', ephemeral: true });
-
-  const cardCodeField = embed.fields.find(f => f.name === 'Code');
-  const nameField = embed.fields.find(f => f.name === 'Name');
-  const categoryField = embed.fields.find(f => f.name === 'Category');
-  const designerField = embed.fields.find(f => f.name === 'Designer');
-  const groupField = embed.fields.find(f => f.name === 'Group');
-  const eraField = embed.fields.find(f => f.name === 'Era');
-  const imgurField = embed.fields.find(f => f.name === 'Imgur Link');
-
-  if (!cardCodeField || !nameField || !categoryField || !designerField) {
-    return interaction.followUp({ content: '⚠️ Incomplete embed data to confirm.', ephemeral: true });
+    await interaction.editReply({
+      embeds: [resultEmbed],
+      components: [],
+      files: []
+    });
+  } catch (err) {
+    console.error('Rehearsal button error:', err);
+    await interaction.followUp({ content: 'Something went wrong while selecting your card.', ephemeral: true }).catch(() => {});
   }
-
-  const Card = require('../models/Card');
-  const cardExists = await Card.findOne({ cardCode: cardCodeField.value });
-  if (cardExists) {
-    return interaction.followUp({ content: `⚠️ A card with code \`${cardCodeField.value}\` already exists.`, ephemeral: true });
-  }
-
-  await Card.create({
-    cardCode: cardCodeField.value,
-    name: nameField.value,
-    category: categoryField.value,
-    rarity: embed.title?.match(/★/g)?.length || 0,
-    emoji: null,
-    designerId: designerField.value.replace(/[<@>]/g, ''),
-    discordPermalinkImage: embed.image?.url,
-    imgurImageLink: imgurField?.value || null,
-    pullable: true,
-    group: groupField?.value === '-' ? null : groupField?.value,
-    era: eraField?.value === '-' ? null : eraField?.value
-  });
-
-  await interaction.editReply({
-    content: `✅ Card \`${cardCodeField.value}\` created successfully.`,
-    embeds: [],
-    components: []
-  });
-});
-
-router.button('cancel', async (interaction) => {
-  await interaction.deferUpdate().catch(() => {});
-  await interaction.editReply({
-    content: '❌ Card creation cancelled.',
-    embeds: [],
-    components: []
-  });
-});
+}
 };

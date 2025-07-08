@@ -9,10 +9,7 @@ const Canvas = require('canvas');
 const cooldowns = require('../utils/cooldownManager');
 const cooldownConfig = require('../utils/cooldownConfig');
 const handleReminders = require('../utils/reminderHandler');
-const giveCurrency = require('../utils/giveCurrency');
 const Card = require('../models/Card');
-const UserInventory = require('../models/UserInventory');
-const UserRecord = require('../models/UserRecord');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -84,87 +81,15 @@ module.exports = {
       )
     );
 
+    // ✅ Store cards temporarily for interactionRouter
+    interaction.client.cache ??= {};
+    interaction.client.cache.rehearsal ??= {};
+    interaction.client.cache.rehearsal[userId] = cards;
+
     await interaction.editReply({
       embeds: [embed],
       files: [attachment],
       components: [row]
-    });
-
-    const collector = interaction.channel.createMessageComponentCollector({
-      filter: btn => btn.user.id === userId && btn.customId.startsWith('rehearsal_'),
-      time: 60000,
-      max: 1
-    });
-
-    collector.on('collect', async btn => {
-      try {
-        if (!btn.deferred && !btn.replied) await btn.deferUpdate();
-
-        const idx = parseInt(btn.customId.split('_')[1]);
-        const selected = cards[idx];
-
-        const sopop = Math.random() < 0.58
-          ? (Math.random() < 0.75 ? 1 : 2)
-          : 0;
-        const user = await giveCurrency(userId, { sopop });
-
-        let inv = await UserInventory.findOne({ userId });
-        if (!inv) inv = await UserInventory.create({ userId, cards: [] });
-
-        const existing = inv.cards.find(c => c.cardCode === selected.cardCode);
-        let copies = 1;
-        if (existing) {
-          existing.quantity += 1;
-          copies = existing.quantity;
-        } else {
-          inv.cards.push({ cardCode: selected.cardCode, quantity: 1 });
-        }
-        await inv.save();
-
-        await UserRecord.create({
-          userId,
-          type: 'rehearsal',
-          detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
-        });
-
-        const resultEmbed = new EmbedBuilder()
-          .setTitle(`You chose: ${selected.name}`)
-          .setDescription([
-            `**Rarity:** ${selected.rarity}`,
-            `**Name:** ${selected.name}`,
-            ...(selected.category?.toLowerCase() === 'kpop' ? [`**Era:** ${selected.era}`] : []),
-            `**Group:** ${selected.group}`,
-            `**Code:** \`${selected.cardCode}\``,
-            `**Copies Owned:** ${copies}`,
-            `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
-          ].join('\n'))
-          .setImage(selected.discordPermLinkImage || selected.imgurImageLink)
-          .setColor('#FFD700');
-
-        await btn.editReply({
-          embeds: [resultEmbed],
-          files: [],
-          components: []
-        });
-
-        collector.stop();
-      } catch (err) {
-        console.error('Rehearsal button error:', err);
-        await btn.followUp({ content: 'Something went wrong while selecting your card.' }).catch(() => {});
-      }
-    });
-
-    collector.on('end', async (_, reason) => {
-      if (reason === 'time') {
-        try {
-          await interaction.editReply({
-            content: 'Time ran out. Please try again.',
-            components: []
-          });
-        } catch (err) {
-          console.warn('Failed to disable components after timeout:', err.message);
-        }
-      }
     });
   }
 };

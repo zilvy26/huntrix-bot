@@ -74,6 +74,6 @@ module.exports = async function(interaction) {
   await listing.deleteOne();
 
   await interaction.reply({
-    content: `You bought **${listing.cardName}** for **${listing.price} Patterns** from <@${listing.sellerId}>!`
+    content: `You bought **${listing.cardName}** for **${listing.price} Patterns**!`
   });
 };

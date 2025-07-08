@@ -1,61 +1,79 @@
-const User = require('../../models/User');
-const Question = require('../../models/Question');
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const {
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder
+} = require('discord.js');
+const Question = require('../models/Question');
+const cooldowns = require('../utils/cooldownManager');
+const cooldownConfig = require('../utils/cooldownConfig');
+const handleReminders = require('../utils/reminderHandler');
 
 module.exports = {
-  data: {
-    name: 'battle',
-    description: 'Answer a trivia question to earn rewards!'
-  },
+  data: new SlashCommandBuilder()
+    .setName('battle')
+    .setDescription('Start a battle question and earn rewards!')
+    .addStringOption(option =>
+      option.setName('difficulty')
+        .setDescription('Choose your difficulty')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Demons (Easy)', value: 'easy' },
+          { name: 'Hunters (Hard)', value: 'hard' }
+        ))
+    .addBooleanOption(opt =>
+      opt.setName('reminder')
+        .setDescription('Remind you when cooldown ends')
+        .setRequired(false))
+    .addBooleanOption(opt =>
+      opt.setName('remindinchannel')
+        .setDescription('Remind in the command channel instead of DM')
+        .setRequired(false)),
+
   async execute(interaction) {
-    await interaction.deferReply();
-
     const userId = interaction.user.id;
-    const user = await User.findOne({ userId });
-    if (!user) {
-      return interaction.editReply('❌ You must register first using `/register`.');
+    const commandName = 'battle';
+    const cooldownDuration = cooldownConfig[commandName] || (2 * 60 * 60 * 1000); // 2 hours
+
+    if (await cooldowns.isOnCooldown(userId, commandName)) {
+      const endsAt = await cooldowns.getCooldownTimestamp(userId, commandName);
+      return interaction.reply({
+        content: `⏳ You must wait before battling again. Try ${endsAt}`,
+        
+      });
     }
 
-    const question = await Question.aggregate([{ $sample: { size: 1 } }]);
-    const selected = question[0];
-    if (!selected) {
-      return interaction.editReply('❌ No question available at the moment.');
+    await cooldowns.setCooldown(userId, commandName, cooldownDuration);
+    await handleReminders(interaction, commandName, cooldownDuration);
+
+    const questions = await Question.aggregate([
+      { $match: { difficulty: interaction.options.getString('difficulty') } },
+      { $sample: { size: 1 } }
+    ]);
+
+    if (!questions.length) {
+      return interaction.reply({ content: '❌ No questions found for this difficulty.' });
     }
 
-    // Embed
+    const selected = questions[0];
+
+    const buttons = new ActionRowBuilder().addComponents(
+      selected.options.map((option, index) =>
+        new ButtonBuilder()
+          .setCustomId(`question_${selected._id}_${index}`)
+          .setLabel(option)
+          .setStyle(ButtonStyle.Primary)
+      )
+    );
+
     const embed = new EmbedBuilder()
-      .setTitle('🧠 Battle Question')
-      .setDescription(selected.question)
-      .setColor(0x0099ff);
+      .setTitle('🛡️ Battle Question')
+      .setDescription(`**${selected.question}**`)
+      .setColor('#b5dff9');
 
     if (selected.image) embed.setImage(selected.image);
 
-    // Button Row
-    const row = new ActionRowBuilder();
-    for (let i = 0; i < selected.options.length; i++) {
-      row.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`question_${i}`)
-          .setLabel(selected.options[i])
-          .setStyle(ButtonStyle.Secondary)
-      );
-    }
-
-    await interaction.editReply({
-      embeds: [embed],
-      components: [row]
-    });
-
-    // Store context for the router to handle later
-    const metadata = {
-      userId,
-      questionId: selected._id.toString(),
-      correct: selected.correct,
-      options: selected.options,
-      timestamp: Date.now()
-    };
-
-    interaction.client.battleMetadata ??= new Map();
-    interaction.client.battleMetadata.set(userId, metadata);
+    await interaction.reply({ embeds: [embed], components: [buttons] });
   }
 };
