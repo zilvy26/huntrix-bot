@@ -24,7 +24,13 @@ for (const file of commandFiles) {
 
 // Handle slash command interactions
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isChatInputCommand()) {
+    // 🛡️ Prevent ghost button/select interactions after restarts
+    if (interaction.isButton() || interaction.isSelectMenu()) {
+      return interaction.reply({ content: '⚠️ This interaction has expired.', ephemeral: true }).catch(() => {});
+    }
+    return;
+  }
 
   const maintenance = await Maintenance.findOne();
   const bypassRoleId = process.env.MAIN_BYPASS_ID;
@@ -65,15 +71,20 @@ client.on('interactionCreate', async interaction => {
   try {
     await command.execute(interaction);
   } catch (error) {
-    console.error('❌ Error running command:', error);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: '❌ There was an error executing the command.'
-      });
-    } else {
-      await interaction.editReply({
-        content: '❌ There was an error executing the command.'
-      });
+    console.error(`❌ Error in command "${interaction.commandName}":`, error);
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: '❌ There was an error executing the command.',
+          ephemeral: true
+        });
+      } else {
+        await interaction.editReply({
+          content: '❌ There was an error executing the command.'
+        });
+      }
+    } catch (err2) {
+      console.warn('⚠️ Failed to send error response:', err2.message);
     }
   }
 });
