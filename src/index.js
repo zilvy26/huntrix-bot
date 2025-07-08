@@ -6,7 +6,8 @@ const path = require('path');
 
 const Maintenance = require('../models/Maintenance');
 const User = require('../models/User');
-const getOrCreateUser = require('../utils/getOrCreateUser'); // 🔥 Import middleware util
+const getOrCreateUser = require('../utils/getOrCreateUser');
+const interactionRouter = require('../utils/interactionRouter');
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
@@ -23,75 +24,61 @@ for (const file of commandFiles) {
   client.commands.set(command.data.name, command);
 }
 
-// Handle slash command interactions
 client.on('interactionCreate', async interaction => {
-   if (!isBotReady) {
-    return interaction.reply({
-      content: '🕒 Bot is still starting up. Try again in a moment.',
-      
-    }).catch(() => {});
-  }
-  if (!interaction.isChatInputCommand()) {
-    // 🛡️ Prevent ghost button/select interactions after restarts
-    if (interaction.isButton() || interaction.isSelectMenu()) {
-      return interaction.reply({ content: '⚠️ This interaction has expired.' }).catch(() => {});
-    }
-    return;
+  if (!isBotReady) {
+    return interaction.reply({ content: '🕒 Bot is still starting up. Try again in a moment.' }).catch(() => {});
   }
 
-  const maintenance = await Maintenance.findOne();
-  const bypassRoleId = process.env.MAIN_BYPASS_ID;
-  const isBypassed = interaction.member?.roles?.cache.has(bypassRoleId);
-  const isDev = interaction.user.id === interaction.client.application?.owner?.id;
+  // 🧩 Route Buttons & Menus
+  if (interaction.isButton() || interaction.isStringSelectMenu()) {
+    return interactionRouter(interaction).catch(err =>
+  console.error('❌ Router error:', err)
+)}
 
-  // 🔒 Maintenance mode check
-  if (maintenance?.active && !isBypassed && !isDev) {
-    return interaction.reply({
-      content: 'The bot is currently under maintenance. Please try again later.'
-    });
-  }
+  // 💬 Slash Commands
+  if (interaction.isChatInputCommand()) {
+    const maintenance = await Maintenance.findOne();
+    const bypassRoleId = process.env.MAIN_BYPASS_ID;
+    const isBypassed = interaction.member?.roles?.cache.has(bypassRoleId);
+    const isDev = interaction.user.id === interaction.client.application?.owner?.id;
 
-  // 🧠 Registration check (except for /register)
-  if (interaction.commandName !== 'register') {
-    const userExists = await User.exists({ userId: interaction.user.id });
-    if (!userExists) {
+    if (maintenance?.active && !isBypassed && !isDev) {
       return interaction.reply({
-        content: 'You must register first using `/register` to use this command.'
+        content: 'The bot is currently under maintenance. Please try again later.'
       });
     }
-  }
 
-  // 🧩 Inject user data into interaction for all commands
-  try {
-    interaction.userData = await getOrCreateUser(interaction);
-  } catch (err) {
-    console.error('❌ Failed to get user data:', err);
-    return interaction.reply({
-      content: '⚠️ Failed to load your profile. Please try again later.',
-      
-    });
-  }
-
-  const command = client.commands.get(interaction.commandName);
-  if (!command) return;
-
-  try {
-    await command.execute(interaction);
-  } catch (error) {
-    console.error(`❌ Error in command "${interaction.commandName}":`, error);
-    try {
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: '❌ There was an error executing the command.',
-          
-        });
-      } else {
-        await interaction.editReply({
-          content: '❌ There was an error executing the command.'
+    if (interaction.commandName !== 'register') {
+      const userExists = await User.exists({ userId: interaction.user.id });
+      if (!userExists) {
+        return interaction.reply({
+          content: 'You must register first using `/register` to use this command.'
         });
       }
-    } catch (err2) {
-      console.warn('⚠️ Failed to send error response:', err2.message);
+    }
+
+    try {
+      interaction.userData = await getOrCreateUser(interaction);
+    } catch (err) {
+      console.error('❌ Failed to get user data:', err);
+      return interaction.reply({
+        content: '⚠️ Failed to load your profile. Please try again later.',
+        
+      });
+    }
+
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
+
+    try {
+      await command.execute(interaction);
+    } catch (err) {
+      console.error(`❌ Error in command "${interaction.commandName}":`, err);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: '❌ There was an error executing the command.' });
+      } else {
+        await interaction.editReply({ content: '❌ There was an error executing the command.' });
+      }
     }
   }
 });
