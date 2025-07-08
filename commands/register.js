@@ -20,8 +20,8 @@ module.exports = {
       }
 
       const message = existed
-        ? `Welcome back, ${user.username}! You're already registered.`
-        : `You have now debuted — let us build the Honmoon together!`;
+        ? `You have now debuted — let us build the Honmoon together!`
+        : `Welcome back, ${user.username}! You're already registered.`;
 
       await interaction.reply({ content: message });
 
