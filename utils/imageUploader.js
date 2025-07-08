@@ -33,23 +33,37 @@ module.exports = async function uploadCardImage(client, imageUrl, name, cardCode
     throw new Error('❌ Discord upload failed.');
   }
 
-  // 2. Upload to Imgur (optional)
+  // 2. Upload to Imgur (with retry logic)
   let imgurUrl = null;
-  try {
-    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-    const form = new FormData();
-    form.append('image', Buffer.from(response.data).toString('base64'));
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+      const form = new FormData();
+      form.append('image', Buffer.from(response.data).toString('base64'));
 
-    const imgur = await axios.post('https://api.imgur.com/3/image', form, {
-      headers: {
-        Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`,
-        ...form.getHeaders()
+      const imgur = await axios.post('https://api.imgur.com/3/image', form, {
+        headers: {
+          Authorization: `Client-ID ${process.env.IMGUR_CLIENT_ID}`,
+          ...form.getHeaders()
+        }
+      });
+
+      imgurUrl = imgur.data?.data?.link || null;
+      console.log(`✅ Imgur Upload Success: ${imgurUrl}`);
+      break;
+    } catch (err) {
+      const status = err.response?.status;
+      console.warn(`❌ Imgur Upload Failed (Attempt ${attempt + 1}):`, status || err.message);
+
+      if ([429, 502, 503].includes(status)) {
+        const delay = 3000 + attempt * 2000;
+        console.log(`⏳ Retrying in ${delay}ms...`);
+        await new Promise(res => setTimeout(res, delay));
+      } else {
+        break; // Don't retry unknown errors
       }
-    });
-
-    imgurUrl = imgur.data?.data?.link || null;
-  } catch (err) {
-    console.error('❌ Imgur upload failed:', err.message);
+    }
   }
 
   return { discordUrl, imgurUrl };
