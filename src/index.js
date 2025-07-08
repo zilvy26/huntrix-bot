@@ -11,6 +11,7 @@ const getOrCreateUser = require('../utils/getOrCreateUser'); // 🔥 Import midd
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
+let isBotReady = false;
 
 // Load slash commands
 client.commands = new Collection();
@@ -97,6 +98,7 @@ client.on('interactionCreate', async interaction => {
 
 client.once('ready', () => {
   console.log(`🤖 Bot is online as ${client.user.tag}`);
+  isBotReady = true;
 });
 
 mongoose.connect(process.env.MONGO_URI).then(() => {
