@@ -45,12 +45,9 @@ await BoutiqueCooldown.findOneAndUpdate(
     if (!currency) return interaction.editReply('No currency account found.');
     // ➖ Determine cost
     let patternCost = 0, sopopCost = 0;
-    if (shopType === 'random20') patternCost = 10000 * amount;
-    if (shopType === 'choice10') patternCost = 6000 * amount;
-    if (shopType === 'special') {
-      patternCost = 1000 * amount;
-      sopopCost = 1 * amount;
-    }
+    if (shopType === 'random20') patternCost = 12500 * amount;
+    if (shopType === 'choice10') patternCost = 7000 * amount;
+    if (shopType === 'special') sopopCost = 2 * amount;
 
     if (currency.patterns < patternCost) {
       return interaction.editReply(`You need ${patternCost} Patterns (have ${currency.patterns}).`);

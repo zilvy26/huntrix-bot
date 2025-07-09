@@ -7,9 +7,9 @@ module.exports = async function(interaction) {
 
   // 💳 Card Pull Prices
   const cardOptions = [
-    { name: "20 Random + Guaranteed 5S", price: "10,000 Patterns" },
-    { name: "10 Chosen", price: "6,000 Patterns" },
-    { name: "Special Pull", price: "1,000 Patterns + 1 Sopop" }
+    { name: "20 Random + Guaranteed 5S", price: "12,500 Patterns" },
+    { name: "10 Chosen", price: "7,000 Patterns" },
+    { name: "Special Pull", price: "2 Sopop" }
   ];
 
   const embed = new EmbedBuilder()

@@ -68,7 +68,7 @@ module.exports = {
     );
 
     const embed = new EmbedBuilder()
-      .setTitle('🛡️ Battle Question')
+      .setTitle('Battle Question')
       .setDescription(`**${selected.question}**`)
       .setColor('#b5dff9');
 

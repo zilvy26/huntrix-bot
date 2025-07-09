@@ -57,8 +57,8 @@ module.exports = {
 
     // Calculate scaling reward
     const reward = {
-      patterns: 10000 + streak * 500,
-      sopop: 3 + Math.floor(streak / 3),
+      patterns: 10000 + streak * 35,
+      sopop: 3 + Math.floor(streak / 30),
     };
 
     // Save streak data and set cooldown

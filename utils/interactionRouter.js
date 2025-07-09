@@ -54,9 +54,9 @@ module.exports = async function interactionRouter(interaction) {
         if (Math.random() < 0.05) rewardSopop++;
 
         let streakBonus = '';
-        if (userDoc.correctStreak % 3 === 0) {
-          rewardPatterns += 200;
-          streakBonus = '\n🔥 **Streak bonus activated!** Extra rewards granted!';
+        if (userDoc.correctStreak % 10 === 0) {
+          rewardPatterns += 750;
+          streakBonus = '\n**Streak bonus activated!** Extra rewards granted!';
         }
 
         userDoc.patterns += rewardPatterns;
@@ -64,7 +64,7 @@ module.exports = async function interactionRouter(interaction) {
         await userDoc.save();
 
         await interaction.editReply({
-          content: `✅ Correct! You earned <:ehx_patterns:1389584144895315978> **${rewardPatterns} Patterns**${rewardSopop ? ` and <:ehx_sopop:1389584273337618542> **${rewardSopop} Sopop**` : ''}.\nCurrent streak: **${userDoc.correctStreak}**${streakBonus}`,
+          content: `Correct! You earned <:ehx_patterns:1389584144895315978> **${rewardPatterns} Patterns**${rewardSopop ? ` and <:ehx_sopop:1389584273337618542> **${rewardSopop} Sopop**` : ''}.\nCurrent streak: **${userDoc.correctStreak}**${streakBonus}`,
           embeds: [],
           components: []
         });
@@ -72,7 +72,7 @@ module.exports = async function interactionRouter(interaction) {
       } else {
         await User.findOneAndUpdate({ userId: user.id }, { $set: { correctStreak: 0 } });
         await interaction.editReply({
-          content: `❌ Incorrect! The correct answer was **${selected.correct}**.\nYour streak has been reset.`,
+          content: `Incorrect! The correct answer was **${selected.correct}**.\nYour streak has been reset.`,
           embeds: [],
           components: []
         });
