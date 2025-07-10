@@ -54,7 +54,7 @@ module.exports = {
       return new EmbedBuilder()
         .setTitle(`Card Showcase`)
         .setDescription(desc.join('\n'))
-        .setImage(card.discordPermLinkImage || card.imgurImageLink)
+        .setImage(card.discordPermalinkImage || card.imgurImageLink)
         .setFooter({ text: `Pullable: ${card.pullable ? 'Yes' : 'No'}` })
         .setColor('#2f3136');
     });

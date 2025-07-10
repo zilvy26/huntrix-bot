@@ -223,7 +223,7 @@ if (!cards || cards.length < 3) {
         `**Copies Owned:** ${copies}`,
         `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
       ].join('\n'))
-      .setImage(selected.discordPermLinkImage || selected.imgurImageLink)
+      .setImage(selected.discordPermalinkImage || selected.imgurImageLink)
       .setColor('#FFD700');
 
     await interaction.editReply({

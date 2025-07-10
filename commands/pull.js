@@ -82,7 +82,7 @@ module.exports = {
         `**Code:** \`${card.cardCode}\``,
         `**Copies:** ${copies}`
       ].join('\n'))
-      .setImage(card.discordPermLinkImage || card.imgurImageLink)
+      .setImage(card.discordPermalinkImage || card.imgurImageLink)
       .setFooter({ text: `Pulled ${new Date().toUTCString()}` });
 
     await handleReminders(interaction, commandName, cooldownMs);

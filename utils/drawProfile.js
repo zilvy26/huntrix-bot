@@ -43,7 +43,7 @@ module.exports = async function drawProfile(user, userProfile, favoriteCardImage
   // === Bio ===
   ctx.fillStyle = '#2f1b39';
   const bioX = 120, bioY = 470, maxWidth = 1350;
-  ctx.font = '28px sans-serif';
+  ctx.font = '22x sans-serif';
   const bioLines = wrapText(ctx, userProfile.aboutMe || 'No bio set.', maxWidth);
   bioLines.forEach((line, i) => {
     ctx.fillText(line, bioX, bioY + i * 34);

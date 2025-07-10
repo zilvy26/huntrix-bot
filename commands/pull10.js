@@ -65,7 +65,7 @@ module.exports = {
 
     for (let i = 0; i < cards.length; i++) {
       const c = cards[i];
-      const img = await Canvas.loadImage(c.discordPermLinkImage || c.imgurImageLink);
+      const img = await Canvas.loadImage(c.discordPermalinkImage || c.imgurImageLink);
       const x = padding + (i % cols) * (cardW + padding);
       const y = padding + Math.floor(i / cols) * (cardH + padding);
       ctx.drawImage(img, x, y, cardW, cardH);
@@ -92,6 +92,8 @@ module.exports = {
         pullLines.push(`${emoji} **${c.name}** · \`${c.cardCode}\` · (Total: **1**)`);
       }
     }
+
+    inv.markModified('cards');
     await inv.save();
 
     // 📜 Build embed

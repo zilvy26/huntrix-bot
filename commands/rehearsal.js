@@ -52,7 +52,7 @@ module.exports = {
 
     for (let i = 0; i < cards.length; i++) {
       const c = cards[i];
-      const img = await Canvas.loadImage(c.discordPermLinkImage || c.imgurImageLink);
+      const img = await Canvas.loadImage(c.discordPermalinkImage || c.imgurImageLink);
       const cardX = i * 200 + 10;
       const cardY = 10;
       ctx.drawImage(img, cardX, cardY, 180, 240);
@@ -60,7 +60,7 @@ module.exports = {
       ctx.fillStyle = '#ffffff';
       ctx.font = '15px Sans';
       ctx.fillText(`Rarity: ${c.rarity}`, cardX, textY); textY += 18;
-      ctx.fillText(`Group: ${c.group}`, cardX, textY); textY += 18;
+      ctx.fillText(`Group: ${c.group}`, cardX, textY); textY += 12;
       ctx.fillText(`Code: ${c.cardCode}`, cardX, textY);
     }
 
