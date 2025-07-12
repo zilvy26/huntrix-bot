@@ -52,15 +52,15 @@ module.exports = {
 
     for (let i = 0; i < cards.length; i++) {
       const c = cards[i];
-      const img = await Canvas.loadImage(c.discordPermalinkImage || c.imgurImageLink);
+      const img = await Canvas.loadImage(c.imgurImageLink || c.discordPermalinkImage);
       const cardX = i * 200 + 10;
       const cardY = 10;
       ctx.drawImage(img, cardX, cardY, 180, 240);
       let textY = cardY + 260;
       ctx.fillStyle = '#ffffff';
-      ctx.font = '15px Sans';
+      ctx.font = '10px Sans';
       ctx.fillText(`Rarity: ${c.rarity}`, cardX, textY); textY += 18;
-      ctx.fillText(`Group: ${c.group}`, cardX, textY); textY += 12;
+      ctx.fillText(`Group: ${c.group}`, cardX, textY); textY += 18;
       ctx.fillText(`Code: ${c.cardCode}`, cardX, textY);
     }
 

@@ -62,10 +62,10 @@ module.exports = {
     let current = 0;
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-      new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
-      new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
-      new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+      new ButtonBuilder().setCustomId('show_first').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new ButtonBuilder().setCustomId('show_prev').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new ButtonBuilder().setCustomId('show_next').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+      new ButtonBuilder().setCustomId('show_last').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
     );
 
     await interaction.reply({ embeds: [embeds[current]], components: [row] });
@@ -76,11 +76,11 @@ module.exports = {
     });
 
     collector.on('collect', async i => {
-      await i.deferUpdate();
-      if (i.customId === 'first') current = 0;
-      if (i.customId === 'prev') current = (current - 1 + embeds.length) % embeds.length;
-      if (i.customId === 'next') current = (current + 1) % embeds.length;
-      if (i.customId === 'last') current = embeds.length - 1;
+      
+      if (i.customId === 'show_first') current = 0;
+      if (i.customId === 'show_prev') current = (current - 1 + embeds.length) % embeds.length;
+      if (i.customId === 'show_next') current = (current + 1) % embeds.length;
+      if (i.customId === 'show_last') current = embeds.length - 1;
 
       await interaction.editReply({ embeds: [embeds[current]], components: [row] });
     });
