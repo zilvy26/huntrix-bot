@@ -20,7 +20,7 @@ module.exports = {
 
   async execute(interaction) {
     const userId = interaction.user.id;
-    const commandName = 'pull';
+    const commandName = 'Pull';
 
     const cooldownDuration = cooldownConfig[commandName]; // ✅ fixed
     if (!cooldownDuration) {

@@ -65,7 +65,7 @@ async function renderPreview(interaction, options) {
     : Math.ceil(count / listingsPerPage);
 
   const listing = listings[0].toObject();
-  const stars = generateStars({ rarity: listing.rarity });
+  const stars = generateStars({ rarity: listing.rarity, overrideEmoji: listing.emoji });
 
   let imageUrl = listing.discordPermalinkImage;
   if (

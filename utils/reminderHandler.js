@@ -30,7 +30,7 @@ async function handleReminders(interaction, commandName, duration) {
   // Set reminder message
   if (remind) {
     setTimeout(async () => {
-      const msg = `<@${interaction.user.id}>, your \`/${commandName}\` cooldown is over!`;
+      const msg = `<@${interaction.user.id}>, \`/${commandName}\` cooldown is over!`;
       try {
         if (remindInChannel && interaction.channel) {
           await interaction.channel.send(msg);

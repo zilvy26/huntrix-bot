@@ -25,7 +25,7 @@ module.exports = {
 
   async execute(interaction) {
     const userId = interaction.user.id;
-    const commandName = 'pull10';
+    const commandName = 'Pull10';
     const cooldownDuration = cooldownConfig[commandName];
 
     // ✅ Await Mongo-based cooldown
@@ -82,7 +82,7 @@ module.exports = {
 
     const pullLines = [];
     for (const c of cards) {
-      const emoji = generateStars({ rarity: c.rarity });
+      const emoji = generateStars({ rarity: c.rarity, overrideEmoji: c.emoji });
       const found = inv.cards.find(v => v.cardCode === c.cardCode);
       if (found) {
         found.quantity += 1;

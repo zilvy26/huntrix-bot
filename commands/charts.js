@@ -60,7 +60,7 @@ module.exports = {
         if (!card) continue;
         const groupMatch = !groupFilter || card.group.toLowerCase() === groupFilter;
         const nameMatch = !nameFilter || card.name.toLowerCase() === nameFilter;
-        const eraMatch = !eraFilter || card.era.toLowerCase() === eraFilter;
+        const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
 
         if (groupMatch && nameMatch && eraMatch) {
           totalCards += entry.quantity;

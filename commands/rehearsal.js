@@ -23,7 +23,7 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
     const userId = interaction.user.id;
-    const commandName = 'rehearsal';
+    const commandName = 'Rehearsal';
     const cooldownDuration = cooldownConfig[commandName];
 
     if (await cooldowns.isOnCooldown(userId, commandName)) {

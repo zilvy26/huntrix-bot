@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
@@ -83,9 +83,47 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
+// Array of statuses
+const statuses = [
+  "Mirror mirror on my phone, who's the baddest? us, hello?!",
+  "Restoring the Honmoon",
+  "It's a takedown",
+  "A demon with no feelings don't deserve to live",
+  "You're not god, but you're good for me",
+  "COUCH COUCH COUCH COUCH",
+  "You know together we're glowin",
+  "STAN HUNTRIX",
+  "We are hunters, voice strong and I know I believe",
+  "STAN SAJA BOYS",
+  "IM NOT SITTING WITH NO SAJA- hehe what's up~",
+  "This is what it sounds like",
+  "Heels 👠 , Nails 💅 , Blade 🗡️, Mascara",
+  "FIT CHECK FOR MY NAPALM ERA"
+];
+
+function cycleStatus() {
+  let index = 0;
+
+  setInterval(() => {
+    const status = statuses[index];
+    client.user.setPresence({
+      activities: [{ name: status, type: ActivityType.Custom }],
+      status: 'online'
+    });
+
+    index = (index + 1) % statuses.length;
+  }, getRandomDelay());
+}
+
+// Random delay between 30s and 160s
+function getRandomDelay() {
+  return Math.floor(Math.random() * (160 - 30 + 1) + 30) * 1000;
+}
+
 client.once('ready', () => {
   console.log(`🤖 Bot is online as ${client.user.tag}`);
   isBotReady = true;
+  cycleStatus();
 });
 
 mongoose.connect(process.env.MONGO_URI).then(() => {

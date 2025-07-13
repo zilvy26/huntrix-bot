@@ -104,7 +104,7 @@ if (imageAttachment) {
     updates.designerId = opts.getUser('designer').id;
   }
 
-  const overrideEmoji = opts.getString('setemoji') || null;
+  if (opts.getString('setemoji')) updates.emoji = opts.getString('setemoji');
 
   if (Object.keys(filters).length === 0) {
     return interaction.editReply('You must provide at least one filter (name, code, etc).');

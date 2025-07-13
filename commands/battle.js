@@ -33,7 +33,7 @@ module.exports = {
 
   async execute(interaction) {
     const userId = interaction.user.id;
-    const commandName = 'battle';
+    const commandName = 'Battle';
     const cooldownDuration = cooldownConfig[commandName] || (2 * 60 * 60 * 1000); // 2 hours
 
     if (await cooldowns.isOnCooldown(userId, commandName)) {

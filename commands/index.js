@@ -25,9 +25,18 @@ module.exports = {
         .addChoices(
           { name: 'Owned Only', value: 'owned' },
           { name: 'Missing Only', value: 'missing' },
-          { name: 'All', value: 'all' }
+          { name: 'All', value: 'all' },
+          { name: 'Duplicates Only', value: 'dupes' }
         )
-    ),
+    )
+    .addStringOption(opt =>
+  opt.setName('include_customs')
+    .setDescription('Show CUSTOMS and TEST group cards?')
+    .addChoices(
+      { name: 'Yes', value: 'yes' },
+      { name: 'No', value: 'no' }
+    )
+),
 
   async execute(interaction) {
     await interaction.deferReply();
@@ -41,23 +50,37 @@ const filters = {
   eras: parseList(interaction.options.getString('era')),
   names: parseList(interaction.options.getString('name')),
   rarities: parseList(interaction.options.getString('rarity')),
-  show: interaction.options.getString('show') || 'owned'
+  show: interaction.options.getString('show') || 'owned',
+  includeCustoms: interaction.options.getString('include_customs') === 'yes'
 };
 
-    const allCards = await Card.find({});
-    const invDoc = await UserInventory.findOne({ userId: user.id });
-    const inventoryMap = new Map(invDoc?.cards.map(c => [c.cardCode, c.quantity]) || []);
+const allCards = await Card.find().lean();
+const inv = await UserInventory.findOne({ userId: user.id });
+const inventoryMap = new Map();
+if (inv) {
+  for (const entry of inv.cards) {
+    inventoryMap.set(entry.cardCode, entry.quantity);
+  }
+}
 
     const cardList = allCards.filter(card => {
   const inInv = inventoryMap.has(card.cardCode);
+  const copies = inventoryMap.get(card.cardCode) || 0;
+
   const groupMatch = !filters.groups.length || filters.groups.includes(card.group.toLowerCase());
   const eraMatch = !filters.eras.length || filters.eras.includes((card.era || '').toLowerCase());
   const nameMatch = !filters.names.length || filters.names.includes(card.name.toLowerCase());
   const rarityMatch = !filters.rarities.length || filters.rarities.includes(String(card.rarity));
 
+  // ❌ Skip unwanted groups unless toggled on
+  if (!filters.includeCustoms && ['customs', 'test'].includes(card.group.toLowerCase())) return false;
+
   if (!(groupMatch && eraMatch && nameMatch && rarityMatch)) return false;
+
   if (filters.show === 'owned') return inInv;
   if (filters.show === 'missing') return !inInv;
+  if (filters.show === 'dupes') return inInv && copies > 1;
+
   return true;
 });
     cardList.sort((a, b) => parseInt(b.rarity) - parseInt(a.rarity));
@@ -77,7 +100,7 @@ const filters = {
       const slice = cardList.slice(pg * perPage, pg * perPage + perPage);
       const description = slice.map(card => {
         const copies = inventoryMap.get(card.cardCode) || 0;
-        const stars = generateStars({ rarity: card.rarity });
+        const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji });
         return `**${stars} ${card.name}**\nGroup: ${card.group}${card.category?.toLowerCase() === 'kpop' && card.era ? ` | Era: ${card.era}` : ''} | Code: \`${card.cardCode}\` | Copies: ${copies}`;
       }).join('\n\n');
 

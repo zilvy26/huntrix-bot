@@ -183,7 +183,7 @@ for (const o of matches) {
     const renderEmbed = (page) => {
       const slice = gifted.slice(page * perPage, (page + 1) * perPage);
       const desc = slice.map(g =>
-        `• ${generateStars({ rarity: g.card.rarity })} \`${g.card.cardCode}\` — **x${g.qty}** [Copies: ${g.total}]`
+        `• ${generateStars({ rarity: g.card.rarity, overrideEmoji: g.card.emoji })} \`${g.card.cardCode}\` — **x${g.qty}** [Copies: ${g.total}]`
       ).join('\n');
 
       return new EmbedBuilder()

@@ -20,7 +20,7 @@ module.exports = {
 
   async execute(interaction) {
     const userId = interaction.user.id;
-    const commandName = 'daily';
+    const commandName = 'Daily';
     const cooldownDuration = cooldownConfig[commandName];
 
     // Check cooldown
@@ -56,10 +56,14 @@ module.exports = {
     }
 
     // Calculate scaling reward
-    const reward = {
-      patterns: 10000 + streak * 35,
-      sopop: 3 + Math.floor(streak / 30),
-    };
+    // Calculate tiered reward scaling
+    function calculateDailyReward(streak) {
+  const sopop = 3 + Math.min(7, Math.floor(streak / 30));       // +1 per 30 days, max +7
+  const patterns = 10000 + Math.min(7500, Math.floor(streak / 15) * 250);  // +250 per 15 days, max +7500
+  return { sopop, patterns };
+  }
+
+    const reward = calculateDailyReward(streak);
 
     // Save streak data and set cooldown
     userData.dailystreak = { count: streak, lastClaim: now };

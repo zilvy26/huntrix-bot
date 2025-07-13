@@ -1,14 +1,14 @@
 // utils/cooldownConfig.js
 
 module.exports = {
-  pull: {
+  Pull: {
     default: 60 * 1000,
     booster: 30 * 1000
   },        
-  daily: 24 * 60 * 60 * 1000,  
-  perform: 30 * 60 * 1000,
-  rehearsal: 2 * 60 * 60 * 1000,
-  pull10: 1 * 60 * 60 * 1000,
-  battle: 20 * 60 * 1000,
+  Daily: 24 * 60 * 60 * 1000,  
+  Perform: 30 * 60 * 1000,
+  Rehearsal: 2 * 60 * 60 * 1000,
+  Pull10: 1 * 60 * 60 * 1000,
+  Battle: 20 * 60 * 1000,
   // Add more as needed
 };

@@ -7,6 +7,7 @@ const cardSchema = new mongoose.Schema({
   group: { type: String },                                  // Card group or series
   rarity: { type: Number, min: 0, max: 5, required:true },
   pullable: { type: Boolean, default: true},
+  emoji: { type: String},
   era: { type: String },                                    // Era or expansion tag
   discordPermalinkImage: { type: String },                  // Primary image URL
   imgurImageLink: { type: String },                         // Optional backup image

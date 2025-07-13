@@ -179,7 +179,7 @@ for (let i = 0; i < amount; i++) {
       const items = granted.slice(current * perPage, (current + 1) * perPage);
       const desc = items.map(g => {
         const total = inv.cards.find(x => x.cardCode === g.card.cardCode)?.quantity;
-        return `• ${generateStars({ rarity: g.card.rarity })} \`${g.card.cardCode}\` — x${g.qty} [Total: ${total}]`;
+        return `• ${generateStars({ rarity: g.card.rarity, overrideEmoji: g.card.emoji })} \`${g.card.cardCode}\` — x${g.qty} [Total: ${total}]`;
       }).join('\n');
 
       return new EmbedBuilder()

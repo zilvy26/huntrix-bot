@@ -236,4 +236,34 @@ if (!cards || cards.length < 3) {
     await interaction.followUp({ content: 'Something went wrong while selecting your card.', ephemeral: true }).catch(() => {});
   }
 }
+
+const showcasePattern = /^(show_first|show_prev|show_next|show_last)$/;
+if (showcasePattern.test(customId)) {
+  const userId = interaction.user.id;
+  const allEmbeds = interaction.client.cache?.showcase?.[userId];
+
+  if (!allEmbeds?.length) {
+    return interaction.update({
+      content: '❌ Showcase session expired or not found.',
+      embeds: [],
+      components: []
+    });
+  }
+
+  const currentEmbed = interaction.message.embeds[0];
+  let current = allEmbeds.findIndex(e => e.data.title === currentEmbed.title && e.data.description === currentEmbed.description);
+
+  if (current === -1) current = 0;
+
+  if (customId === 'show_first') current = 0;
+  else if (customId === 'show_prev') current = (current - 1 + allEmbeds.length) % allEmbeds.length;
+  else if (customId === 'show_next') current = (current + 1) % allEmbeds.length;
+  else if (customId === 'show_last') current = allEmbeds.length - 1;
+
+  return interaction.update({
+    embeds: [allEmbeds[current]],
+    components: [interaction.message.components[0]]
+  });
+}
+
 };

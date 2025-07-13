@@ -28,7 +28,7 @@ module.exports = {
 
   async execute(interaction) {
     const userId = interaction.user.id;
-    const commandName = 'perform';
+    const commandName = 'Perform';
     const cooldownDuration = cooldownConfig[commandName];
 
     if (await cooldowns.isOnCooldown(userId, commandName)) {

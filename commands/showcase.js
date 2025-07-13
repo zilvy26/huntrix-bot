@@ -37,7 +37,7 @@ module.exports = {
     }
 
     const embeds = cards.map(card => {
-      const stars = generateStars({ rarity: card.rarity });
+      const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji ?? undefined});
       const owned = userInventory?.cards?.find(c => c.cardCode === card.cardCode);
       const copies = owned?.quantity || 0;
 
@@ -62,35 +62,16 @@ module.exports = {
     let current = 0;
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('show_first').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-      new ButtonBuilder().setCustomId('show_prev').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
-      new ButtonBuilder().setCustomId('show_next').setStyle(ButtonStyle.Primary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
-      new ButtonBuilder().setCustomId('show_last').setStyle(ButtonStyle.Secondary).setDisabled(current >= embeds.length - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+      new ButtonBuilder().setCustomId('show_first').setStyle(ButtonStyle.Secondary).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new ButtonBuilder().setCustomId('show_prev').setStyle(ButtonStyle.Primary).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new ButtonBuilder().setCustomId('show_next').setStyle(ButtonStyle.Primary).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+      new ButtonBuilder().setCustomId('show_last').setStyle(ButtonStyle.Secondary).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
     );
 
     await interaction.reply({ embeds: [embeds[current]], components: [row] });
-
-    const collector = interaction.channel.createMessageComponentCollector({
-      filter: i => i.user.id === interaction.user.id,
-      time: 120000 // 2 minutes
-    });
-
-    collector.on('collect', async i => {
-      
-      if (i.customId === 'show_first') current = 0;
-      if (i.customId === 'show_prev') current = (current - 1 + embeds.length) % embeds.length;
-      if (i.customId === 'show_next') current = (current + 1) % embeds.length;
-      if (i.customId === 'show_last') current = embeds.length - 1;
-
-      await interaction.editReply({ embeds: [embeds[current]], components: [row] });
-    });
-
-    collector.on('end', async () => {
-      try {
-        await interaction.editReply({ components: [] });
-      } catch (e) {
-        console.warn('Pagination cleanup failed:', e.message);
-      }
-    });
+    // after reply:
+    interaction.client.cache = interaction.client.cache || {};
+    interaction.client.cache.showcase = interaction.client.cache.showcase || {};
+    interaction.client.cache.showcase[interaction.user.id] = embeds;
   }
 };

@@ -102,7 +102,7 @@ module.exports = {
     const renderEmbed = (page) => {
       const pageItems = granted.slice(page * perPage, (page + 1) * perPage);
       const desc = pageItems.map(g =>
-        `• ${generateStars({ rarity: g.card.rarity })} \`${g.card.cardCode}\` — **x${g.qty}** [Copies: ${g.total}]`
+        `• ${generateStars({ rarity: g.card.rarity, overrideEmoji: g.card.emoji })} \`${g.card.cardCode}\` — **x${g.qty}** [Copies: ${g.total}]`
       ).join('\n') || 'No cards granted.';
 
       return new EmbedBuilder()
