@@ -45,17 +45,17 @@ module.exports = async function interactionRouter(interaction) {
         let rewardSopop = 0;
 
         if (selected.difficulty === 'easy') {
-          rewardPatterns = getRandomInt(600, 850);
+          rewardPatterns = getRandomInt(500, 800);
         } else {
-          rewardPatterns = getRandomInt(1000, 1250);
+          rewardPatterns = getRandomInt(1000, 1300);
           rewardSopop = getRandomInt(0, 1);
         }
 
         if (Math.random() < 0.05) rewardSopop++;
 
         let streakBonus = '';
-        if (userDoc.correctStreak % 10 === 0) {
-          rewardPatterns += 750;
+        if (userDoc.correctStreak % 25 === 0) {
+          rewardPatterns += 1500;
           streakBonus = '\n**Streak bonus activated!** Extra rewards granted!';
         }
 

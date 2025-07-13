@@ -42,13 +42,13 @@ module.exports = {
     await cooldowns.setCooldown(userId, commandName, cooldownDuration);
 
     // Generate randomized rewards
-    const patterns = getRandomInt(1000, 1750);
+    const patterns = getRandomInt(1100, 1600);
     const sopop = shouldDropSopop() ? 1 : 0;
 
     // Give currency
     const user = await giveCurrency(userId, { patterns, sopop });
 
-    await handleReminders(interaction, 'perform', cooldownDuration);
+    await handleReminders(interaction, 'Perform', cooldownDuration);
 
     // Create response
     const embed = new EmbedBuilder()
