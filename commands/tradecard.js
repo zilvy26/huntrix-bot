@@ -36,25 +36,33 @@ module.exports = {
       return interaction.editReply({ content: 'You cannot trade cards to yourself.' });
     }
 
-    // Parse codes and quantities
     const counts = {};
-    const parts = rawCodes.split(',').map(p => p.trim().toUpperCase()).filter(Boolean);
-    for (const part of parts) {
-      const match = part.match(/^([A-Z0-9\-]+)(?:X(\d+))?$/i);
-      if (!match) continue;
-      const code = match[1];
-      const qty = parseInt(match[2] || '1');
-      counts[code] = (counts[code] || 0) + qty;
-    }
+const inputCodes = rawCodes.trim().split(/[\s,]+/); // however you split codes
+
+for (const code of inputCodes) {
+  const match = code.match(/^(.+?)(?:X(\d+))?$/i); // match "CODE" or "CODEX2"
+  if (!match) continue;
+
+  const cardCode = match[1].toUpperCase();
+  const quantity = match[2] ? parseInt(match[2]) : 1;
+
+  counts[cardCode] = (counts[cardCode] || 0) + quantity;
+}
+
+
 
     const uniqueCodes = Object.keys(counts);
     const cards = await Card.find({ cardCode: { $in: uniqueCodes } });
-    if (!cards.length) {
-      return interaction.editReply({ content: 'No valid cards found for those codes.' });
+    if (!cards.length || cards.length !== uniqueCodes.length) {
+    const foundCodes = new Set(cards.map(c => c.cardCode));
+    const missing = uniqueCodes.filter(code => !foundCodes.has(code));
+  return interaction.editReply({ content: `These codes are invalid or not found: ${missing.join(', ')}` });
     }
 
     const giverInv = await UserInventory.findOne({ userId: giver.id });
     if (!giverInv) return interaction.editReply({ content: 'You have no cards to trade.' });
+    
+
 
     let receiverInv = await UserInventory.findOne({ userId: receiver.id });
     if (!receiverInv) receiverInv = await UserInventory.create({ userId: receiver.id, cards: [] });
@@ -64,9 +72,15 @@ module.exports = {
     let totalCards = 0;
 
     for (const card of cards) {
-      const qty = counts[card.cardCode];
-      const entry = giverInv.cards.find(c => c.cardCode === card.cardCode);
-      if (!entry || entry.quantity < qty) continue;
+  const qty = counts[card.cardCode];
+  const entry = giverInv.cards.find(c =>
+    c.cardCode.toUpperCase().trim() === card.cardCode
+  );
+  
+
+  if (!entry || entry.quantity < qty) {
+    continue;
+  }
 
       entry.quantity -= qty;
       if (entry.quantity === 0) {

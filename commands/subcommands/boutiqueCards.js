@@ -112,7 +112,7 @@ await BoutiqueCooldown.findOneAndUpdate(
       const rawNames = interaction.options.getString('names');
       const rawEras = interaction.options.getString('eras');
 
-      filter = { pullable: true };
+      filter = { pullable: true, category: { $nin: ['EVENT', 'ZODIAC', 'OTHERS'] } };
 
       if (rawGroups) filter.group = { $in: rawGroups.split(',').map(s => new RegExp(s.trim(), 'i')) };
       if (rawNames) filter.name = { $in: rawNames.split(',').map(s => new RegExp(s.trim(), 'i')) };

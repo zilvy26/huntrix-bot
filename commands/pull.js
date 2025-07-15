@@ -22,19 +22,7 @@ module.exports = {
     const userId = interaction.user.id;
     const commandName = 'Pull';
 
-    const cooldownDuration = cooldownConfig[commandName]; // ✅ fixed
-    if (!cooldownDuration) {
-      console.warn(`Cooldown not defined for command: ${commandName}`);
-      return;
-    }
-
-    // 🔎 Booster role check
-    const boosterRoleId = '1387230787929243780';
-    const hasBooster = interaction.member.roles.cache.has(boosterRoleId);
-
-    const cooldownMs = typeof cooldownDuration === 'object'
-      ? (hasBooster ? cooldownDuration.booster : cooldownDuration.default)
-      : cooldownDuration;
+    const cooldownMs = await cooldowns.getEffectiveCooldown(interaction, commandName);
 
     if (await cooldowns.isOnCooldown(userId, commandName)) {
       const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);

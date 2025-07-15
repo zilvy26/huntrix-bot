@@ -8,9 +8,10 @@ const Maintenance = require('../models/Maintenance');
 const User = require('../models/User');
 const getOrCreateUser = require('../utils/getOrCreateUser');
 const interactionRouter = require('../utils/interactionRouter');
+const vanityRoleChecker = require('../utils/vanityRoleChecker');
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildPresences]
 });
 let isBotReady = false;
 
@@ -124,6 +125,7 @@ client.once('ready', () => {
   console.log(`🤖 Bot is online as ${client.user.tag}`);
   isBotReady = true;
   cycleStatus();
+  setInterval(() => vanityRoleChecker(client).catch(console.error), 10 * 60 * 1000);
 });
 
 mongoose.connect(process.env.MONGO_URI).then(() => {

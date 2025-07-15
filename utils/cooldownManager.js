@@ -1,4 +1,5 @@
 const Cooldown = require('../models/Cooldown');
+const cooldownConfig = require('../utils/cooldownConfig');
 
 async function isOnCooldown(userId, commandName) {
   const record = await Cooldown.findOne({ userId, commandName });
@@ -37,10 +38,32 @@ async function getCooldowns(userId) {
   return cooldownMap;
 }
 
+async function getEffectiveCooldown(interaction, commandName) {
+  const config = cooldownConfig[commandName];
+
+  if (!config) return 0;
+
+  const duration = typeof config === 'object' ? config.default : config;
+  const reductions = typeof config === 'object' ? config.reductions || [] : [];
+
+  let totalReduction = 0;
+  for (const { id, percent } of reductions) {
+    if (interaction.member.roles.cache.has(id)) {
+      totalReduction += percent;
+    }
+  }
+
+  const cap = 80; // Set your max reduction cap here
+  totalReduction = Math.min(totalReduction, cap);
+
+  return Math.floor(duration * (1 - totalReduction / 100));
+}
+
 module.exports = {
   isOnCooldown,
   getCooldownTime,
   getCooldowns,
   getCooldownTimestamp,
-  setCooldown
+  setCooldown,
+  getEffectiveCooldown // 🔥 added
 };
