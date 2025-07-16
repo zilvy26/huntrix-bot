@@ -126,7 +126,7 @@ return new EmbedBuilder()
                   if (btn.customId === 'next') current = Math.min(totalPages - 1, current + 1);
                   if (btn.customId === 'last') current = totalPages - 1;
             
-                  await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
+                  await interaction.editReply({ embeds: [await renderEmbed(current)], components: [renderRow()] });
                 }
             
                 // Final cleanup
