@@ -63,10 +63,11 @@ module.exports = {
     ctx.fillStyle = '#2f3136';
     ctx.fillRect(0, 0, canvasW, canvasH);
 
-    console.log('Trying to load image:', c.imgurImageLink || c.discordPermalinkImage);
+    
 
     for (let i = 0; i < cards.length; i++) {
       const c = cards[i];
+      console.log('Trying to load image:', c.imgurImageLink || c.discordPermalinkImage);
       const img = await Canvas.loadImage(c.discordPermalinkImage || c.imgurImageLink);
       const x = padding + (i % cols) * (cardW + padding);
       const y = padding + Math.floor(i / cols) * (cardH + padding);
