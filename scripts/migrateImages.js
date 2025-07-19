@@ -3,10 +3,13 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const mongoose = require("mongoose");
-const Card = require("../models/Card");
 
 const CARDS_DIR = "/var/cards";
 const MONGO_URI = process.env.MONGO_URI;
+
+// Use a flexible schema for migration only
+const cardSchema = new mongoose.Schema({}, { strict: false });
+const Card = mongoose.model("Card", cardSchema, "cards");
 
 async function downloadImage(url, destPath) {
   try {
@@ -23,7 +26,6 @@ async function downloadImage(url, destPath) {
 async function migrate() {
   await mongoose.connect(MONGO_URI);
   const cards = await Card.find({});
-
   console.log(`🔍 Found ${cards.length} cards`);
 
   for (const card of cards) {
@@ -53,8 +55,4 @@ async function migrate() {
   console.log("🎉 Migration complete");
 }
 
-// Graceful error handling
-migrate().catch(err => {
-  console.error("🚨 Migration script failed:", err.message);
-  process.exit(1);
-});
+migrate();
