@@ -121,9 +121,10 @@ await BoutiqueCooldown.findOneAndUpdate(
   let pool = await Card.find(filter);
 
   // 🎯 New check: only drop 5⭐ if at least one card with rarity 1–4 exists
-  const has1to4 = pool.some(c => c.rarity >= 1 && c.rarity <= 4);
-  if (has1to4 && pool.some(c => c.rarity === 5)) {
-   pool = pool.filter(c => c.rarity !== 5);
+  const hasOnlyRarity5 = pool.every(c => c.rarity === 5);
+
+if (hasOnlyRarity5) {
+  return interaction.editReply('❌ Only rarity 5 cards found — at least one rarity 1–4 is required to use this shop.');
 }
 
   if (pool.length === 0) {
