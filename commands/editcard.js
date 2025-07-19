@@ -80,12 +80,7 @@ module.exports = {
 
     const imageAttachment = opts.getAttachment('setimage');
     if (imageAttachment) {
-      const uploadResult = await uploadCardImage(
-        interaction.client,
-        imageAttachment.url,
-        matchedCards[0].name,
-        matchedCards[0].cardCode
-      );
+      const uploadResult = await uploadCardImage(imageAttachment, matchedCards[0].cardCode);
 
       if (!uploadResult.localPath) {
         return interaction.editReply({ content: '❌ Failed to process and save image.' });
