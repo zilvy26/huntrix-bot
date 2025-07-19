@@ -1,12 +1,18 @@
-const { loadImage } = require('canvas');
-const Card = require('../models/Card');
+const fs = require('fs');
+const path = require('path');
+const { createCanvas, loadImage } = require('canvas');
 
-module.exports = async function getCardImage(cardCode) {
-  const card = await Card.findOne({ cardCode });
+module.exports = async function getCardImage(cardId) {
+  const imagePath = `/var/cards/${cardId}.png`;
 
-  if (!card || !card.imgurImageLink) {
-    throw new Error(`Card image missing for ${cardCode}`);
+  try {
+    if (!fs.existsSync(imagePath)) {
+      throw new Error('Card image not found.');
+    }
+    return await loadImage(imagePath);
+  } catch (err) {
+    console.error(`Failed to load image for card ${cardId}:`, err);
+    // Optionally return a fallback image
+    return null;
   }
-
-  return loadImage(card.imgurImageLink);
 };
