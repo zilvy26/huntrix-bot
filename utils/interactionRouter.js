@@ -237,12 +237,14 @@ if (!cards || cards.length < 3) {
   }
 }
 
+const { AttachmentBuilder } = require('discord.js');
 const showcasePattern = /^(show_first|show_prev|show_next|show_last)$/;
+
 if (showcasePattern.test(customId)) {
   const userId = interaction.user.id;
-  const allEmbeds = interaction.client.cache?.showcase?.[userId];
+  const showcasePages = interaction.client.cache?.showcase?.[userId];
 
-  if (!allEmbeds?.length) {
+  if (!showcasePages?.length) {
     return interaction.update({
       content: '❌ Showcase session expired or not found.',
       embeds: [],
@@ -251,18 +253,20 @@ if (showcasePattern.test(customId)) {
   }
 
   const currentEmbed = interaction.message.embeds[0];
-  let current = allEmbeds.findIndex(e => e.data.title === currentEmbed.title && e.data.description === currentEmbed.description);
-
+  let current = showcasePages.findIndex(p => p.embed.data.title === currentEmbed.title && p.embed.data.description === currentEmbed.description);
   if (current === -1) current = 0;
 
   if (customId === 'show_first') current = 0;
-  else if (customId === 'show_prev') current = (current - 1 + allEmbeds.length) % allEmbeds.length;
-  else if (customId === 'show_next') current = (current + 1) % allEmbeds.length;
-  else if (customId === 'show_last') current = allEmbeds.length - 1;
+  else if (customId === 'show_prev') current = (current - 1 + showcasePages.length) % showcasePages.length;
+  else if (customId === 'show_next') current = (current + 1) % showcasePages.length;
+  else if (customId === 'show_last') current = showcasePages.length - 1;
+
+  const page = showcasePages[current];
 
   return interaction.update({
-    embeds: [allEmbeds[current]],
-    components: [interaction.message.components[0]]
+    embeds: [page.embed],
+    components: [interaction.message.components[0]],
+    files: page.attachment ? [page.attachment] : []
   });
 }
 
