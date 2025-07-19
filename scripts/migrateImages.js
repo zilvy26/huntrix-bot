@@ -30,13 +30,11 @@ async function migrate() {
     const id = card._id.toString();
     const localPath = path.join(CARDS_DIR, `${id}.png`);
 
-    // If already migrated
     if (card.localImagePath && fs.existsSync(card.localImagePath)) {
       console.log(`✔️ Already migrated: ${id}`);
       continue;
     }
 
-    // Get the first available image URL
     const url = card.imgurImageLink || card.discordPermalinkImage;
     if (!url) {
       console.warn(`⚠️ No image URL found for card ${id}`);
@@ -46,7 +44,6 @@ async function migrate() {
     const success = await downloadImage(url, localPath);
     if (!success) continue;
 
-    // Save path in DB
     card.localImagePath = localPath;
     await card.save();
     console.log(`💾 Updated card ${id} with localImagePath`);
@@ -56,4 +53,8 @@ async function migrate() {
   console.log("🎉 Migration complete");
 }
 
-migrate();
+// Graceful error handling
+migrate().catch(err => {
+  console.error("🚨 Migration script failed:", err.message);
+  process.exit(1);
+});
