@@ -74,12 +74,15 @@ if (imageAttachment) {
   const uploadResult = await uploadCardImage(
     interaction.client,
     imageAttachment.url,
-    matchedCards[0].name,        // ← use actual card name
-    matchedCards[0].cardCode     // ← use actual card code
+    matchedCards[0].name,
+    matchedCards[0].cardCode
   );
 
-  updates.discordPermalinkImage = uploadResult.discordUrl;
-  updates.imgurImageLink = uploadResult.imgurUrl;
+  if (!uploadResult.localPath) {
+    return interaction.editReply({ content: '❌ Failed to process and save image.' });
+  }
+
+  updates.localImagePath = uploadResult.localPath;
 }
   if (opts.getString('setera')) updates.era = opts.getString('setera');
 
@@ -136,8 +139,8 @@ if (imageAttachment) {
       )
       .setColor('Blurple');
 
-    const image = updates.discordPermalinkImage || card.discordPermalinkImage;
-if (image) embed.setImage(image);
+    const image = updates.localImagePath || card.localImagePath;
+if (image) embed.setImage(`attachment://${card._id}.png`);
 
     return embed;
   });
@@ -165,11 +168,10 @@ if (image) embed.setImage(image);
     let index = 0;
 
   await interaction.editReply({
-    embeds: [pages[index]],
-    components: [
-      new ActionRowBuilder().addComponents(backBtn, nextBtn, confirmBtn, cancelBtn)
-    ]
-  });
+  embeds: [pages[index]],
+  components: [new ActionRowBuilder().addComponents(backBtn, nextBtn, confirmBtn, cancelBtn)],
+  files: image ? [new AttachmentBuilder(image, { name: `${pages[index]._id}.png` })] : []
+});
 
   const msg = await interaction.fetchReply();
 
