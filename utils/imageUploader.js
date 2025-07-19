@@ -28,5 +28,5 @@ module.exports = async function uploadImageFromAttachment(attachment) {
     writer.on("error", reject);
   });
 
-  return filePath; // ✅ Local path to store in your DB
+  return { localPath: filePath }; // ✅ Local path to store in your DB
 };
