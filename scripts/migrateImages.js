@@ -3,10 +3,13 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const mongoose = require("mongoose");
-const Card = require("../models/Card");
 
 const CARDS_DIR = "/var/cards";
 const MONGO_URI = process.env.MONGO_URI;
+
+// Flexible schema for migration only
+const cardSchema = new mongoose.Schema({}, { strict: false });
+const Card = mongoose.model("Card", cardSchema, "cards");
 
 // Utility: sleep for delay (default: 1500ms)
 function sleep(ms = 1500) {
@@ -63,8 +66,7 @@ async function migrate() {
     await card.save();
     console.log(`💾 Updated card ${id} with localImagePath`);
 
-    // Wait to avoid rate limits
-    await sleep();
+    await sleep(); // Prevent rate limiting
   }
 
   await mongoose.disconnect();
