@@ -173,69 +173,69 @@ module.exports = async function interactionRouter(interaction) {
 
   await interaction.deferUpdate().catch(() => {});
 
-  try {
-    const UserInventory = require('../models/UserInventory');
-    const UserRecord = require('../models/UserRecord');
-    const giveCurrency = require('./giveCurrency');
-
     // Pull 3 random cards just like in the original command
-    const cards = interaction.client.cache?.rehearsal?.[userId];
+    const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
+const UserInventory = require('../models/UserInventory');
+const UserRecord = require('../models/UserRecord');
+const giveCurrency = require('../utils/giveCurrency');
+
+const cards = interaction.client.cache?.rehearsal?.[userId];
 if (!cards || cards.length < 3) {
   return interaction.followUp({ content: '❌ Rehearsal session not found or expired.', ephemeral: true });
 }
 
-    if (cards.length < 3) {
-      return interaction.followUp({ content: 'Not enough pullable cards.', ephemeral: true });
-    }
+const selected = cards[index];
+const sopop = Math.random() < 0.58 ? (Math.random() < 0.75 ? 1 : 2) : 0;
+await giveCurrency(userId, { sopop });
 
-    const selected = cards[index];
-    const sopop = Math.random() < 0.58 ? (Math.random() < 0.75 ? 1 : 2) : 0;
-    await giveCurrency(userId, { sopop });
+let inv = await UserInventory.findOne({ userId });
+if (!inv) inv = await UserInventory.create({ userId, cards: [] });
 
-    let inv = await UserInventory.findOne({ userId });
-    if (!inv) inv = await UserInventory.create({ userId, cards: [] });
-
-    const existing = inv.cards.find(c => c.cardCode === selected.cardCode);
-    let copies = 1;
-    if (existing) {
-      existing.quantity += 1;
-      copies = existing.quantity;
-    } else {
-      inv.cards.push({ cardCode: selected.cardCode, quantity: 1 });
-    }
-    await inv.save();
-
-    await UserRecord.create({
-      userId,
-      type: 'rehearsal',
-      detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
-    });
-
-    const { EmbedBuilder } = require('discord.js');
-    const resultEmbed = new EmbedBuilder()
-      .setTitle(`You chose: ${selected.name}`)
-      .setDescription([
-        `**Rarity:** ${selected.rarity}`,
-        `**Name:** ${selected.name}`,
-        ...(selected.category?.toLowerCase() === 'kpop' ? [`**Era:** ${selected.era}`] : []),
-        `**Group:** ${selected.group}`,
-        `**Code:** \`${selected.cardCode}\``,
-        `**Copies Owned:** ${copies}`,
-        `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
-      ].join('\n'))
-      .setImage(selected.discordPermalinkImage || selected.imgurImageLink)
-      .setColor('#FFD700');
-
-    await interaction.editReply({
-      embeds: [resultEmbed],
-      components: [],
-      files: []
-    });
-  } catch (err) {
-    console.error('Rehearsal button error:', err);
-    await interaction.followUp({ content: 'Something went wrong while selecting your card.', ephemeral: true }).catch(() => {});
-  }
+const existing = inv.cards.find(c => c.cardCode === selected.cardCode);
+let copies = 1;
+if (existing) {
+  existing.quantity += 1;
+  copies = existing.quantity;
+} else {
+  inv.cards.push({ cardCode: selected.cardCode, quantity: 1 });
 }
+await inv.save();
+
+await UserRecord.create({
+  userId,
+  type: 'rehearsal',
+  detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
+});
+
+// 🔁 Use local image attachment if available
+let imageSource = selected.localImagePath
+  ? `attachment://${selected._id || 'preview'}.png`
+  : selected.discordPermalinkImage || selected.imgurImageLink;
+
+const resultEmbed = new EmbedBuilder()
+  .setTitle(`You chose: ${selected.name}`)
+  .setDescription([
+    `**Rarity:** ${selected.rarity}`,
+    `**Name:** ${selected.name}`,
+    ...(selected.category?.toLowerCase() === 'kpop' ? [`**Era:** ${selected.era}`] : []),
+    `**Group:** ${selected.group}`,
+    `**Code:** \`${selected.cardCode}\``,
+    `**Copies Owned:** ${copies}`,
+    `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
+  ].join('\n'))
+  .setImage(imageSource)
+  .setColor('#FFD700');
+
+// 🧷 File attachment if needed
+const imageAttachment = selected.localImagePath
+  ? new AttachmentBuilder(selected.localImagePath, { name: `${selected._id || 'preview'}.png` })
+  : null;
+
+await interaction.editReply({
+  embeds: [resultEmbed],
+  components: [],
+  files: imageAttachment ? [imageAttachment] : []
+});
 
 const { AttachmentBuilder } = require('discord.js');
 const showcasePattern = /^(show_first|show_prev|show_next|show_last)$/;
@@ -270,4 +270,5 @@ if (showcasePattern.test(customId)) {
   });
 }
 
+}
 };

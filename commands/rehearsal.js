@@ -52,20 +52,18 @@ module.exports = {
 
     for (let i = 0; i < cards.length; i++) {
       const c = cards[i];
-      console.log('Trying to load image:', c.imgurImageLink || c.discordPermalinkImage);
-      let imageUrl = c.discordPermalinkImage || c.imgurImageLink;
-      if (!imageUrl) {
-        console.error(`❌ Missing image URL for card ${c.cardCode}`);
-        continue; // Skip this card
-      }
-      let img;
+      if (!c.localImagePath) {
+    console.warn(`⚠️ No local image for card ${c.cardCode}`);
+    continue;
+    }
+
+    let img;
       try {
-        img = await Canvas.loadImage(imageUrl);
-        // Proceed to draw the image...
-      } catch (err) {
-        console.error(`❌ Failed to load image for ${c.cardCode}:`, imageUrl, err.message);
-        continue; // Skip drawing this card
-      }
+      img = await Canvas.loadImage(c.localImagePath);
+    } catch (err) {
+      console.error(`❌ Failed to load local image for ${c.cardCode}:`, c.localImagePath, err.message);
+      continue;
+    }
       const cardX = i * 200 + 10;
       const cardY = 10;
       ctx.drawImage(img, cardX, cardY, 180, 240);
