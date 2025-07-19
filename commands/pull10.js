@@ -65,7 +65,7 @@ module.exports = {
 
     for (let i = 0; i < cards.length; i++) {
       const c = cards[i];
-      const img = await Canvas.loadImage(c.imgurImageLink || c.discordPermalinkImage);
+      const img = await Canvas.loadImage(c.discordPermalinkImage || c.imgurImageLink);
       const x = padding + (i % cols) * (cardW + padding);
       const y = padding + Math.floor(i / cols) * (cardH + padding);
       ctx.drawImage(img, x, y, cardW, cardH);

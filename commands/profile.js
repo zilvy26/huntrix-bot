@@ -49,10 +49,10 @@ module.exports = {
       const card = await Card.findOne({ cardCode: profile.favoriteCard });
 
       if (inventoryEntry && card) {
-        if (card.imgurImageLink?.startsWith('http')) {
-          favoriteCardImageURL = card.imgurImageLink;
-        } else if (card.discordPermalinkImage?.startsWith('http')) {
+        if (card.discordPermalinkImage?.startsWith('http')) {
           favoriteCardImageURL = card.discordPermalinkImage;
+        } else if (card.imgurImageLink?.startsWith('http')) {
+          favoriteCardImageURL = card.imgurImageLink;
         } else {
           console.warn("No valid image URL found for favoriteCard:", profile.favoriteCard);
         }
