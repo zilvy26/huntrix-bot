@@ -120,11 +120,11 @@ await BoutiqueCooldown.findOneAndUpdate(
 
   let pool = await Card.find(filter);
 
-  // ✅ Check rarity distribution and remove 5-star only if no 1-4 stars present
-  const hasLowerRarities = pool.some(card => card.rarity >= 1 && card.rarity <= 4);
-  if (hasLowerRarities) {
-    pool = pool.filter(card => card.rarity !== 5);
-  }
+  // 🎯 New check: only drop 5⭐ if at least one card with rarity 1–4 exists
+  const has1to4 = pool.some(c => c.rarity >= 1 && c.rarity <= 4);
+  if (has1to4 && pool.some(c => c.rarity === 5)) {
+   pool = pool.filter(c => c.rarity !== 5);
+}
 
   if (pool.length === 0) {
     return interaction.editReply('No cards match those filters.');
