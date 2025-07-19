@@ -140,7 +140,9 @@ if (imageAttachment) {
       .setColor('Blurple');
 
     const image = updates.localImagePath || card.localImagePath;
-if (image) embed.setImage(`attachment://${card._id}.png`);
+      if (updates.localImagePath || card.localImagePath) {
+  embed.setImage(`attachment://${card._id}.png`);
+}
 
     return embed;
   });
@@ -167,10 +169,15 @@ if (image) embed.setImage(`attachment://${card._id}.png`);
 
     let index = 0;
 
-  await interaction.editReply({
+  const imagePath = updates.localImagePath || matchedCards[index].localImagePath;
+const previewImageAttachment = imagePath
+  ? new AttachmentBuilder(imagePath, { name: `${matchedCards[index]._id}.png` })
+  : null;
+
+await interaction.editReply({
   embeds: [pages[index]],
   components: [new ActionRowBuilder().addComponents(backBtn, nextBtn, confirmBtn, cancelBtn)],
-  files: image ? [new AttachmentBuilder(image, { name: `${pages[index]._id}.png` })] : []
+  files: previewImageAttachment ? [previewImageAttachment] : [],
 });
 
   const msg = await interaction.fetchReply();
