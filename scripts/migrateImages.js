@@ -3,29 +3,39 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const mongoose = require("mongoose");
+const Card = require("../models/Card");
 
 const CARDS_DIR = "/var/cards";
 const MONGO_URI = process.env.MONGO_URI;
 
-// Use a flexible schema for migration only
-const cardSchema = new mongoose.Schema({}, { strict: false });
-const Card = mongoose.model("Card", cardSchema, "cards");
+// Utility: sleep for delay (default: 1500ms)
+function sleep(ms = 1500) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-async function downloadImage(url, destPath) {
-  try {
-    const response = await axios.get(url, { responseType: "arraybuffer" });
-    fs.writeFileSync(destPath, response.data);
-    console.log(`✅ Saved image to ${destPath}`);
-    return true;
-  } catch (err) {
-    console.error(`❌ Failed to download ${url}: ${err.message}`);
-    return false;
+// Download image with optional retries
+async function downloadImage(url, destPath, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await axios.get(url, { responseType: "arraybuffer" });
+      fs.writeFileSync(destPath, response.data);
+      console.log(`✅ Saved image to ${destPath}`);
+      return true;
+    } catch (err) {
+      console.error(`❌ Attempt ${attempt} failed to download ${url}: ${err.message}`);
+      if (attempt < retries) {
+        console.log(`⏳ Retrying in 2s...`);
+        await sleep(2000);
+      }
+    }
   }
+  return false;
 }
 
 async function migrate() {
   await mongoose.connect(MONGO_URI);
   const cards = await Card.find({});
+
   console.log(`🔍 Found ${cards.length} cards`);
 
   for (const card of cards) {
@@ -44,11 +54,17 @@ async function migrate() {
     }
 
     const success = await downloadImage(url, localPath);
-    if (!success) continue;
+    if (!success) {
+      console.warn(`⛔ Giving up on card ${id}`);
+      continue;
+    }
 
     card.localImagePath = localPath;
     await card.save();
     console.log(`💾 Updated card ${id} with localImagePath`);
+
+    // Wait to avoid rate limits
+    await sleep();
   }
 
   await mongoose.disconnect();
