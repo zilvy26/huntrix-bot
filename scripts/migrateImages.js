@@ -4,19 +4,17 @@ const path = require("path");
 const axios = require("axios");
 const mongoose = require("mongoose");
 
-// Flexible schema just for migration
+// Flexible schema for migration
 const cardSchema = new mongoose.Schema({}, { strict: false });
 const Card = mongoose.model("Card", cardSchema, "cards");
 
 const CARDS_DIR = "/var/cards";
 const MONGO_URI = process.env.MONGO_URI;
 
-// Utility to pause between requests
-function sleep(ms = 7000) {
+function sleep(ms = 2000) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Downloads image with retries
 async function downloadImage(url, destPath, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -27,8 +25,8 @@ async function downloadImage(url, destPath, retries = 3) {
     } catch (err) {
       console.error(`❌ Attempt ${attempt} failed for ${url}: ${err.message}`);
       if (attempt < retries) {
-        console.log(`⏳ Retrying in 7s...`);
-        await sleep();
+        console.log(`⏳ Retrying in 2s...`);
+        await sleep(2000);
       }
     }
   }
@@ -38,23 +36,18 @@ async function downloadImage(url, destPath, retries = 3) {
 async function migrate() {
   await mongoose.connect(MONGO_URI);
   const allCards = await Card.find({});
-  const cards = allCards.filter(card => !card.localImagePath && (card.imgurImageLink || card.discordPermalinkImage)).slice(0, 25);
+  const cards = allCards.filter(card => !card.localImagePath && card.discordPermalinkImage);
 
-  console.log(`🔍 Found ${cards.length} cards needing migration`);
+  console.log(`🔍 Found ${cards.length} cards with Discord CDN images`);
 
   for (const card of cards) {
     const id = card._id.toString();
+    const url = card.discordPermalinkImage;
     const localPath = path.join(CARDS_DIR, `${id}.png`);
-
-    const url = card.imgurImageLink || card.discordPermalinkImage;
-    if (!url) {
-      console.warn(`⚠️ No URL found for card ${id}`);
-      continue;
-    }
 
     const success = await downloadImage(url, localPath);
     if (!success) {
-      console.warn(`⛔ Skipping card ${id}`);
+      console.warn(`⛔ Failed on card ${id}`);
       continue;
     }
 
@@ -62,11 +55,11 @@ async function migrate() {
     await card.save();
     console.log(`💾 Card ${id} updated with localImagePath`);
 
-    await sleep(); // slow down each request
+    await sleep(); // delay per card
   }
 
   await mongoose.disconnect();
-  console.log("🎉 Migration complete for this batch.");
+  console.log("🎉 Migration (Discord-only) complete");
 }
 
 migrate();
