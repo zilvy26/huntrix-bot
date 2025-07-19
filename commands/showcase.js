@@ -19,59 +19,75 @@ module.exports = {
         .setRequired(true)),
 
   async execute(interaction) {
-    const rawInput = interaction.options.getString('cardcodes');
-    const codes = rawInput.split(',').map(c => c.trim().toUpperCase()).filter(Boolean);
-    const userId = interaction.user.id;
+  const rawInput = interaction.options.getString('cardcodes');
+  const codes = rawInput.split(',').map(c => c.trim().toUpperCase()).filter(Boolean);
+  const userId = interaction.user.id;
 
-    if (!codes.length) {
-      return interaction.reply({ content: 'You must provide at least one valid card code.' });
-    }
-
-    const [cards, userInventory] = await Promise.all([
-      Card.find({ cardCode: { $in: codes } }),
-      UserInventory.findOne({ userId })
-    ]);
-
-    if (!cards.length) {
-      return interaction.reply({ content: 'No cards found for those codes.'});
-    }
-
-    const embeds = cards.map(card => {
-      const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji ?? undefined});
-      const owned = userInventory?.cards?.find(c => c.cardCode === card.cardCode);
-      const copies = owned?.quantity || 0;
-
-      const desc = [
-        `**${stars}**`,
-        `**Name:** ${card.name}`,
-        ...(card.category?.toLowerCase() === 'kpop' ? [`**Era:** ${card.era}`] : []),
-        `**Group:** ${card.group}`,
-        `**Card Code:** \`${card.cardCode}\``,
-        `**Copies Owned:** ${copies}`,
-        `**Designer:** <@${card.designerId || 'Unknown'}>`
-      ];
-
-      return new EmbedBuilder()
-        .setTitle(`Card Showcase`)
-        .setDescription(desc.join('\n'))
-        .setImage(card.discordPermalinkImage || card.imgurImageLink)
-        .setFooter({ text: `Pullable: ${card.pullable ? 'Yes' : 'No'}` })
-        .setColor('#2f3136');
-    });
-
-    let current = 0;
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('show_first').setStyle(ButtonStyle.Secondary).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-      new ButtonBuilder().setCustomId('show_prev').setStyle(ButtonStyle.Primary).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
-      new ButtonBuilder().setCustomId('show_next').setStyle(ButtonStyle.Primary).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
-      new ButtonBuilder().setCustomId('show_last').setStyle(ButtonStyle.Secondary).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
-    );
-
-    await interaction.reply({ embeds: [embeds[current]], components: [row] });
-    // after reply:
-    interaction.client.cache = interaction.client.cache || {};
-    interaction.client.cache.showcase = interaction.client.cache.showcase || {};
-    interaction.client.cache.showcase[interaction.user.id] = embeds;
+  if (!codes.length) {
+    return interaction.reply({ content: 'You must provide at least one valid card code.' });
   }
+
+  const [cards, userInventory] = await Promise.all([
+    Card.find({ cardCode: { $in: codes } }),
+    UserInventory.findOne({ userId })
+  ]);
+
+  if (!cards.length) {
+    return interaction.reply({ content: 'No cards found for those codes.' });
+  }
+
+  const embeds = [];
+  const attachments = [];
+
+  for (const card of cards) {
+    const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji ?? undefined });
+    const owned = userInventory?.cards?.find(c => c.cardCode === card.cardCode);
+    const copies = owned?.quantity || 0;
+
+    const desc = [
+      `**${stars}**`,
+      `**Name:** ${card.name}`,
+      ...(card.category?.toLowerCase() === 'kpop' ? [`**Era:** ${card.era}`] : []),
+      `**Group:** ${card.group}`,
+      `**Card Code:** \`${card.cardCode}\``,
+      `**Copies Owned:** ${copies}`,
+      `**Designer:** <@${card.designerId || 'Unknown'}>`
+    ];
+
+    const embed = new EmbedBuilder()
+      .setTitle(`Card Showcase`)
+      .setDescription(desc.join('\n'))
+      .setFooter({ text: `Pullable: ${card.pullable ? 'Yes' : 'No'}` })
+      .setColor('#2f3136');
+
+    if (card.localImagePath) {
+      embed.setImage(`attachment://${card._id}.png`);
+      attachments.push({ file: card.localImagePath, name: `${card._id}.png` });
+    } else if (card.discordPermalinkImage || card.imgurImageLink) {
+      embed.setImage(card.discordPermalinkImage || card.imgurImageLink);
+    }
+
+    embeds.push(embed);
+  }
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('show_first').setStyle(ButtonStyle.Secondary).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+    new ButtonBuilder().setCustomId('show_prev').setStyle(ButtonStyle.Primary).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+    new ButtonBuilder().setCustomId('show_next').setStyle(ButtonStyle.Primary).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+    new ButtonBuilder().setCustomId('show_last').setStyle(ButtonStyle.Secondary).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' })
+  );
+
+  await interaction.reply({
+    embeds: [embeds[0]],
+    components: [row],
+    files: attachments.length ? [attachments[0]] : []
+  });
+
+  interaction.client.cache = interaction.client.cache || {};
+  interaction.client.cache.showcase = interaction.client.cache.showcase || {};
+  interaction.client.cache.showcase[interaction.user.id] = {
+    embeds,
+    attachments
+  };
+}
 };
