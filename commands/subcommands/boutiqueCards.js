@@ -108,25 +108,33 @@ await BoutiqueCooldown.findOneAndUpdate(
 
     // choice10
     if (shopType === 'choice10') {
-      const rawGroups = interaction.options.getString('groups');
-      const rawNames = interaction.options.getString('names');
-      const rawEras = interaction.options.getString('eras');
+  const rawGroups = interaction.options.getString('groups');
+  const rawNames = interaction.options.getString('names');
+  const rawEras = interaction.options.getString('eras');
 
-      filter = { pullable: true, category: { $nin: ['EVENT', 'ZODIAC', 'OTHERS'] } };
+  filter = { pullable: true, category: { $nin: ['EVENT', 'ZODIAC', 'OTHERS'] } };
 
-      if (rawGroups) filter.group = { $in: rawGroups.split(',').map(s => new RegExp(s.trim(), 'i')) };
-      if (rawNames) filter.name = { $in: rawNames.split(',').map(s => new RegExp(s.trim(), 'i')) };
-      if (rawEras) filter.era = { $in: rawEras.split(',').map(s => new RegExp(s.trim(), 'i')) };
-      const pool = await Card.find(filter);
-      if (pool.length === 0) {
-  return interaction.editReply('No cards match those filters.');
+  if (rawGroups) filter.group = { $in: rawGroups.split(',').map(s => new RegExp(s.trim(), 'i')) };
+  if (rawNames) filter.name = { $in: rawNames.split(',').map(s => new RegExp(s.trim(), 'i')) };
+  if (rawEras) filter.era = { $in: rawEras.split(',').map(s => new RegExp(s.trim(), 'i')) };
+
+  let pool = await Card.find(filter);
+
+  // ✅ Check rarity distribution and remove 5-star only if no 1-4 stars present
+  const hasLowerRarities = pool.some(card => card.rarity >= 1 && card.rarity <= 4);
+  if (hasLowerRarities) {
+    pool = pool.filter(card => card.rarity !== 5);
+  }
+
+  if (pool.length === 0) {
+    return interaction.editReply('No cards match those filters.');
+  }
+
+  for (let i = 0; i < amount * 10; i++) {
+    const randomCard = getWeightedRandomCard(pool);
+    pulls.push(randomCard);
+  }
 }
-
-for (let i = 0; i < amount * 10; i++) {
-  const randomCard = getWeightedRandomCard(pool);
-  pulls.push(randomCard);
-}
-    }
 
     // special
     if (shopType === 'special') {
