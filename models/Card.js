@@ -9,8 +9,7 @@ const cardSchema = new mongoose.Schema({
   pullable: { type: Boolean, default: true},
   emoji: { type: String},
   era: { type: String },                                    // Era or expansion tag
-  discordPermalinkImage: { type: String },                  // Primary image URL
-  imgurImageLink: { type: String },                         // Optional backup image
+  localImagePath: { type: String},
   designerId: { type: String },                             // Discord user ID of the designer
 }, {
   timestamps: true
