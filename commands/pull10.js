@@ -45,7 +45,7 @@ module.exports = {
 
     // 🎴 Pull logic
     const cards = await Card.aggregate([
-      { $match: { pullable: true } },
+      { $match: { pullable: true, localImagePath: { $exists: true}} },
       { $sample: { size: 10 } }
     ]);
 
