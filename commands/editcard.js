@@ -9,7 +9,6 @@ const {
   AttachmentBuilder
 } = require('discord.js');
 
-const fs = require('fs');
 const Card = require('../models/Card');
 const generateStars = require('../utils/starGenerator');
 const awaitUserButton = require('../utils/awaitUserButton');
@@ -35,7 +34,8 @@ module.exports = {
     .addBooleanOption(opt => opt.setName('setpullable').setDescription('Set pullable?'))
     .addUserOption(opt => opt.setName('designer').setDescription('Set new designer'))
     .addAttachmentOption(opt => opt.setName('setimage').setDescription('Upload a new card image')),
-    async execute(interaction) {
+
+  async execute(interaction) {
     await interaction.deferReply();
 
     const opts = interaction.options;
@@ -50,7 +50,6 @@ module.exports = {
       const rarityValue = parseInt(rarityInput);
       if (!isNaN(rarityValue)) filters.rarity = rarityValue;
     }
-
     const matchedCards = await Card.find(filters);
     if (!matchedCards.length) {
       return interaction.editReply({ content: '❌ No cards matched your filters.' });
@@ -80,7 +79,6 @@ module.exports = {
     if (opts.getString('setemoji')) updates.emoji = opts.getString('setemoji');
 
     const imageAttachment = opts.getAttachment('setimage');
-    let uploadedPath = null;
     if (imageAttachment) {
       const uploadResult = await uploadCardImage(
         interaction.client,
@@ -93,7 +91,7 @@ module.exports = {
         return interaction.editReply({ content: '❌ Failed to process and save image.' });
       }
 
-      updates.localImagePath = uploadedPath = uploadResult.localPath;
+      updates.localImagePath = uploadResult.localPath;
     }
 
     if (Object.keys(filters).length === 0) {
@@ -104,11 +102,13 @@ module.exports = {
       return interaction.editReply('You must provide at least one field to update.');
     }
 
+    // Embed Pages with Image Previews
     const pages = matchedCards.map((card, index) => {
       const rarityDisplay = generateStars({
         rarity: updates.rarity ?? card.rarity,
         overrideEmoji: updates.emoji || card.emoji
       });
+
       const embed = new EmbedBuilder()
         .setTitle(`Card Preview ${index + 1} of ${matchedCards.length}`)
         .setDescription(`**${card.cardCode}** → \`${updates.cardCode || card.cardCode}\`\n` +
@@ -121,11 +121,10 @@ module.exports = {
           { name: 'Designer', value: `<@${updates.designerId || card.designerId || 'None'}>`, inline: true }
         )
         .setColor('Blurple');
+        const previewImagePath = updates.localImagePath || card.localImagePath;
+      if (previewImagePath) embed.setImage(`attachment://${card._id}.png`);
 
-      const imagePath = updates.localImagePath || card.localImagePath;
-      if (imagePath) embed.setImage(`attachment://${card._id}.png`);
-
-      return embed;
+      return { embed, attachment: previewImagePath ? new AttachmentBuilder(previewImagePath, { name: `${card._id}.png` }) : null };
     });
 
     const backBtn = new ButtonBuilder().setCustomId('back').setLabel('⬅️ Back').setStyle(ButtonStyle.Secondary);
@@ -134,16 +133,12 @@ module.exports = {
     const cancelBtn = new ButtonBuilder().setCustomId('cancel').setLabel('❌ Cancel').setStyle(ButtonStyle.Danger);
 
     let index = 0;
-    const currentCard = matchedCards[index];
-    const previewPath = updates.localImagePath || currentCard.localImagePath;
-    const previewImageAttachment = previewPath && fs.existsSync(previewPath)
-      ? new AttachmentBuilder(fs.readFileSync(previewPath), { name: `${currentCard._id}.png` })
-      : null;
+    const { embed, attachment } = pages[index];
 
     await interaction.editReply({
-      embeds: [pages[index]],
+      embeds: [embed],
       components: [new ActionRowBuilder().addComponents(backBtn, nextBtn, confirmBtn, cancelBtn)],
-      files: previewImageAttachment ? [previewImageAttachment] : []
+      files: attachment ? [attachment] : []
     });
 
     const msg = await interaction.fetchReply();
@@ -156,6 +151,7 @@ module.exports = {
       if (btn.user.id !== interaction.user.id) {
         return btn.reply({ content: 'Only the command invoker can use these buttons.', ephemeral: true });
       }
+
       const safeDefer = async () => {
         if (!btn.replied && !btn.deferred) {
           try {
@@ -168,33 +164,23 @@ module.exports = {
 
       if (btn.customId === 'next') {
         index = (index + 1) % pages.length;
-        const current = matchedCards[index];
-        const previewPath = updates.localImagePath || current.localImagePath;
-        const imageBuffer = previewPath && fs.existsSync(previewPath)
-          ? new AttachmentBuilder(fs.readFileSync(previewPath), { name: `${current._id}.png` })
-          : null;
-
+        const { embed, attachment } = pages[index];
         await safeDefer();
         return interaction.editReply({
-          embeds: [pages[index]],
+          embeds: [embed],
           components: [new ActionRowBuilder().addComponents(backBtn, nextBtn, confirmBtn, cancelBtn)],
-          files: imageBuffer ? [imageBuffer] : []
+          files: attachment ? [attachment] : []
         });
       }
 
       if (btn.customId === 'back') {
         index = (index - 1 + pages.length) % pages.length;
-        const current = matchedCards[index];
-        const previewPath = updates.localImagePath || current.localImagePath;
-        const imageBuffer = previewPath && fs.existsSync(previewPath)
-          ? new AttachmentBuilder(fs.readFileSync(previewPath), { name: `${current._id}.png` })
-          : null;
-
+        const { embed, attachment } = pages[index];
         await safeDefer();
         return interaction.editReply({
-          embeds: [pages[index]],
+          embeds: [embed],
           components: [new ActionRowBuilder().addComponents(backBtn, nextBtn, confirmBtn, cancelBtn)],
-          files: imageBuffer ? [imageBuffer] : []
+          files: attachment ? [attachment] : []
         });
       }
 
