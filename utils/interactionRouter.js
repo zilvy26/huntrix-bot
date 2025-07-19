@@ -237,7 +237,6 @@ await interaction.editReply({
   files: imageAttachment ? [imageAttachment] : []
 });
 
-const { AttachmentBuilder } = require('discord.js');
 const showcasePattern = /^(show_first|show_prev|show_next|show_last)$/;
 
 if (showcasePattern.test(customId)) {
