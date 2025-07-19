@@ -1,3 +1,4 @@
+require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
@@ -6,11 +7,6 @@ const Card = require("../models/Card");
 
 const CARDS_DIR = "/var/cards";
 const MONGO_URI = process.env.MONGO_URI;
-
-if (!MONGO_URI) {
-  console.error("❌ MONGO_URI environment variable is not set!");
-  process.exit(1);
-}
 
 async function downloadImage(url, destPath) {
   try {
@@ -25,48 +21,39 @@ async function downloadImage(url, destPath) {
 }
 
 async function migrate() {
-  try {
-    await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+  await mongoose.connect(MONGO_URI);
+  const cards = await Card.find({});
 
-    console.log("🔌 Connected to MongoDB");
+  console.log(`🔍 Found ${cards.length} cards`);
 
-    const cards = await Card.find({});
-    console.log(`📦 Found ${cards.length} cards`);
+  for (const card of cards) {
+    const id = card._id.toString();
+    const localPath = path.join(CARDS_DIR, `${id}.png`);
 
-    for (const card of cards) {
-      const id = card._id.toString();
-      const fileName = `${id}.png`;
-      const localPath = path.join(CARDS_DIR, fileName);
-
-      if (fs.existsSync(localPath)) {
-        console.log(`🔁 Already exists: ${localPath}`);
-        continue;
-      }
-
-      const url = card.imgurImageLink || card.discordPermalinkImage;
-      if (!url) {
-        console.warn(`⚠️ No image URL found for card ${id}`);
-        continue;
-      }
-
-      const success = await downloadImage(url, localPath);
-      if (success) {
-        card.localImagePath = localPath;
-        await card.save();
-        console.log(`📝 Updated card ${id} with localImagePath`);
-      }
+    // If already migrated
+    if (card.localImagePath && fs.existsSync(card.localImagePath)) {
+      console.log(`✔️ Already migrated: ${id}`);
+      continue;
     }
 
-    console.log("🎉 Migration complete");
-  } catch (err) {
-    console.error("💥 Migration failed:", err);
-  } finally {
-    await mongoose.disconnect();
-    console.log("🔌 Disconnected from MongoDB");
+    // Get the first available image URL
+    const url = card.imgurImageLink || card.discordPermalinkImage;
+    if (!url) {
+      console.warn(`⚠️ No image URL found for card ${id}`);
+      continue;
+    }
+
+    const success = await downloadImage(url, localPath);
+    if (!success) continue;
+
+    // Save path in DB
+    card.localImagePath = localPath;
+    await card.save();
+    console.log(`💾 Updated card ${id} with localImagePath`);
   }
+
+  await mongoose.disconnect();
+  console.log("🎉 Migration complete");
 }
 
 migrate();
