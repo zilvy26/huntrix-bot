@@ -4,31 +4,31 @@ const path = require("path");
 const axios = require("axios");
 const mongoose = require("mongoose");
 
-const CARDS_DIR = "/var/cards";
-const MONGO_URI = process.env.MONGO_URI;
-
-// Flexible schema for migration only
+// Flexible schema just for migration
 const cardSchema = new mongoose.Schema({}, { strict: false });
 const Card = mongoose.model("Card", cardSchema, "cards");
 
-// Utility: sleep for delay (default: 1500ms)
-function sleep(ms = 1500) {
+const CARDS_DIR = "/var/cards";
+const MONGO_URI = process.env.MONGO_URI;
+
+// Utility to pause between requests
+function sleep(ms = 7000) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Download image with optional retries
+// Downloads image with retries
 async function downloadImage(url, destPath, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const response = await axios.get(url, { responseType: "arraybuffer" });
       fs.writeFileSync(destPath, response.data);
-      console.log(`✅ Saved image to ${destPath}`);
+      console.log(`✅ Saved to ${destPath}`);
       return true;
     } catch (err) {
-      console.error(`❌ Attempt ${attempt} failed to download ${url}: ${err.message}`);
+      console.error(`❌ Attempt ${attempt} failed for ${url}: ${err.message}`);
       if (attempt < retries) {
-        console.log(`⏳ Retrying in 2s...`);
-        await sleep(2000);
+        console.log(`⏳ Retrying in 7s...`);
+        await sleep();
       }
     }
   }
@@ -37,40 +37,36 @@ async function downloadImage(url, destPath, retries = 3) {
 
 async function migrate() {
   await mongoose.connect(MONGO_URI);
-  const cards = await Card.find({});
+  const allCards = await Card.find({});
+  const cards = allCards.filter(card => !card.localImagePath && (card.imgurImageLink || card.discordPermalinkImage)).slice(0, 25);
 
-  console.log(`🔍 Found ${cards.length} cards`);
+  console.log(`🔍 Found ${cards.length} cards needing migration`);
 
   for (const card of cards) {
     const id = card._id.toString();
     const localPath = path.join(CARDS_DIR, `${id}.png`);
 
-    if (card.localImagePath && fs.existsSync(card.localImagePath)) {
-      console.log(`✔️ Already migrated: ${id}`);
-      continue;
-    }
-
     const url = card.imgurImageLink || card.discordPermalinkImage;
     if (!url) {
-      console.warn(`⚠️ No image URL found for card ${id}`);
+      console.warn(`⚠️ No URL found for card ${id}`);
       continue;
     }
 
     const success = await downloadImage(url, localPath);
     if (!success) {
-      console.warn(`⛔ Giving up on card ${id}`);
+      console.warn(`⛔ Skipping card ${id}`);
       continue;
     }
 
     card.localImagePath = localPath;
     await card.save();
-    console.log(`💾 Updated card ${id} with localImagePath`);
+    console.log(`💾 Card ${id} updated with localImagePath`);
 
-    await sleep(); // Prevent rate limiting
+    await sleep(); // slow down each request
   }
 
   await mongoose.disconnect();
-  console.log("🎉 Migration complete");
+  console.log("🎉 Migration complete for this batch.");
 }
 
 migrate();
