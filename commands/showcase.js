@@ -66,7 +66,7 @@ module.exports = {
         embed.setImage(`attachment://${card._id}.png`);
       }
 
-      showcaseItems.push({ embed, attachment });
+      showcaseItems.push(attachment ? { embed, attachment } : { embed });
     }
 
     const row = new ActionRowBuilder().addComponents(

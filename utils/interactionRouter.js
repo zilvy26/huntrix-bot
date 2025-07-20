@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Question = require('../models/Question');
 const mongoose = require('mongoose');
+const { AttachmentBuilder } = require('discord.js');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -174,7 +175,7 @@ module.exports = async function interactionRouter(interaction) {
   await interaction.deferUpdate().catch(() => {});
 
     // Pull 3 random cards just like in the original command
-    const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
+    const { EmbedBuilder } = require('discord.js');
 const UserInventory = require('../models/UserInventory');
 const UserRecord = require('../models/UserRecord');
 const giveCurrency = require('../utils/giveCurrency');

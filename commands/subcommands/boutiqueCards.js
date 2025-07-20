@@ -56,29 +56,6 @@ await BoutiqueCooldown.findOneAndUpdate(
       return interaction.editReply(`You need ${sopopCost} Sopop${sopopCost > 1 ? 's' : ''} (have ${currency.sopop}).`);
     }
 
-    // ➖ Deduct currency & log transaction
-    currency.patterns -= patternCost;
-    currency.sopop -= sopopCost;
-    await currency.save();
-    await UserRecord.create({
-      userId,
-      type: 'cardboutique',
-      detail: `Spent ${patternCost} Patterns & ${sopopCost} Sopop on ${shopType} x${amount}`
-    });
-
-    function getWeightedRandomCard(cards) {
-  const pool = [];
-
-  for (const card of cards) {
-    const weight = rarityWeights[card.rarity] || 0.01;
-    for (let i = 0; i < Math.floor(weight * 100); i++) {
-      pool.push(card);
-    }
-  }
-
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
     // ➖ Shared vars for results
     const pulls = []; // stores Card docs
     let filter;
@@ -150,6 +127,29 @@ for (let i = 0; i < amount; i++) {
   pulls.push(pick);
 }
     }
+
+    // ➖ Deduct currency & log transaction
+    currency.patterns -= patternCost;
+    currency.sopop -= sopopCost;
+    await currency.save();
+    await UserRecord.create({
+      userId,
+      type: 'cardboutique',
+      detail: `Spent ${patternCost} Patterns & ${sopopCost} Sopop on ${shopType} x${amount}`
+    });
+
+    function getWeightedRandomCard(cards) {
+  const pool = [];
+
+  for (const card of cards) {
+    const weight = rarityWeights[card.rarity] || 0.01;
+    for (let i = 0; i < Math.floor(weight * 100); i++) {
+      pool.push(card);
+    }
+  }
+
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
     // ➖ Process pulls: stack, update inventory & records
     const counts = {};
