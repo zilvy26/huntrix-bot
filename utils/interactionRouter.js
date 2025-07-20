@@ -164,9 +164,7 @@ module.exports = async function interactionRouter(interaction) {
     content: `You bought **${template.name}** for ${template.price.toLocaleString()} Sopop!`,
     
   });
-    };
-
-
+    }
 
     if (customId.startsWith('rehearsal')) {
   const index = parseInt(interaction.customId.split('_')[1], 10);
@@ -253,7 +251,10 @@ if (showcasePattern.test(customId)) {
   }
 
   const currentEmbed = interaction.message.embeds[0];
-  let current = showcasePages.findIndex(p => p.embed.data.title === currentEmbed.title && p.embed.data.description === currentEmbed.description);
+  let current = showcasePages.findIndex(p =>
+    p.embed?.data?.title === currentEmbed.title &&
+    p.embed?.data?.description === currentEmbed.description
+  );
   if (current === -1) current = 0;
 
   if (customId === 'show_first') current = 0;

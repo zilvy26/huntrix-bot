@@ -67,7 +67,7 @@ module.exports = {
       }
 
       showcaseItems.push({
-  embedData: embed.data,
+  embed,
   attachment
 });
     }
@@ -82,7 +82,7 @@ module.exports = {
     const first = showcaseItems[0];
 
     await interaction.reply({
-      embeds: [first.embedData],
+      embeds: [first.embed],
       components: [row],
       files: first.attachment ? [first.attachment] : []
     });
