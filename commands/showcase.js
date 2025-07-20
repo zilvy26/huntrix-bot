@@ -66,7 +66,10 @@ module.exports = {
         embed.setImage(`attachment://${card._id}.png`);
       }
 
-      showcaseItems.push({ embed, attachment });
+      showcaseItems.push({
+  embedData: embed.data,
+  attachment
+});
     }
 
     const row = new ActionRowBuilder().addComponents(
@@ -79,7 +82,7 @@ module.exports = {
     const first = showcaseItems[0];
 
     await interaction.reply({
-      embeds: [first.embed],
+      embeds: [first.embedData],
       components: [row],
       files: first.attachment ? [first.attachment] : []
     });

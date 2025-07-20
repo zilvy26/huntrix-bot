@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Question = require('../models/Question');
 const mongoose = require('mongoose');
+const { AttachmentBuilder } = require('discord.js');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -235,11 +236,10 @@ await interaction.editReply({
   embeds: [resultEmbed],
   components: [],
   files: imageAttachment ? [imageAttachment] : []
-});
+  });
+}
 
-const { AttachmentBuilder } = require('discord.js');
 const showcasePattern = /^(show_first|show_prev|show_next|show_last)$/;
-
 if (showcasePattern.test(customId)) {
   const userId = interaction.user.id;
   const showcasePages = interaction.client.cache?.showcase?.[userId];
@@ -270,5 +270,4 @@ if (showcasePattern.test(customId)) {
   });
 }
 
-}
 };
