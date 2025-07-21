@@ -69,7 +69,7 @@ if (isSpecialRarity5 && price > 3000) {
     group: cardData.group,
     era: cardData.era,
     rarity: cardData.rarity,
-    imageUrl,
+    localImagePath: cardData.localImagePath,
     price,
     sellerId: userId,
     sellerTag: `${interaction.user.username}#${interaction.user.discriminator}`,
