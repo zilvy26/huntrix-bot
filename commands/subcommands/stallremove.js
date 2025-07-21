@@ -2,39 +2,44 @@ const MarketListing = require('../../models/MarketListing');
 const UserInventory = require('../../models/UserInventory');
 
 module.exports = async function(interaction) {
-  const buyCode = interaction.options.getString('buycode').toUpperCase();
+  const input = interaction.options.getString('buycode');
   const userId = interaction.user.id;
 
-  const listing = await MarketListing.findOne({ buyCode });
+  const codes = input.split(',').map(c => c.trim().toUpperCase());
+  const results = [];
 
-  if (!listing) {
-    return interaction.reply({ content: `No listing found for Buy Code \`${buyCode}\`.` });
-  }
+  for (const code of codes) {
+    const listing = await MarketListing.findOne({ buyCode: code });
 
-  if (listing.sellerId !== userId) {
-    return interaction.reply({ content: `You can only remove your own listings.` });
-  }
+    if (!listing) {
+      results.push(`No listing found for \`${code}\`.`);
+      continue;
+    }
 
-  // Restore the card to inventory
-  const result = await UserInventory.findOneAndUpdate(
-    { userId, 'cards.cardCode': listing.cardCode },
-    { $inc: { 'cards.$.quantity': 1 } },
-    { new: true }
-  );
+    if (listing.sellerId !== userId) {
+      results.push(`You do not own listing \`${code}\`.`);
+      continue;
+    }
 
-  // If not already in inventory, push it
-  if (!result) {
-    await UserInventory.findOneAndUpdate(
-      { userId },
-      { $push: { cards: { cardCode: listing.cardCode, quantity: 1 } } },
-      { upsert: true }
+    // Restore card
+    const result = await UserInventory.findOneAndUpdate(
+      { userId, 'cards.cardCode': listing.cardCode },
+      { $inc: { 'cards.$.quantity': 1 } },
+      { new: true }
     );
+
+    if (!result) {
+      await UserInventory.findOneAndUpdate(
+        { userId },
+        { $push: { cards: { cardCode: listing.cardCode, quantity: 1 } } },
+        { upsert: true }
+      );
+    }
+
+    await MarketListing.deleteOne({ _id: listing._id });
+
+    results.push(`Removed **${listing.cardName}** \`${code}\` and returned to inventory.`);
   }
 
-  // Delete the listing
-  await MarketListing.deleteOne({ _id: listing._id });
-
-  return interaction.reply({
-    content: `Successfully removed your listing for **${listing.cardName}**.\n💼 The card has been returned to your inventory.`,
-  });
+  return interaction.reply({ content: results.join('\n').slice(0, 2000) });
 };
