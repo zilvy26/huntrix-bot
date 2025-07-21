@@ -3,6 +3,7 @@ const handlePreview = require('./subcommands/stallpreview');
 const handleSell = require('./subcommands/stallsell');
 const handleBuy = require('./subcommands/stallbuy');
 const handleRemove = require('./subcommands/stallremove');
+const handleDelete = require('./subcommands/stalldelete');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -49,6 +50,16 @@ module.exports = {
     .setDescription('Remove one of your listings from the market')
     .addStringOption(opt =>
       opt.setName('buycode').setDescription('Remove listing(s) — comma-separated for multiple').setRequired(true))
+    )
+
+    .addSubcommand(sub =>
+  sub.setName('delete')
+    .setDescription('Force-delete listing(s) as an admin')
+    .addStringOption(opt =>
+      opt.setName('buycode')
+        .setDescription('Buy Code(s) — comma-separated')
+        .setRequired(true)
+    )
 ),
 
   async execute(interaction) {
@@ -59,6 +70,7 @@ module.exports = {
       if (sub === 'sell') return await handleSell(interaction);
       if (sub === 'buy') return await handleBuy(interaction);
       if (sub === 'remove') return await handleRemove(interaction);
+      if (sub === 'delete') return await handleDelete(interaction);
 
       return interaction.reply({ content: `Unknown subcommand: ${sub}` });
     } catch (err) {
