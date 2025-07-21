@@ -36,7 +36,7 @@ if (cooldown && cooldown.expiresAt > now) {
 
 await BoutiqueCooldown.findOneAndUpdate(
   { userId: interaction.user.id },
-  { expiresAt: new Date(now.getTime() + 2 * 60 * 1000) }, // 2 minutes
+  { expiresAt: new Date(now.getTime() + 60 * 1000) }, // 1 minute
   { upsert: true }
 );
 
@@ -101,7 +101,7 @@ await BoutiqueCooldown.findOneAndUpdate(
   const hasOnlyRarity5 = pool.every(c => c.rarity === 5);
 
 if (hasOnlyRarity5) {
-  return interaction.editReply('❌ Only rarity 5 cards found — at least one rarity 1–4 is required to use this shop.');
+  return interaction.editReply('Only rarity 5 cards found — at least one rarity 1–4 is required to use this shop.');
 }
 
   if (pool.length === 0) {
@@ -112,7 +112,21 @@ if (hasOnlyRarity5) {
     const randomCard = getWeightedRandomCard(pool);
     pulls.push(randomCard);
   }
+
+  if (pulls.length === 0) {
+    return interaction.editReply('No valid cards were pulled, no charges applied.');
+  }
 }
+
+// ➖ Deduct currency & log transaction
+    currency.patterns -= patternCost;
+    currency.sopop -= sopopCost;
+    await currency.save();
+    await UserRecord.create({
+      userId,
+      type: 'cardboutique',
+      detail: `Spent ${patternCost} Patterns & ${sopopCost} Sopop on ${shopType} x${amount}`
+    });
 
     // special
     if (shopType === 'special') {
@@ -127,16 +141,6 @@ for (let i = 0; i < amount; i++) {
   pulls.push(pick);
 }
     }
-
-    // ➖ Deduct currency & log transaction
-    currency.patterns -= patternCost;
-    currency.sopop -= sopopCost;
-    await currency.save();
-    await UserRecord.create({
-      userId,
-      type: 'cardboutique',
-      detail: `Spent ${patternCost} Patterns & ${sopopCost} Sopop on ${shopType} x${amount}`
-    });
 
     function getWeightedRandomCard(cards) {
   const pool = [];
