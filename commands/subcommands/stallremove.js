@@ -38,7 +38,7 @@ module.exports = async function(interaction) {
 
     await MarketListing.deleteOne({ _id: listing._id });
 
-    results.push(`Removed **${listing.cardName}** \`${code}\` and returned to inventory.`);
+    results.push(`Removed **${listing.cardName}** \`${listing.cardCode}\` ${code} & returned to inventory.`);
   }
 
   return interaction.reply({ content: results.join('\n').slice(0, 2000) });

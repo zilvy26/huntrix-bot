@@ -82,8 +82,8 @@ const files = listing.localImagePath
     .setTitle(`Stall Preview — Page ${page}/${totalPages}`)
     .setColor('#ffc800')
     .setImage(imageUrl)
-    .setDescription(`**${stars} ${listing.cardName}**\n<:ehx_patterns:1389584144895315978> ${listing.price} | 🛒 \`${listing.buyCode}\` | 👤 <@${listing.sellerId}>`)
-    .setFooter({ text: `Use /stall buy [buycode] to purchase a card` });
+    .setDescription(`**${stars} ${listing.cardName} ${listing.cardCode}**\n<:ehx_patterns:1389584144895315978> ${listing.price} | Buy Code: \`${listing.buyCode}\` | User: <@${listing.sellerId}>`)
+    .setFooter({ text: `Use /stall buy [buycode] to purchase cards` });
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('stall_first').setStyle(ButtonStyle.Secondary).setDisabled(page === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),

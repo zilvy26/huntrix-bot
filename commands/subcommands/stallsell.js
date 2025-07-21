@@ -85,6 +85,6 @@ if (isSpecialRarity5 && price > 3000) {
   await inventoryDoc.save();
 
   await interaction.reply({
-    content: `<@${userId}> listed **${cardData.name}** for **${price} Patterns**!\n🛒 Buy Code: \`${buyCode}\``
+    content: `<@${userId}> listed **${cardData.name}** \`${cardData.cardCode}\` for **${price} <:ehx_patterns:1389584144895315978>**!\n Buy Code: \`${buyCode}\``
   });
 };

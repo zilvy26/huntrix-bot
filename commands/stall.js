@@ -36,19 +36,19 @@ module.exports = {
         .addStringOption(opt =>
           opt.setName('cardcode').setDescription('Code of card to sell').setRequired(true))
         .addIntegerOption(opt =>
-          opt.setName('price').setDescription('Sale price').setRequired(true))
+          opt.setName('price').setDescription('Selling price in Patterns').setRequired(true))
     )
     .addSubcommand(sub =>
       sub.setName('buy')
         .setDescription('Buy a listed card using its Buy Code')
         .addStringOption(opt =>
-          opt.setName('buycode').setDescription('Buy Code of the card').setRequired(true))
+          opt.setName('buycode').setDescription('Buy Code(s) — comma-separated for multiple').setRequired(true))
     )
     .addSubcommand(sub =>
   sub.setName('remove')
     .setDescription('Remove one of your listings from the market')
     .addStringOption(opt =>
-      opt.setName('buycode').setDescription('Buy Code of your listing').setRequired(true))
+      opt.setName('buycode').setDescription('Remove listing(s) — comma-separated for multiple').setRequired(true))
 ),
 
   async execute(interaction) {
