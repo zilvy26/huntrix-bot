@@ -14,21 +14,22 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('index')
     .setDescription('View your inventory with filters and pagination.')
+    .addStringOption(opt =>
+      opt.setName('show')
+        .setDescription('Which cards to show')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Owned Only', value: 'owned' },
+          { name: 'Missing Only', value: 'missing' },
+          { name: 'Duplicates Only', value: 'dupes' },
+          { name: 'All', value: 'all' }
+        )
+    )
     .addUserOption(opt => opt.setName('user').setDescription('Whose inventory to view?'))
     .addStringOption(opt => opt.setName('group').setDescription('Filter by group'))
     .addStringOption(opt => opt.setName('era').setDescription('Filter by era'))
     .addStringOption(opt => opt.setName('name').setDescription('Filter by card name'))
     .addStringOption(opt => opt.setName('rarity').setDescription('Filter by rarity'))
-    .addStringOption(opt =>
-      opt.setName('show')
-        .setDescription('Which cards to show')
-        .addChoices(
-          { name: 'Owned Only', value: 'owned' },
-          { name: 'Missing Only', value: 'missing' },
-          { name: 'All', value: 'all' },
-          { name: 'Duplicates Only', value: 'dupes' }
-        )
-    )
     .addStringOption(opt =>
   opt.setName('include_customs')
     .setDescription('Show CUSTOMS and TEST group cards?')
@@ -77,7 +78,7 @@ if (inv) {
 
   if (!(groupMatch && eraMatch && nameMatch && rarityMatch)) return false;
 
-  if (filters.show === 'owned') return inInv;
+  if (filters.show === 'owned') return inInv && copies > 0;
   if (filters.show === 'missing') return !inInv;
   if (filters.show === 'dupes') return inInv && copies > 1;
 
@@ -89,8 +90,21 @@ if (inv) {
       return interaction.editReply({ content: 'No cards match your filters.' });
     }
 
-    const totalCopies = cardList.reduce((acc, card) => acc + (inventoryMap.get(card.cardCode) || 0), 0);
-    const totalStars = cardList.reduce((acc, card) => acc + (card.rarity * (inventoryMap.get(card.cardCode) || 0)), 0);
+    let totalCopies = 0;
+    let totalStars = 0;
+
+if (filters.show === 'dupes') {
+  for (const card of cardList) {
+    const qty = inventoryMap.get(card.cardCode) || 0;
+    if (qty > 1) {
+      totalCopies += qty - 1;
+      totalStars += card.rarity * (qty - 1);
+    }
+  }
+} else {
+  totalCopies = cardList.reduce((acc, card) => acc + (inventoryMap.get(card.cardCode) || 0), 0);
+  totalStars = cardList.reduce((acc, card) => acc + (card.rarity * (inventoryMap.get(card.cardCode) || 0)), 0);
+}
 
     const perPage = 6;
     const totalPages = Math.ceil(cardList.length / perPage);
