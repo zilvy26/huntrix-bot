@@ -101,7 +101,7 @@ await BoutiqueCooldown.findOneAndUpdate(
   const hasOnlyRarity5 = pool.every(c => c.rarity === 5);
 
 if (hasOnlyRarity5) {
-  return interaction.editReply('Only rarity 5 cards found — at least one rarity 1–4 is required to use this shop.');
+  return interaction.editReply('Only 5 Star cards found — must be at least one 1–4 Star cards to use this shop.');
 }
 
   if (pool.length === 0) {

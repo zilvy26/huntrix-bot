@@ -34,6 +34,28 @@ module.exports = async function(interaction) {
   }
 
   const cardData = await Card.findOne({ cardCode });
+
+  const priceCaps = {
+  1: 150,
+  2: 250,
+  3: 350,
+  4: 500
+};
+
+const isSpecialRarity5 = cardData.rarity === 5 && ['kpop', 'anime', 'game'].includes((cardData.category || '').toLowerCase());
+
+if (cardData.rarity < 5 && price > priceCaps[cardData.rarity]) {
+  return interaction.reply({
+    content: `Price cap for rarity ${cardData.rarity} cards is **${priceCaps[cardData.rarity]}** <:ehx_patterns:1389584144895315978>.`
+  });
+}
+
+if (isSpecialRarity5 && price > 3000) {
+  return interaction.reply({
+    content: `5 Star Standard cards are capped at **3000** <:ehx_patterns:1389584144895315978>.`
+  });
+}
+
   if (!cardData) {
     return interaction.reply({ content: `Metadata for **${cardCode}** not found in card database.` });
   }

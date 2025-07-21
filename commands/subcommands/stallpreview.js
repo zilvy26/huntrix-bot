@@ -67,14 +67,16 @@ async function renderPreview(interaction, options) {
   const listing = listings[0].toObject();
   const stars = generateStars({ rarity: listing.rarity, overrideEmoji: listing.emoji });
 
-  let imageUrl = listing.discordPermalinkImage;
-  if (
-    !imageUrl ||
-    imageUrl.includes('/stickers/') ||
-    imageUrl.endsWith('.webp') || imageUrl.endsWith('.json')
-  ) {
-    imageUrl = listing.imgurImageLink || listing.imageUrl;
-  }
+  let imageUrl;
+if (listing.localImagePath) {
+  imageUrl = `attachment://${listing._id}.png`;
+} else {
+  imageUrl = listing.discordPermalinkImage || listing.imgurImageLink || listing.imageUrl;
+}
+
+const files = listing.localImagePath
+  ? [{ attachment: listing.localImagePath, name: `${listing._id}.png` }]
+  : [];
 
   const embed = new EmbedBuilder()
     .setTitle(`Stall Preview — Page ${page}/${totalPages}`)
@@ -91,9 +93,9 @@ async function renderPreview(interaction, options) {
   );
 
   if (interaction.replied || interaction.deferred) {
-    await interaction.editReply({ embeds: [embed], components: [row] });
+    await interaction.editReply({ embeds: [embed], components: [row], files });
   } else {
-    await interaction.reply({ embeds: [embed], components: [row] });
+    await interaction.reply({ embeds: [embed], components: [row], files });
   }
 
   const replyMessage = interaction.replied ? await interaction.fetchReply() : null;
