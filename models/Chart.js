@@ -1,4 +1,3 @@
-// models/Chart.js
 const mongoose = require('mongoose');
 
 const chartSchema = new mongoose.Schema({
@@ -6,6 +5,14 @@ const chartSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true
+  },
+  totalCards: {
+    type: Number,
+    default: 0
+  },
+  totalStars: {
+    type: Number,
+    default: 0
   },
   lastUpdated: {
     type: Date,
