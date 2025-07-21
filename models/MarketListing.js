@@ -11,7 +11,8 @@ const marketListingSchema = new mongoose.Schema({
   group: { type: String, required: true },             // e.g. ICHILLIN'
   era: { type: String, required: true },               // e.g. Feelin' Hot
   rarity: { type: Number, required: true },            // e.g. 2
-  imageUrl: { type: String, required: true },          // For canvas rendering
+  imageUrl: { type: String },          // For canvas rendering
+  localImagePath: { type: String },
   buyCode: { type: String, required: true, unique: true},
 
   createdAt: { type: Date, default: Date.now }
