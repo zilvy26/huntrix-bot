@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Question = require('../models/Question');
 const mongoose = require('mongoose');
 const { AttachmentBuilder } = require('discord.js');
+const safeReply = require('../utils/safeReply');
+const autoDefer = require('../utils/autoDefer');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -12,6 +14,11 @@ module.exports = async function interactionRouter(interaction) {
 
   // 🎯 Battle Answer Buttons
   if (customId.startsWith('question')) {
+    const message = await interaction.message.fetch();
+if (interaction.user.id !== message.interaction.user.id) {
+  return interaction.reply({ content: 'These buttons are not yours.', ephemeral: true });
+}
+await autoDefer(interaction, 'update');
   const [, questionId, selectedIndexRaw] = customId.split('_');
   const selectedIndex = parseInt(selectedIndexRaw);
 
@@ -32,7 +39,7 @@ module.exports = async function interactionRouter(interaction) {
     if (!selected) return interaction.reply({ content: '❌ Could not find the question in database.' });
 
     const selectedAnswer = selected.options[selectedIndex];
-      await interaction.deferUpdate();
+      // await interaction.deferUpdate();
 
       const userDoc = await User.findOne({ userId: user.id }) || new User({
         userId: user.id,
@@ -167,10 +174,15 @@ module.exports = async function interactionRouter(interaction) {
     }
 
     if (customId.startsWith('rehearsal')) {
+      const message = await interaction.message.fetch();
+if (interaction.user.id !== message.interaction.user.id) {
+  return interaction.reply({ content: 'These buttons are not yours', ephemeral: true });
+}
+await autoDefer(interaction, 'update');
   const index = parseInt(interaction.customId.split('_')[1], 10);
   const userId = interaction.user.id;
 
-  await interaction.deferUpdate().catch(() => {});
+  // await interaction.deferUpdate().catch(() => {});
 
     // Pull 3 random cards just like in the original command
     const { EmbedBuilder } = require('discord.js');
