@@ -207,7 +207,7 @@ for (const o of matches) {
         );
     
         // 1. Send the embed page without a mention first
-await interaction.followUp({
+await interaction.editReply({
   embeds: [renderEmbed(current)],
   components: [renderRow()]
 });
@@ -219,7 +219,7 @@ await interaction.followUp({
 });
     
         while (true) {
-          const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
+          const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000).catch(() => null);
           if (!btn) break;
     
           if (btn.customId === 'first') current = 0;
