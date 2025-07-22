@@ -154,7 +154,7 @@ await interaction.followUp({
 
 // 2. Immediately send the ping in a separate message to trigger Mentions tab
 await interaction.followUp({
-  content: `<@${receiver.id}>`,
+  content: `Sent <@${receiver.id}> card(s)!`,
   allowedMentions: { users: [receiver.id] }
 });
 
