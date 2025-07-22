@@ -10,6 +10,7 @@ const marketListingSchema = new mongoose.Schema({
   cardName: { type: String, required: true },          // e.g. Chawon
   group: { type: String, required: true },             // e.g. ICHILLIN'
   era: { type: String },               // e.g. Feelin' Hot
+  emoji: { type: String },
   rarity: { type: Number, required: true },            // e.g. 2
   imageUrl: { type: String },          // For canvas rendering
   localImagePath: { type: String },
