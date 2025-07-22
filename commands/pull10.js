@@ -26,20 +26,17 @@ module.exports = {
   async execute(interaction) {
     const userId = interaction.user.id;
     const commandName = 'Pull10';
-    const cooldownDuration = cooldownConfig[commandName];
+    const cooldownMs = await cooldowns.getEffectiveCooldown(interaction, commandName);
 
-    // ✅ Await Mongo-based cooldown
-    if (await cooldowns.isOnCooldown(userId, commandName)) {
-      const ts = await cooldowns.getCooldownTimestamp(userId, commandName);
-      return interaction.reply({
-        content: `You must wait **${ts}** to pull again.`,
-        
-      });
-    }
+if (await cooldowns.isOnCooldown(userId, commandName)) {
+  const ts = await cooldowns.getCooldownTimestamp(userId, commandName);
+  return interaction.reply({
+    content: `You must wait **${ts}** to pull again.`,
+  });
+}
 
-    // ✅ Set cooldown & reminders
-    await cooldowns.setCooldown(userId, commandName, cooldownDuration);
-    await handleReminders(interaction, commandName, cooldownDuration);
+await cooldowns.setCooldown(userId, commandName, cooldownMs);
+await handleReminders(interaction, commandName, cooldownMs);
 
     await interaction.deferReply();
 

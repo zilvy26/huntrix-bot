@@ -29,17 +29,16 @@ module.exports = {
   async execute(interaction) {
     const userId = interaction.user.id;
     const commandName = 'Perform';
-    const cooldownDuration = cooldownConfig[commandName];
+    const cooldownMs = await cooldowns.getEffectiveCooldown(interaction, commandName);
 
-    if (await cooldowns.isOnCooldown(userId, commandName)) {
+if (await cooldowns.isOnCooldown(userId, commandName)) {
   const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
   return interaction.reply({
     content: `You're tired from your last performance. Come back **${nextTime}**.`,
   });
 }
 
-    // Set cooldown
-    await cooldowns.setCooldown(userId, commandName, cooldownDuration);
+await cooldowns.setCooldown(userId, commandName, cooldownMs);
 
     // Generate randomized rewards
     const patterns = getRandomInt(1100, 1600);
@@ -48,7 +47,7 @@ module.exports = {
     // Give currency
     const user = await giveCurrency(userId, { patterns, sopop });
 
-    await handleReminders(interaction, 'Perform', cooldownDuration);
+    await handleReminders(interaction, 'Perform', cooldownMs);
 
     // Create response
     const embed = new EmbedBuilder()

@@ -34,18 +34,17 @@ module.exports = {
   async execute(interaction) {
     const userId = interaction.user.id;
     const commandName = 'Battle';
-    const cooldownDuration = cooldownConfig[commandName] || (2 * 60 * 60 * 1000); // 2 hours
+    const cooldownMs = await cooldowns.getEffectiveCooldown(interaction, commandName);
 
-    if (await cooldowns.isOnCooldown(userId, commandName)) {
-      const endsAt = await cooldowns.getCooldownTimestamp(userId, commandName);
-      return interaction.reply({
-        content: `⏳ You must wait before battling again. Try ${endsAt}`,
-        
-      });
-    }
+if (await cooldowns.isOnCooldown(userId, commandName)) {
+  const endsAt = await cooldowns.getCooldownTimestamp(userId, commandName);
+  return interaction.reply({
+    content: `⏳ You must wait before battling again. Try ${endsAt}`,
+  });
+}
 
-    await cooldowns.setCooldown(userId, commandName, cooldownDuration);
-    await handleReminders(interaction, commandName, cooldownDuration);
+await cooldowns.setCooldown(userId, commandName, cooldownMs);
+await handleReminders(interaction, commandName, cooldownMs);
 
     const questions = await Question.aggregate([
       { $match: { difficulty: interaction.options.getString('difficulty') } },

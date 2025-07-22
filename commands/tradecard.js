@@ -129,9 +129,9 @@ for (const code of inputCodes) {
       return new EmbedBuilder()
         .setTitle(`Cards Gifted to ${receiver.username}`)
         .setColor('#2f3136')
-        .setDescription(items.map(t =>
-          `${generateStars({ rarity: t.card.rarity, overrideEmoji: t.card.emoji })} \`${t.card.cardCode}\` — **x${t.qty}** [Copies: ${t.total}]`
-        ).join('\n'))
+        .setDescription(`<@${receiver.id}>\n\n` + items.map(t =>
+    `${generateStars({ rarity: t.card.rarity, overrideEmoji: t.card.emoji })} \`${t.card.cardCode}\` — x${t.qty} [Copies: ${t.total}]`
+  ).join('\n'))
         .addFields(
           { name: 'Total Cards', value: `${totalCards}`, inline: true },
           { name: 'Total <:fullstar:1387609456824680528>', value: `${totalSouls}`, inline: true }

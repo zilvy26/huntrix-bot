@@ -61,15 +61,17 @@ module.exports = {
 let minRarity = 1, maxRarity = 5;
 
 if (rarityRangeRaw) {
-  const match = rarityRangeRaw.match(/^(\d+)-(\d+)$/);
-  if (match) {
-    minRarity = Math.max(1, Math.min(5, parseInt(match[1])));
-    maxRarity = Math.max(1, Math.min(5, parseInt(match[2])));
-    if (minRarity > maxRarity) [minRarity, maxRarity] = [maxRarity, minRarity]; // auto-swap if reversed
+  const matchRange = rarityRangeRaw.match(/^(\d+)-(\d+)$/);
+  const matchSingle = rarityRangeRaw.match(/^(\d+)$/);
+  if (matchRange) {
+    minRarity = Math.max(1, Math.min(5, parseInt(matchRange[1])));
+    maxRarity = Math.max(1, Math.min(5, parseInt(matchRange[2])));
+    if (minRarity > maxRarity) [minRarity, maxRarity] = [maxRarity, minRarity];
+  } else if (matchSingle) {
+    minRarity = maxRarity = Math.max(1, Math.min(5, parseInt(matchSingle[1])));
   } else {
     return interaction.reply({
-      content: `Invalid rarity range format. Please use \`1-3\`, \`2-5\`, etc.`,
-      
+      content: `❌ Invalid rarity format. Use \`1\` or \`2-4\`.`,
     });
   }
 }
@@ -189,7 +191,7 @@ for (const o of matches) {
       return new EmbedBuilder()
         .setTitle(`Cards Traded to ${target.username}`)
         .setColor('#2f3136')
-        .setDescription(desc)
+        .setDescription(`<@${target.id}>\n\n${desc}`)
         .addFields(
           { name: 'Total Cards', value: `${totalCards}`, inline: true },
           { name: 'Total <:fullstar:1387609456824680528>', value: `${giftedStars}`, inline: true }
