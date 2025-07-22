@@ -37,7 +37,7 @@ module.exports = {
 )
 .addStringOption(opt =>
   opt.setName('rarityrange')
-    .setDescription('Rarity range in format like 1-3 or 2-5')
+    .setDescription('Rarity range in format like 3 or 2-5')
     .setRequired(false)
 ),
 
@@ -191,7 +191,7 @@ for (const o of matches) {
       return new EmbedBuilder()
         .setTitle(`Cards Traded to ${target.username}`)
         .setColor('#2f3136')
-        .setDescription(`<@${target.id}>\n\n${desc}`)
+        .setDescription(desc)
         .addFields(
           { name: 'Total Cards', value: `${totalCards}`, inline: true },
           { name: 'Total <:fullstar:1387609456824680528>', value: `${giftedStars}`, inline: true }
@@ -206,7 +206,7 @@ for (const o of matches) {
           new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= pages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
         );
     
-        await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
+        await interaction.editReply({ content: `<@${target.id}>`, embeds: [renderEmbed(current)], components: [renderRow()] });
     
         while (true) {
           const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
