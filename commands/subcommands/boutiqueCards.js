@@ -66,7 +66,7 @@ await BoutiqueCooldown.findOneAndUpdate(
 
     // random20
     if (shopType === 'random20') {
-      filter = { pullable: true, category: { $nin: ['EVENT', 'ZODIAC', 'OTHERS'] } };
+      filter = { pullable: true, category: { $nin: ['event', 'zodiac', 'others'] } };
       const pool = await Card.find(filter);
       const fives = pool.filter(c => c.rarity === 5);
       if (pool.length < 20 || fives.length === 0) {
@@ -89,7 +89,7 @@ await BoutiqueCooldown.findOneAndUpdate(
   const rawNames = interaction.options.getString('names');
   const rawEras = interaction.options.getString('eras');
 
-  filter = { pullable: true, category: { $nin: ['EVENT', 'ZODIAC', 'OTHERS'] } };
+  filter = { pullable: true, category: { $nin: ['event', 'zodiac', 'others'] } };
 
   if (rawGroups) filter.group = { $in: rawGroups.split(',').map(s => new RegExp(s.trim(), 'i')) };
   if (rawNames) filter.name = { $in: rawNames.split(',').map(s => new RegExp(s.trim(), 'i')) };
@@ -130,7 +130,7 @@ if (hasOnlyRarity5) {
 
     // special
     if (shopType === 'special') {
-      filter = { pullable: true, category: { $in: ['EVENT', 'ZODIAC'] } };
+      filter = { pullable: true, category: { $in: ['event', 'zodiac'] } };
       const pool = await Card.find(filter);
       if (pool.length === 0) {
   return interaction.editReply('No special cards found for that filter.');
