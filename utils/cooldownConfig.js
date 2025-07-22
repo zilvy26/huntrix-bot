@@ -18,7 +18,7 @@ module.exports = {
       { id: '1394847239557615666', percent: 20 }, // Leader
     ]
   },
-  Rehearsal: 1.75 * 60 * 60 * 1000,
+  Rehearsal: 1.5 * 60 * 60 * 1000,
   Pull10: {
     default: 1.25 * 60 * 60 * 1000,
     reductions: [
