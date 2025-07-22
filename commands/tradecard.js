@@ -146,11 +146,17 @@ for (const code of inputCodes) {
       new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= pages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
     );
 
-    await interaction.followUp({
-    content: `<@${receiver.id}>`,
-    embeds: [renderEmbed(current)],
-    components: [renderRow()]
-    });
+    // 1. Send the embed page without a mention first
+await interaction.followUp({
+  embeds: [renderEmbed(current)],
+  components: [renderRow()]
+});
+
+// 2. Immediately send the ping in a separate message to trigger Mentions tab
+await interaction.followUp({
+  content: `<@${receiver.id}>`,
+  allowedMentions: { users: [receiver.id] }
+});
 
     while (true) {
       const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
