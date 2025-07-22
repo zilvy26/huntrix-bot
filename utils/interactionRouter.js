@@ -106,7 +106,7 @@ await autoDefer(interaction, 'update');
     // Simulate updated content (replace with real generator if needed)
     const updatedEmbed = JSON.parse(JSON.stringify(interaction.message.embeds[0]));
     updatedEmbed.footer.text = `Page ${currentPage}/${totalPages}`;
-    updatedEmbed.description = `📄 This is page ${currentPage}.`;
+    updatedEmbed.description = `This is page ${currentPage}.`;
 
     return interaction.update({ embeds: [updatedEmbed] });
   }
@@ -125,7 +125,7 @@ await autoDefer(interaction, 'update');
 
     const updatedEmbed = JSON.parse(JSON.stringify(interaction.message.embeds[0]));
     updatedEmbed.footer.text = `Stall Page ${currentPage}/${totalPages}`;
-    updatedEmbed.description = `🐌 This is stall page ${currentPage}.`;
+    updatedEmbed.description = `This is stall page ${currentPage}.`;
 
     return interaction.update({ embeds: [updatedEmbed] });
   }
@@ -196,7 +196,7 @@ if (!cards || cards.length < 3) {
 }
 
 const selected = cards[index];
-const sopop = Math.random() < 0.58 ? (Math.random() < 0.75 ? 1 : 2) : 0;
+const sopop = Math.random() < 0.5 ? (Math.random() < 0.75 ? 1 : 2) : 0;
 await giveCurrency(userId, { sopop });
 
 let inv = await UserInventory.findOne({ userId });

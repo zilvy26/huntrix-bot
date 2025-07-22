@@ -10,6 +10,7 @@ const cooldowns = require('../utils/cooldownManager');
 const cooldownConfig = require('../utils/cooldownConfig');
 const handleReminders = require('../utils/reminderHandler');
 const Card = require('../models/Card');
+const pickRarity = require('../utils/pickRarity');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -36,10 +37,16 @@ module.exports = {
     await cooldowns.setCooldown(userId, commandName, cooldownDuration);
     await handleReminders(interaction, commandName, cooldownDuration);
 
-    const cards = await Card.aggregate([
-      { $match: { pullable: true } },
-      { $sample: { size: 3 } }
-    ]);
+    const cards = [];
+for (let i = 0; i < 3; i++) {
+  const rarity = pickRarity();
+  const card = await Card.aggregate([
+    { $match: { pullable: true, rarity, localImagePath: { $exists: true } } },
+    { $sample: { size: 1 } }
+  ]);
+  if (card[0]) cards.push(card[0]);
+}
+
 
     if (cards.length < 3) {
       return interaction.editReply({ content: 'Not enough pullable cards in the database.' });
