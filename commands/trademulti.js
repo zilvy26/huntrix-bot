@@ -206,7 +206,11 @@ for (const o of matches) {
           new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= pages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
         );
     
-        await interaction.editReply({ content: `<@${target.id}>`, embeds: [renderEmbed(current)], components: [renderRow()] });
+        await interaction.followUp({
+        content: `<@${target.id}>`,
+        embeds: [renderEmbed(current)],
+        components: [renderRow()]
+        });
     
         while (true) {
           const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
