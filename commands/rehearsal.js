@@ -10,7 +10,7 @@ const cooldowns = require('../utils/cooldownManager');
 const cooldownConfig = require('../utils/cooldownConfig');
 const handleReminders = require('../utils/reminderHandler');
 const Card = require('../models/Card');
-const pickRarity = require('../utils/pickRarity');
+const pickRarity = require('../utils/rarityPicker');
 
 module.exports = {
   data: new SlashCommandBuilder()
