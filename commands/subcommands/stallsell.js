@@ -68,6 +68,7 @@ if (isSpecialRarity5 && price > 3000) {
     cardName: cardData.name,
     group: cardData.group,
     era: cardData.era,
+    emoji: cardData.emoji,
     rarity: cardData.rarity,
     localImagePath: cardData.localImagePath,
     price,
