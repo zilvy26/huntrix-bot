@@ -16,14 +16,14 @@ module.exports = async function interactionRouter(interaction) {
   if (customId.startsWith('question')) {
     const message = await interaction.message.fetch();
 if (interaction.user.id !== message.interaction.user.id) {
-  return interaction.reply({ content: 'These buttons are not yours.', ephemeral: true });
+  return safeReply(interaction, { content: 'These buttons are not yours.', ephemeral: true });
 }
 await autoDefer(interaction, 'update');
   const [, questionId, selectedIndexRaw] = customId.split('_');
   const selectedIndex = parseInt(selectedIndexRaw);
 
   if (!mongoose.Types.ObjectId.isValid(questionId)) {
-  return interaction.reply({
+  return safeReply(interaction, {
     content: '❌ Invalid question ID format.',
   });
 }
@@ -32,11 +32,11 @@ await autoDefer(interaction, 'update');
       const message = await interaction.message.fetch();
       const embed = message.embeds[0];
       if (!embed || !embed.description) {
-        return interaction.reply({ content: '❌ Question data missing.' });
+        return safeReply(interaction, { content: '❌ Question data missing.' });
       }
 
       const selected = await Question.findById(questionId);
-    if (!selected) return interaction.reply({ content: '❌ Could not find the question in database.' });
+    if (!selected) return safeReply(interaction, { content: '❌ Could not find the question in database.' });
 
     const selectedAnswer = selected.options[selectedIndex];
       // await interaction.deferUpdate();
@@ -87,7 +87,7 @@ await autoDefer(interaction, 'update');
       }
     } catch (err) {
       console.error('❌ Error handling battle button:', err);
-      return interaction.reply({ content: 'An error occurred processing your answer.'});
+      return safeReply(interaction, { content: 'An error occurred processing your answer.'});
     }
   }
 
@@ -176,7 +176,7 @@ await autoDefer(interaction, 'update');
     if (customId.startsWith('rehearsal')) {
       const message = await interaction.message.fetch();
 if (interaction.user.id !== message.interaction.user.id) {
-  return interaction.reply({ content: 'These buttons are not yours', ephemeral: true });
+  return safeReply(interaction, { content: 'These buttons are not yours', ephemeral: true });
 }
 await autoDefer(interaction, 'update');
   const index = parseInt(interaction.customId.split('_')[1], 10);
@@ -192,7 +192,7 @@ const giveCurrency = require('../utils/giveCurrency');
 
 const cards = interaction.client.cache?.rehearsal?.[userId];
 if (!cards || cards.length < 3) {
-  return interaction.followUp({ content: '❌ Rehearsal session not found or expired.', ephemeral: true });
+  return safeReply(interaction, { content: '❌ Rehearsal session not found or expired.', ephemeral: true });
 }
 
 const selected = cards[index];

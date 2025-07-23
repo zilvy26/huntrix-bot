@@ -7,5 +7,6 @@ module.exports = async function safeReply(interaction, options = {}) {
     }
   } catch (err) {
     console.warn('Failed to reply to interaction:', err.message);
+    return null;
   }
 };
