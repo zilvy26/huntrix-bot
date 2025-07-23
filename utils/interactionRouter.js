@@ -59,7 +59,7 @@ await autoDefer(interaction, 'update');
           rewardSopop = getRandomInt(0, 1);
         }
 
-        if (Math.random() < 0.2) rewardSopop++;
+        if (Math.random() < 0.1) rewardSopop++;
 
         let streakBonus = '';
         if (userDoc.correctStreak % 25 === 0) {
