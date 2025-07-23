@@ -53,13 +53,13 @@ await autoDefer(interaction, 'update');
         let rewardSopop = 0;
 
         if (selected.difficulty === 'easy') {
-          rewardPatterns = getRandomInt(500, 800);
+          rewardPatterns = getRandomInt(625, 800);
         } else {
-          rewardPatterns = getRandomInt(1000, 1300);
+          rewardPatterns = getRandomInt(1000, 1275);
           rewardSopop = getRandomInt(0, 1);
         }
 
-        if (Math.random() < 0.05) rewardSopop++;
+        if (Math.random() < 0.2) rewardSopop++;
 
         let streakBonus = '';
         if (userDoc.correctStreak % 25 === 0) {
@@ -196,7 +196,7 @@ if (!cards || cards.length < 3) {
 }
 
 const selected = cards[index];
-const sopop = Math.random() < 0.5 ? (Math.random() < 0.75 ? 1 : 2) : 0;
+const sopop = Math.random() < 0.65 ? (Math.random() < 0.75 ? 1 : 2) : 0;
 await giveCurrency(userId, { sopop });
 
 let inv = await UserInventory.findOne({ userId });
