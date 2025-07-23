@@ -105,7 +105,7 @@ module.exports = {
       let refundAmount = 0;
 
       const category = (card.category || '').toLowerCase();
-      const isSpecial = ['event', 'zodiac', 'others'].includes(category);
+      const isSpecial = card.rarity === 5 && ['event', 'zodiac', 'others'].includes(category);
       const isR5Main = card.rarity === 5 && ['kpop', 'anime', 'game'].includes(category);
 
       if (includeSpecials && isSpecial) {
