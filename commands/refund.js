@@ -7,7 +7,8 @@ const REFUND_VALUES = {
   1: 75,
   2: 125,
   3: 200,
-  4: 325
+  4: 325,
+  5: 1000
 };
 
 module.exports = {
@@ -64,14 +65,23 @@ module.exports = {
     let cardsToRefund = [];
 
     if (codesRaw) {
-      const codes = codesRaw.split(',').map(c => c.trim().toUpperCase());
-      const ownedCodes = codes.filter(c => cardMap.has(c));
-      const cardDocs = await Card.find({ cardCode: { $in: ownedCodes } });
+  const codes = codesRaw.split(',').map(c => c.trim().toUpperCase());
 
-      for (const card of cardDocs) {
-        const qty = cardMap.get(card.cardCode);
-        cardsToRefund.push({ card, qty });
-      }
+  // Count how many times each code appears
+  const codeCounts = {};
+  for (const code of codes) {
+    codeCounts[code] = (codeCounts[code] || 0) + 1;
+  }
+
+  const ownedCodes = Object.keys(codeCounts).filter(c => cardMap.has(c));
+  const cardDocs = await Card.find({ cardCode: { $in: ownedCodes } });
+
+  for (const card of cardDocs) {
+    const ownedQty = cardMap.get(card.cardCode);
+    const requestedQty = codeCounts[card.cardCode] || 0;
+    const refundQty = Math.min(ownedQty, requestedQty);
+    if (refundQty > 0) cardsToRefund.push({ card, qty: refundQty });
+  }
 
     } else {
       const allCodes = [...cardMap.keys()];
@@ -107,13 +117,20 @@ module.exports = {
       const isSpecial = card.rarity === 5 && ['event', 'zodiac', 'others'].includes(category);
       const isR5Main = card.rarity === 5 && ['kpop', 'anime', 'game'].includes(category);
 
-      if (includeSpecials && isSpecial) {
+  if (card.rarity === 5) {
+   if (includeSpecials) {
+     if (isSpecial) {
         refundAmount = 2500 * qty;
-      } else if (includeSpecials && isR5Main) {
+      } else if (isR5Main) {
         refundAmount = 1000 * qty;
-      } else {
-        refundAmount = (REFUND_VALUES[card.rarity] || 0) * qty;
-      }
+     }
+   } else {
+    // Don't refund or deduct anything, skip this card
+      continue;
+   }
+  } else {
+   refundAmount = (REFUND_VALUES[card.rarity] || 0) * qty;
+  }
 
       totalRefund += refundAmount;
       refundDetails.push(`\`${card.cardCode}\` • R${card.rarity} ×${qty} → +${refundAmount}`);
