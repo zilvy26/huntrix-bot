@@ -16,7 +16,7 @@ module.exports = async function interactionRouter(interaction) {
   if (customId.startsWith('question')) {
     const message = await interaction.message.fetch();
 if (interaction.user.id !== message.interaction.user.id) {
-  return safeReply(interaction, { content: 'These buttons are not yours.', ephemeral: true });
+  return safeReply(interaction, { content: 'These buttons are not yours.', flags: 1 << 6 });
 }
 await autoDefer(interaction, 'update');
   const [, questionId, selectedIndexRaw] = customId.split('_');
@@ -176,7 +176,7 @@ await autoDefer(interaction, 'update');
     if (customId.startsWith('rehearsal')) {
       const message = await interaction.message.fetch();
 if (interaction.user.id !== message.interaction.user.id) {
-  return safeReply(interaction, { content: 'These buttons are not yours', ephemeral: true });
+  return safeReply(interaction, { content: 'These buttons are not yours', flags: 1 << 6 });
 }
 await autoDefer(interaction, 'update');
   const index = parseInt(interaction.customId.split('_')[1], 10);
@@ -192,7 +192,7 @@ const giveCurrency = require('../utils/giveCurrency');
 
 const cards = interaction.client.cache?.rehearsal?.[userId];
 if (!cards || cards.length < 3) {
-  return safeReply(interaction, { content: '❌ Rehearsal session not found or expired.', ephemeral: true });
+  return safeReply(interaction, { content: 'Rehearsal session not found or expired.', flags: 1 << 6 });
 }
 
 const selected = cards[index];
