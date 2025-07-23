@@ -36,10 +36,10 @@ module.exports = async function(interaction) {
   const cardData = await Card.findOne({ cardCode });
 
   const priceCaps = {
-  1: 150,
-  2: 250,
-  3: 350,
-  4: 500
+  1: 300,
+  2: 600,
+  3: 900,
+  4: 1200
 };
 
 const isSpecialRarity5 = cardData.rarity === 5 && ['kpop', 'anime', 'game'].includes((cardData.category || '').toLowerCase());
@@ -50,7 +50,7 @@ if (cardData.rarity < 5 && price > priceCaps[cardData.rarity]) {
   });
 }
 
-if (isSpecialRarity5 && price > 3000) {
+if (isSpecialRarity5 && price > 4000) {
   return interaction.reply({
     content: `5 Star Standard cards are capped at **3000** <:ehx_patterns:1389584144895315978>.`
   });
