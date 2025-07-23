@@ -17,7 +17,6 @@ module.exports = {
     .addStringOption(opt =>
       opt.setName('mode')
         .setDescription('Refund all copies or only duplicates')
-        .setRequired(true)
         .addChoices(
           { name: 'All Copies', value: 'all' },
           { name: 'Duplicates Only', value: 'dupes' }
