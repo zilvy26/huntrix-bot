@@ -15,6 +15,10 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('refund')
     .setDescription('Refund cards for patterns by card codes or filters')
+    .addBooleanOption(opt =>
+      opt.setName('include_specials')
+        .setRequired(true)
+        .setDescription('Include special cards (event, zodiac, others) and R5 game/anime/kpop'))
     .addStringOption(opt =>
       opt.setName('mode')
         .setDescription('Refund all copies or only duplicates')
@@ -39,10 +43,7 @@ module.exports = {
         .setDescription('Exclude specific member name'))
     .addStringOption(opt =>
       opt.setName('exclude_era')
-        .setDescription('Exclude specific era name'))
-    .addBooleanOption(opt =>
-      opt.setName('include_specials')
-        .setDescription('Include special cards (event, zodiac, others) and R5 game/anime/kpop')),
+        .setDescription('Exclude specific era name')),
 
   async execute(interaction) {
     await interaction.deferReply();
