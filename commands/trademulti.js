@@ -24,6 +24,11 @@ module.exports = {
          { name: 'All copies', value: 'all' },
          { name: 'Duplicates only', value: 'duplicates' }
        ))
+       .addStringOption(opt =>
+  opt.setName('rarityrange')
+    .setDescription('Rarity range in format like 3 or 2-5')
+    .setRequired(true)
+)
     .addStringOption(o => o.setName('group').setDescription('Filter by group(s), comma-separated'))
 .addStringOption(o => o.setName('name').setDescription('Filter by name(s), comma-separated'))
 .addStringOption(o => o.setName('era').setDescription('Filter by era(s), comma-separated'))
@@ -33,11 +38,6 @@ module.exports = {
     .addIntegerOption(opt =>
   opt.setName('maxstars')
     .setDescription('Max total rarity (Stars) allowed to be gifted')
-    .setRequired(false)
-)
-.addStringOption(opt =>
-  opt.setName('rarityrange')
-    .setDescription('Rarity range in format like 3 or 2-5')
     .setRequired(false)
 ),
 
