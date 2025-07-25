@@ -66,7 +66,7 @@ module.exports = {
 
       const validCard = await Card.findOne({ cardCode: selectedCardInput, category: { $ne: 'others' } });
       if (!validCard) {
-        return interaction.reply({ content: '❌ Invalid card code or not redeemable.' });
+        return interaction.reply({ content: 'Invalid card code or not redeemable.' });
       }
 
       const inv = await UserInventory.findOneAndUpdate(
