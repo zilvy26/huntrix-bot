@@ -187,6 +187,19 @@ if (!interaction.member.roles.cache.has(allowedRole)) {
         collector.stop('confirmed');
         await safeDefer();
         await Card.updateMany(filters, { $set: updates });
+        // If cardCode was changed, propagate to UserInventory
+        if (updates.cardCode) {
+        const UserInventory = require('../../models/UserInventory'); // make sure this path is correct
+
+        // For each matched card, update inventories
+        for (const card of matchedCards) {
+          await UserInventory.updateMany(
+          { 'cards.cardCode': card.cardCode },
+          { $set: { 'cards.$[elem].cardCode': updates.cardCode } },
+          { arrayFilters: [{ 'elem.cardCode': card.cardCode }] }
+          );
+        }
+      }
         return interaction.editReply({
           content: `✅ Updated ${matchedCards.length} card(s).`,
           embeds: [],
