@@ -77,8 +77,10 @@ if (groupFilter || nameFilter || eraFilter) {
 }
 
 // Find how many copies of each matching card user owns
+const filteredCardCodes = new Set(filteredCards.map(card => card.cardCode));
+
 const cardCounts = inv.cards.reduce((acc, c) => {
-  if (filteredCards.find(fc => fc.cardCode === c.cardCode)) {
+  if (filteredCardCodes.has(c.cardCode)) {
     acc.totalCards += c.amount || 0;
     acc.totalStars += (c.stars || 0) * (c.amount || 0);
   }
