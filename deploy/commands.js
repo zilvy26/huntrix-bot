@@ -8,19 +8,6 @@ const GUILD_ID = process.env.GUILD_ID;
 const TOKEN = process.env.TOKEN;
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
-// At the top of deploy-commands.js
-
-const COMMAND_ROLE_MAP = {
-  grantcard: ['1389690375068848188'],
-  grantpay: ['1389690375068848188'],
-  grantrandom: ['1389690375068848188'],
-  createcard: ['1387058906588778657'],
-  addquestion: ['1387058906588778657'],
-  editcard: ['1387058906588778657'],
-  maintenance: ['1386797486680703036'],
-  createcode: ['1386797486680703036'],
-  devreload: ['1386797486680703036']
-};
 
 // Load global and guild commands separately
 async function loadCommands() {
@@ -72,33 +59,6 @@ console.log('✅ Guild-only commands registered.');
     console.error('❌ Failed to register commands:', error);
   }
 
-// ...existing code to register guild commands...
-
-// Add after registering guild-only commands:
-console.log('🔐 Applying per-command role restrictions...');
-
-for (const cmd of registeredGuildCmds) {
-  const allowedRoles = COMMAND_ROLE_MAP[cmd.name];
-  if (!allowedRoles) {
-    console.warn(`⚠️ No roles set for command: ${cmd.name}`);
-    continue;
-  }
-
-  await rest.put(
-  Routes.applicationCommandPermissions(CLIENT_ID, GUILD_ID, cmd.id),
-  {
-    body: {
-      permissions: allowedRoles.map(roleId => ({
-        id: roleId,
-        type: 2, // Role
-        permission: true
-      }))
-    }
-  }
-);
-
-  console.log(`🔒 Restricted "${cmd.name}" to roles: ${allowedRoles.join(', ')}`);
-}
 }
 
 loadCommands();

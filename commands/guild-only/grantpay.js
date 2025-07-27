@@ -9,6 +9,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('grantpay')
     .setDescription('Give or remove patterns or sopop from a user')
+    .setDefaultMemberPermissions('0')
     .addUserOption(opt =>
       opt.setName('target')
         .setDescription('User to receive or lose currency')
