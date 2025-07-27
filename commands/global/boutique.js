@@ -17,8 +17,8 @@ module.exports = {
             .setDescription('Choose a shop pull type')
             .setRequired(true)
             .addChoices(
-              { name: '20 Random & Guaranteed 5S', value: 'random20' },
-              { name: '10 Chosen Cards', value: 'choice10' },
+              { name: '20x Random & Guaranteed 5S', value: 'random20' },
+              { name: '10x Cards of Choice', value: 'choice10' },
               { name: 'Special Pull', value: 'special' }
             )
         )
