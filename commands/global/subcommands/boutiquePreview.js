@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const templateOptions = require('../../data/templateOptions');
+const templateOptions = require('../../../data/templateOptions');
 const User = require('../../models/User');
 
 module.exports = async function(interaction) {
