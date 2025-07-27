@@ -5,13 +5,13 @@ const {
   ButtonBuilder,
   ButtonStyle
 } = require('discord.js');
-const UserCurrency = require('../../../models/User');
-const UserInventory = require('../../../models/UserInventory');
-const UserRecord = require('../../../models/UserRecord');
-const Card = require('../../../models/Card');
-const generateStars = require('../../../utils/starGenerator');
-const awaitUserButton = require('../../../utils/awaitUserButton');
-const BoutiqueCooldown = require('../../../models/BoutiqueCooldown');
+const UserCurrency = require('../../../../models/User');
+const UserInventory = require('../../../../models/UserInventory');
+const UserRecord = require('../../../../models/UserRecord');
+const Card = require('../../../../models/Card');
+const generateStars = require('../../../../utils/starGenerator');
+const awaitUserButton = require('../../../../utils/awaitUserButton');
+const BoutiqueCooldown = require('../../../../models/BoutiqueCooldown');
 const rarityWeights = {
   '5': 0.01,
   '4': 0.11,

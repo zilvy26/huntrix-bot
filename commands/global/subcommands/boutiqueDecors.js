@@ -1,6 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
-const User = require('../../models/User');
-const templateOptions = require('../../data/templateOptions');
+const User = require('../../../models/User');
+const templateOptions = require('../../../data/templateOptions');
 
 module.exports = async function(interaction) {
   const userId = interaction.user.id;
