@@ -34,6 +34,10 @@ module.exports = {
   async execute(interaction) {
   await interaction.deferReply();
 
+  if (!snapshots || !Array.isArray(snapshots)) {
+    return interaction.reply({ content: 'No snapshot data found.' });
+  }
+
 const sortBy = interaction.options.getString('sortby');
 const groupFilter = interaction.options.getString('group')?.toLowerCase();
 const nameFilter = interaction.options.getString('name')?.toLowerCase();
