@@ -8,7 +8,7 @@ const REFUND_VALUES = {
   2: 125,
   3: 200,
   4: 300,
-  5: 1000
+  5: 2000
 };
 
 module.exports = {
@@ -121,9 +121,9 @@ module.exports = {
   if (card.rarity === 5) {
    if (includeSpecials) {
      if (isSpecial) {
-        refundAmount = 2500 * qty;
+        refundAmount = 3750 * qty;
       } else if (isR5Main) {
-        refundAmount = 1000 * qty;
+        refundAmount = 2000 * qty;
      }
    } else {
     // Don't refund or deduct anything, skip this card

@@ -50,7 +50,7 @@ if (cardData.rarity < 5 && price > priceCaps[cardData.rarity]) {
   });
 }
 
-if (isSpecialRarity5 && price > 4000) {
+if (isSpecialRarity5 && price > 5000) {
   return interaction.reply({
     content: `5 Star Standard cards are capped at **3000** <:ehx_patterns:1389584144895315978>.`
   });
