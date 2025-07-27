@@ -39,20 +39,31 @@ const groupFilter = interaction.options.getString('group')?.toLowerCase();
 const nameFilter = interaction.options.getString('name')?.toLowerCase();
 const eraFilter = interaction.options.getString('era')?.toLowerCase();
 
-const filterQuery = {};
-if (groupFilter) filterQuery.group = groupFilter;
-if (nameFilter) filterQuery.name = nameFilter;
-if (eraFilter) filterQuery.era = eraFilter;
+const snapshots = await ChartSnapshot.find().lean();
 
-const charts = await ChartSnapshot.find(filterQuery).lean();
+const charts = snapshots
+  .map(doc => {
+    let matchingSnaps = doc.snapshots.filter(snap =>
+  (!groupFilter || snap.group?.toLowerCase() === groupFilter) &&
+  (!nameFilter || snap.name?.toLowerCase() === nameFilter) &&
+  (!eraFilter || snap.era?.toLowerCase() === eraFilter)
+);
 
-const enriched = charts.map(doc => ({
+if (matchingSnaps.length === 0) return null;
+
+// Sum up totalCards and totalStars across all matching snapshots
+let totalCards = matchingSnaps.reduce((sum, snap) => sum + (snap.totalCards || 0), 0);
+let totalStars = matchingSnaps.reduce((sum, snap) => sum + (snap.totalStars || 0), 0);
+
+return {
   userId: doc.userId,
-  totalCards: doc.totalCards || 0,
-  totalStars: doc.totalStars || 0
-}));
+  totalCards,
+  totalStars
+};
+  })
+  .filter(Boolean);
 
-  const sorted = enriched
+  const sorted = charts
     .sort((a, b) => sortBy === 'cards' ? b.totalCards - a.totalCards : b.totalStars - a.totalStars)
     .filter(u => (u.totalCards > 0 || u.totalStars > 0))
     .slice(0, 30);
