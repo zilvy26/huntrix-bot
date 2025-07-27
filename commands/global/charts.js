@@ -46,28 +46,49 @@ module.exports = {
     const enriched = [];
 
     for (const user of charts) {
-      const inv = await UserInventory.findOne({ userId: user.userId }).lean();
-if (!inv) continue;
+      for (const user of charts) {
+  const inv = await UserInventory.findOne({ userId: user.userId }).lean();
+  if (!inv) continue;
 
-const cardCodes = inv.cards.map(c => c.cardCode);
-const cardDocs = await Card.find({ cardCode: { $in: cardCodes } }).lean();
+  const cardCodes = inv.cards.map(c => c.cardCode);
+  const cardDocs = await Card.find({ cardCode: { $in: cardCodes } }).lean();
 
-const hasMatchingCard = cardDocs.some(card => {
-  const groupMatch = !groupFilter || card.group?.toLowerCase() === groupFilter;
-  const nameMatch = !nameFilter || card.name?.toLowerCase() === nameFilter;
-  const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
-  return groupMatch && nameMatch && eraMatch;
-});
+  const isFiltered = groupFilter || nameFilter || eraFilter;
 
-if (groupFilter || nameFilter || eraFilter) {
-  if (!hasMatchingCard) continue;
+  if (isFiltered) {
+    let totalCards = 0;
+    let totalStars = 0;
+
+    for (const entry of inv.cards) {
+      const card = cardDocs.find(c => c.cardCode === entry.cardCode);
+      if (!card) continue;
+
+      const groupMatch = !groupFilter || card.group?.toLowerCase() === groupFilter;
+      const nameMatch = !nameFilter || card.name?.toLowerCase() === nameFilter;
+      const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
+
+      if (groupMatch && nameMatch && eraMatch) {
+        totalCards += entry.quantity;
+        totalStars += card.rarity * entry.quantity;
+      }
+    }
+
+    if (totalCards > 0) {
+      enriched.push({
+        userId: user.userId,
+        totalCards,
+        totalStars
+      });
+    }
+
+  } else {
+    enriched.push({
+      userId: user.userId,
+      totalCards: user.totalCards,
+      totalStars: user.totalStars
+    });
+  }
 }
-
-enriched.push({
-  userId: user.userId,
-  totalCards: user.totalCards,
-  totalStars: user.totalStars
-});
     }
 
     const sorted = enriched
