@@ -9,7 +9,7 @@ module.exports = async function(interaction) {
   const cardOptions = [
     { name: "20x Random + Guaranteed 5S", price: "12,500 Patterns" },
     { name: "10x Cards of Choice", price: "9,000 Patterns" },
-    { name: "Special Pull", price: "2 Sopop" }
+    { name: "1x Special Pull", price: "2 Sopop" }
   ];
 
   const embed = new EmbedBuilder()
