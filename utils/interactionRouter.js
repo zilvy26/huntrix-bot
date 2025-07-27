@@ -57,10 +57,10 @@ await autoDefer(interaction, 'update');
         if (Math.random() < 0.1) rewardSopop = 1; // 10% chance
       } else if (selected.difficulty === 'hard') {
       rewardPatterns = getRandomInt(900, 1100);
-        if (Math.random() < 0.20) rewardSopop = 1; // 20% chance
+        if (Math.random() < 0.3) rewardSopop = 1; // 30% chance
       } else if (selected.difficulty === 'impossible') {
       rewardPatterns = getRandomInt(1200, 1400);
-        if (Math.random() < 0.45) rewardSopop = 1; // 45% chance
+        if (Math.random() < 0.5) rewardSopop = 1; // 50% chance
       }
 
         let streakBonus = '';
