@@ -34,16 +34,16 @@ module.exports = {
   async execute(interaction) {
   await interaction.deferReply();
 
-  if (!snapshots || !Array.isArray(snapshots)) {
-    return interaction.reply({ content: 'No snapshot data found.' });
-  }
-
 const sortBy = interaction.options.getString('sortby');
 const groupFilter = interaction.options.getString('group')?.toLowerCase();
 const nameFilter = interaction.options.getString('name')?.toLowerCase();
 const eraFilter = interaction.options.getString('era')?.toLowerCase();
 
 const snapshots = await ChartSnapshot.find().lean();
+
+if (!snapshots || !Array.isArray(snapshots)) {
+    return interaction.reply({ content: 'No snapshot data found.' });
+  }
 
 const charts = snapshots
   .map(doc => {
