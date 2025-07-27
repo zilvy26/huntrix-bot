@@ -1,5 +1,5 @@
-const MarketListing = require('../../models/MarketListing');
-const UserInventory = require('../../models/UserInventory');
+const MarketListing = require('../../../models/MarketListing');
+const UserInventory = require('../../../models/UserInventory');
 
 const GRANTING_ROLE_ID = process.env.GRANTING_ROLE_ID;
 
