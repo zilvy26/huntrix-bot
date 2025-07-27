@@ -8,7 +8,7 @@ module.exports = async function(interaction) {
   // 💳 Card Pull Prices
   const cardOptions = [
     { name: "20x Random + Guaranteed 5S", price: "12,500 Patterns" },
-    { name: "10x Cards of Choice", price: "9,000 Patterns" },
+    { name: "10x Cards of Choice", price: "8,500 Patterns" },
     { name: "1x Special Pull", price: "2 Sopop" }
   ];
 

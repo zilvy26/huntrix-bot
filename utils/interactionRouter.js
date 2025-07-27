@@ -53,19 +53,20 @@ await autoDefer(interaction, 'update');
         let rewardSopop = 0;
 
         if (selected.difficulty === 'easy') {
-      rewardPatterns = getRandomInt(600, 800);
+      rewardPatterns = getRandomInt(800, 1000);
         if (Math.random() < 0.1) rewardSopop = 1; // 10% chance
       } else if (selected.difficulty === 'hard') {
-      rewardPatterns = getRandomInt(900, 1100);
+      rewardPatterns = getRandomInt(1100, 1325);
         if (Math.random() < 0.3) rewardSopop = 1; // 30% chance
       } else if (selected.difficulty === 'impossible') {
-      rewardPatterns = getRandomInt(1200, 1400);
+      rewardPatterns = getRandomInt(1425, 1675);
         if (Math.random() < 0.5) rewardSopop = 1; // 50% chance
       }
 
         let streakBonus = '';
         if (userDoc.correctStreak % 25 === 0) {
-          rewardPatterns += 1000;
+          rewardPatterns += 1500;
+          rewardSopop += 1;
           streakBonus = '\n**Streak bonus activated!** Extra rewards granted!';
         }
 

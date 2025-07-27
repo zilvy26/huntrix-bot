@@ -46,7 +46,7 @@ await BoutiqueCooldown.findOneAndUpdate(
     // ➖ Determine cost
     let patternCost = 0, sopopCost = 0;
     if (shopType === 'random20') patternCost = 12500 * amount;
-    if (shopType === 'choice10') patternCost = 9000 * amount;
+    if (shopType === 'choice10') patternCost = 8500 * amount;
     if (shopType === 'special') sopopCost = 2 * amount;
 
     if (currency.patterns < patternCost) {
