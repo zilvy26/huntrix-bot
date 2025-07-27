@@ -1,5 +1,5 @@
-const MarketListing = require('../../models/MarketListing');
-const UserInventory = require('../../models/UserInventory');
+const MarketListing = require('../../../models/MarketListing');
+const UserInventory = require('../../../models/UserInventory');
 
 module.exports = async function(interaction) {
   const input = interaction.options.getString('buycode');
