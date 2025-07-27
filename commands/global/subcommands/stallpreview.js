@@ -5,9 +5,9 @@ const {
   ButtonBuilder,
   ButtonStyle
 } = require('discord.js');
-const MarketListing = require('../../models/MarketListing');
-const User = require('../../models/User');
-const generateStars = require('../../utils/starGenerator');
+const MarketListing = require('../../../models/MarketListing');
+const User = require('../../../models/User');
+const generateStars = require('../../../utils/starGenerator');
 
 const listingsPerPage = 1;
 const maxDefaultPages = 100;
