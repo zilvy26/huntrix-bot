@@ -17,12 +17,19 @@ let isBotReady = false;
 
 // Load slash commands
 client.commands = new Collection();
-const commandsPath = path.join(__dirname, '../commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+const commandsDir = path.join(__dirname, '../commands');
+const commandFolders = ['global', 'guild-only'];
 
-for (const file of commandFiles) {
-  const command = require(path.join(commandsPath, file));
-  client.commands.set(command.data.name, command);
+for (const folder of commandFolders) {
+  const folderPath = path.join(commandsDir, folder);
+  if (!fs.existsSync(folderPath)) continue;
+
+  const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
+
+  for (const file of commandFiles) {
+    const command = require(path.join(folderPath, file));
+    client.commands.set(command.data.name, command);
+  }
 }
 
 client.on('interactionCreate', async interaction => {
