@@ -6,10 +6,8 @@ const {
   ButtonBuilder,
   ButtonStyle
 } = require('discord.js');
-const Chart = require('../../models/Chart');
-const Card = require('../../models/Card');
-const UserInventory = require('../../models/UserInventory');
 const awaitUserButton = require('../../utils/awaitUserButton');
+const ChartSnapshot = require('../../models/ChartSnapshot');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -36,56 +34,24 @@ module.exports = {
   async execute(interaction) {
   await interaction.deferReply();
 
-  const sortBy = interaction.options.getString('sortby');
-  const groupFilter = interaction.options.getString('group')?.toLowerCase();
-  const nameFilter = interaction.options.getString('name')?.toLowerCase();
-  const eraFilter = interaction.options.getString('era')?.toLowerCase();
+const sortBy = interaction.options.getString('sortby');
+const groupFilter = interaction.options.getString('group')?.toLowerCase();
+const nameFilter = interaction.options.getString('name')?.toLowerCase();
+const eraFilter = interaction.options.getString('era')?.toLowerCase();
 
-  const charts = await Chart.find().lean();
-  const enriched = [];
+const filterQuery = {};
+if (groupFilter) filterQuery.group = groupFilter;
+if (nameFilter) filterQuery.name = nameFilter;
+if (eraFilter) filterQuery.era = eraFilter;
 
-  for (const user of charts) {
-    const inv = await UserInventory.findOne({ userId: user.userId }).lean();
-    if (!inv || inv.cards.length === 0) continue;
+const charts = await ChartSnapshot.find(filterQuery).lean();
 
-    // If filters are used, filter the inventory's card objects
-    if (groupFilter || nameFilter || eraFilter) {
-      const cardCodes = inv.cards.map(c => c.cardCode);
-      const cardDocs = await Card.find({ cardCode: { $in: cardCodes } }).lean();
+const enriched = charts.map(doc => ({
+  userId: doc.userId,
+  totalCards: doc.totalCards || 0,
+  totalStars: doc.totalStars || 0
+}));
 
-      const filteredCards = cardDocs.filter(card => {
-        const groupMatch = !groupFilter || (card.group && card.group.toLowerCase() === groupFilter);
-        const nameMatch = !nameFilter || (card.name && card.name.toLowerCase() === nameFilter);
-        const eraMatch = !eraFilter || (card.era && card.era.toLowerCase() === eraFilter);
-        return groupMatch && nameMatch && eraMatch;
-      });
-
-      if (filteredCards.length === 0) continue;
-
-      // Match inventory with filtered cards
-      const filteredCodes = new Set(filteredCards.map(c => c.cardCode));
-      const cardCounts = inv.cards.reduce((acc, c) => {
-        if (filteredCodes.has(c.cardCode)) {
-          acc.totalCards += c.amount || 0;
-          acc.totalStars += (c.stars || 0) * (c.amount || 0);
-        }
-        return acc;
-      }, { totalCards: 0, totalStars: 0 });
-
-      enriched.push({
-        userId: user.userId,
-        totalCards: cardCounts.totalCards,
-        totalStars: cardCounts.totalStars
-      });
-    } else {
-      // No filter = use pre-saved data from /refreshcharts
-      enriched.push({
-        userId: user.userId,
-        totalCards: user.totalCards || 0,
-        totalStars: user.totalStars || 0
-      });
-    }
-  }
   const sorted = enriched
     .sort((a, b) => sortBy === 'cards' ? b.totalCards - a.totalCards : b.totalStars - a.totalStars)
     .filter(u => (u.totalCards > 0 || u.totalStars > 0))
