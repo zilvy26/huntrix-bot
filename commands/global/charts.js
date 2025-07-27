@@ -54,9 +54,9 @@ module.exports = {
       const cardDocs = await Card.find({ cardCode: { $in: cardCodes } }).lean();
 
       const filteredCards = cardDocs.filter(card => {
-        const groupMatch = !groupFilter || card.group?.toLowerCase() === groupFilter;
-        const nameMatch = !nameFilter || card.name?.toLowerCase() === nameFilter;
-        const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
+        const groupMatch = !groupFilter || (card.group && card.group.toLowerCase() === groupFilter);
+        const nameMatch = !nameFilter || (card.name && card.name.toLowerCase() === nameFilter);
+        const eraMatch = !eraFilter || (card.era && card.era.toLowerCase() === eraFilter);
         return groupMatch && nameMatch && eraMatch;
       });
 
