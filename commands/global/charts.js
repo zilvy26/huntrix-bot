@@ -52,43 +52,25 @@ module.exports = {
   const cardCodes = inv.cards.map(c => c.cardCode);
   const cardDocs = await Card.find({ cardCode: { $in: cardCodes } }).lean();
 
-  const isFiltered = groupFilter || nameFilter || eraFilter;
-
-  if (isFiltered) {
-    let totalCards = 0;
-    let totalStars = 0;
-
-    for (const entry of inv.cards) {
-      const card = cardDocs.find(c => c.cardCode === entry.cardCode);
-      if (!card) continue;
-
+  // Check if the user has at least one matching card if filters applied
+  if (groupFilter || nameFilter || eraFilter) {
+    const hasMatch = cardDocs.some(card => {
       const groupMatch = !groupFilter || card.group?.toLowerCase() === groupFilter;
       const nameMatch = !nameFilter || card.name?.toLowerCase() === nameFilter;
       const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
-
-      if (groupMatch && nameMatch && eraMatch) {
-        totalCards += entry.quantity;
-        totalStars += card.rarity * entry.quantity;
-      }
-    }
-
-    if (totalCards > 0) {
-      enriched.push({
-        userId: user.userId,
-        totalCards,
-        totalStars
-      });
-    }
-
-  } else {
-    enriched.push({
-      userId: user.userId,
-      totalCards: user.totalCards,
-      totalStars: user.totalStars
+      return groupMatch && nameMatch && eraMatch;
     });
-  }
-}
 
+    if (!hasMatch) continue;
+  }
+
+  // ✅ Always use pre-saved stats
+  enriched.push({
+    userId: user.userId,
+    totalCards: user.totalCards,
+    totalStars: user.totalStars
+  });
+}
 
     const sorted = enriched
       .sort((a, b) => sortBy === 'cards' ? b.totalCards - a.totalCards : b.totalStars - a.totalStars)
