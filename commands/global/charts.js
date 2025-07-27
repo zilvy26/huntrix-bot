@@ -34,125 +34,117 @@ module.exports = {
         .setDescription('Filter by one era (optional)')),
 
   async execute(interaction) {
-    await interaction.deferReply();
+  await interaction.deferReply();
 
-    const sortBy = interaction.options.getString('sortby');
-    const groupFilter = interaction.options.getString('group')?.toLowerCase();
-    const nameFilter = interaction.options.getString('name')?.toLowerCase();
-    const eraFilter = interaction.options.getString('era')?.toLowerCase();
+  const sortBy = interaction.options.getString('sortby');
+  const groupFilter = interaction.options.getString('group')?.toLowerCase();
+  const nameFilter = interaction.options.getString('name')?.toLowerCase();
+  const eraFilter = interaction.options.getString('era')?.toLowerCase();
 
-    const charts = await Chart.find().lean();
+  const charts = await Chart.find().lean();
+  const enriched = [];
 
-    const enriched = [];
+  for (const user of charts) {
+    const inv = await UserInventory.findOne({ userId: user.userId }).lean();
+    if (!inv || inv.cards.length === 0) continue;
 
-    for (const user of charts) {
-  const inv = await UserInventory.findOne({ userId: user.userId }).lean();
-  if (!inv) continue;
+    // If filters are used, filter the inventory's card objects
+    if (groupFilter || nameFilter || eraFilter) {
+      const cardCodes = inv.cards.map(c => c.cardCode);
+      const cardDocs = await Card.find({ cardCode: { $in: cardCodes } }).lean();
 
-  const cardCodes = inv.cards.map(c => c.cardCode);
-  const cardDocs = await Card.find({ cardCode: { $in: cardCodes } }).lean();
+      const filteredCards = cardDocs.filter(card => {
+        const groupMatch = !groupFilter || card.group?.toLowerCase() === groupFilter;
+        const nameMatch = !nameFilter || card.name?.toLowerCase() === nameFilter;
+        const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
+        return groupMatch && nameMatch && eraMatch;
+      });
 
-  // Check if the user has at least one matching card if filters applied
-  if (groupFilter || nameFilter || eraFilter) {
-    const hasMatch = cardDocs.some(card => {
-      const groupMatch = !groupFilter || card.group?.toLowerCase() === groupFilter;
-      const nameMatch = !nameFilter || card.name?.toLowerCase() === nameFilter;
-      const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
-      return groupMatch && nameMatch && eraMatch;
+      if (filteredCards.length === 0) continue;
+
+      // Match inventory with filtered cards
+      const filteredCodes = new Set(filteredCards.map(c => c.cardCode));
+      const cardCounts = inv.cards.reduce((acc, c) => {
+        if (filteredCodes.has(c.cardCode)) {
+          acc.totalCards += c.amount || 0;
+          acc.totalStars += (c.stars || 0) * (c.amount || 0);
+        }
+        return acc;
+      }, { totalCards: 0, totalStars: 0 });
+
+      enriched.push({
+        userId: user.userId,
+        totalCards: cardCounts.totalCards,
+        totalStars: cardCounts.totalStars
+      });
+    } else {
+      // No filter = use pre-saved data from /refreshcharts
+      enriched.push({
+        userId: user.userId,
+        totalCards: user.totalCards || 0,
+        totalStars: user.totalStars || 0
+      });
+    }
+  }
+  const sorted = enriched
+    .sort((a, b) => sortBy === 'cards' ? b.totalCards - a.totalCards : b.totalStars - a.totalStars)
+    .filter(u => (u.totalCards > 0 || u.totalStars > 0))
+    .slice(0, 30);
+
+  const pageSize = 10;
+  let current = 0;
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+
+  const renderEmbed = async (page) => {
+    const entries = sorted.slice(page * pageSize, (page + 1) * pageSize);
+    const lines = entries.map((entry, i) => {
+      const userTag = `<@${entry.userId}>`;
+      const metric = sortBy === 'cards'
+        ? `Cards: ${entry.totalCards}`
+        : `Stars: ${entry.totalStars}`;
+      return `**${i + 1 + (page * pageSize)}.** ${userTag} • ${metric}`;
     });
 
-    if (!hasMatch) continue;
-  }
+    const filters = [
+      groupFilter ? `Group: ${groupFilter}` : null,
+      nameFilter ? `Name: ${nameFilter}` : null,
+      eraFilter ? `Era: ${eraFilter}` : null
+    ].filter(Boolean).join(' | ');
 
-  // ✅ Always use pre-saved stats
-  let filteredCards = cardDocs;
+    const filterTitle = filters ? `Filtered by ${filters}` : (sortBy === 'cards' ? 'Cards' : 'Stars');
 
-if (groupFilter || nameFilter || eraFilter) {
-  filteredCards = filteredCards.filter(card => {
-    const groupMatch = !groupFilter || card.group?.toLowerCase() === groupFilter;
-    const nameMatch = !nameFilter || card.name?.toLowerCase() === nameFilter;
-    const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
-    return groupMatch && nameMatch && eraMatch;
-  });
-}
+    return new EmbedBuilder()
+      .setTitle(`Chart Rankings (${filterTitle})`)
+      .setColor('#2f3136')
+      .setDescription(lines.join('\n\n') || 'No matching users.')
+      .setFooter({ text: `Page ${page + 1} of ${totalPages}` });
+  };
 
-// Find how many copies of each matching card user owns
-const filteredCardCodes = new Set(filteredCards.map(card => card.cardCode));
+  const renderRow = () => new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+    new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+    new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+    new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+  );
 
-const cardCounts = inv.cards.reduce((acc, c) => {
-  if (filteredCardCodes.has(c.cardCode)) {
-    acc.totalCards += c.amount || 0;
-    acc.totalStars += (c.stars || 0) * (c.amount || 0);
-  }
-  return acc;
-}, { totalCards: 0, totalStars: 0 });
+  await interaction.editReply({ embeds: [await renderEmbed(current)], components: [renderRow()] });
 
-enriched.push({
-  userId: user.userId,
-  totalCards: cardCounts.totalCards,
-  totalStars: cardCounts.totalStars
-});
-}
+  while (true) {
+    const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
+    if (!btn) break;
 
-    const sorted = enriched
-      .sort((a, b) => sortBy === 'cards' ? b.totalCards - a.totalCards : b.totalStars - a.totalStars)
-      .filter(u => (u.totalCards > 0 || u.totalStars > 0))
-      .slice(0, 30);
-
-    const pageSize = 10;
-    let current = 0;
-    const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-
-    const renderEmbed = async (page) => {
-      const entries = sorted.slice(page * pageSize, (page + 1) * pageSize);
-      const lines = await Promise.all(entries.map(async (entry, i) => {
-        const userTag = `<@${entry.userId}>`;
-        const metric = sortBy === 'cards'
-          ? `Cards: ${entry.totalCards}`
-          : `Stars: ${entry.totalStars}`;
-        return `**${i + 1 + (page * pageSize)}.** ${userTag} • ${metric}`;
-      }));
-
-      const filters = [
-        groupFilter ? `Group: ${groupFilter}` : null,
-        nameFilter ? `Name: ${nameFilter}` : null,
-        eraFilter ? `Era: ${eraFilter}` : null
-      ].filter(Boolean).join(' | ');
-
-      const filterTitle = filters ? `Filtered by ${filters}` : (sortBy === 'cards' ? 'Cards' : 'Stars');
-
-      return new EmbedBuilder()
-        .setTitle(`Chart Rankings (${filterTitle})`)
-        .setColor('#2f3136')
-        .setDescription(lines.join('\n\n') || 'No matching users.')
-        .setFooter({ text: `Page ${page + 1} of ${totalPages}` });
-    };
-
-    const renderRow = () => new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-      new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
-      new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
-      new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
-    );
+    if (btn.customId === 'first') current = 0;
+    if (btn.customId === 'prev') current = Math.max(0, current - 1);
+    if (btn.customId === 'next') current = Math.min(totalPages - 1, current + 1);
+    if (btn.customId === 'last') current = totalPages - 1;
 
     await interaction.editReply({ embeds: [await renderEmbed(current)], components: [renderRow()] });
-
-    while (true) {
-      const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
-      if (!btn) break;
-
-      if (btn.customId === 'first') current = 0;
-      if (btn.customId === 'prev') current = Math.max(0, current - 1);
-      if (btn.customId === 'next') current = Math.min(totalPages - 1, current + 1);
-      if (btn.customId === 'last') current = totalPages - 1;
-
-      await interaction.editReply({ embeds: [await renderEmbed(current)], components: [renderRow()] });
-    }
-
-    try {
-      await interaction.editReply({ components: [] });
-    } catch (err) {
-      console.warn('Pagination cleanup failed:', err.message);
-    }
   }
-};
+
+  try {
+    await interaction.editReply({ components: [] });
+  } catch (err) {
+    console.warn('Pagination cleanup failed:', err.message);
+  }
+}
+}
