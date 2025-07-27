@@ -1,8 +1,8 @@
 const { SlashCommandBuilder } = require('discord.js');
-const MarketListing = require('../../models/MarketListing');
-const User = require('../../models/User');
-const UserInventory = require('../../models/UserInventory');
-const UserRecord = require('../../models/UserRecord');
+const MarketListing = require('../../../models/MarketListing');
+const User = require('../../../models/User');
+const UserInventory = require('../../../models/UserInventory');
+const UserRecord = require('../../../models/UserRecord');
 
 module.exports = async function(interaction) {
   const input = interaction.options.getString('buycode');
