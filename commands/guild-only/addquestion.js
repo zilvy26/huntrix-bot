@@ -13,7 +13,8 @@ module.exports = {
         .setRequired(true)
         .addChoices(
           { name: 'Demons (Easy)', value: 'easy' },
-          { name: 'Hunters (Hard)', value: 'hard' }
+          { name: 'Hunters (Hard)', value: 'hard' },
+          { name: 'the Honmoon (Impossible)', value: 'impossible' }
         ))
     .addStringOption(opt => 
       opt.setName('question')
@@ -46,29 +47,30 @@ module.exports = {
       });
     }
 
-    let imageUrl = null;
-    if (imageAttachment) {
-      try {
-        const { imgurUrl } = await uploadCardImage(interaction.client, imageAttachment.url, questionText, `question-${Date.now()}`);
-        imageUrl = imgurUrl;
-        if (!imgurUrl) {
-          return interaction.editReply({
-            content: "Failed to upload image to Imgur. Try again or use another image."
-          });
-        }
-      } catch (err) {
-        return interaction.editReply({
-          content: `Image upload failed: ${err.message}`
-        });
-      }
-    }
+    const fs = require('fs');
+    const path = require('path');
+    const axios = require('axios');
+
+let localImagePath = null;
+if (imageAttachment) {
+  try {
+    const imageBuffer = await axios.get(imageAttachment.url, { responseType: 'arraybuffer' });
+    const fileName = `question-${Date.now()}.png`;
+    const savePath = path.join('/var/questions/', fileName);
+
+    fs.writeFileSync(savePath, imageBuffer.data);
+    localImagePath = savePath;
+  } catch (err) {
+    return interaction.editReply({ content: `Image save failed: ${err.message}` });
+  }
+}
 
     await Question.create({
       difficulty,
       question: questionText,
       options,
       correct,
-      image: imageUrl
+      localImagePath
     });
 
     await interaction.editReply({

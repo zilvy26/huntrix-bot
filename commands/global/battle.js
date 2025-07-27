@@ -5,6 +5,8 @@ const {
   ButtonStyle,
   EmbedBuilder
 } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 const Question = require('../../models/Question');
 const cooldowns = require('../../utils/cooldownManager');
 const cooldownConfig = require('../../utils/cooldownConfig');
@@ -20,7 +22,8 @@ module.exports = {
         .setRequired(true)
         .addChoices(
           { name: 'Demons (Easy)', value: 'easy' },
-          { name: 'Hunters (Hard)', value: 'hard' }
+          { name: 'Hunters (Hard)', value: 'hard' },
+          { name: 'the Honmoon (Impossible)', value: 'impossible' }
         ))
     .addBooleanOption(opt =>
       opt.setName('reminder')
@@ -36,23 +39,25 @@ module.exports = {
     const commandName = 'Battle';
     const cooldownMs = await cooldowns.getEffectiveCooldown(interaction, commandName);
 
-if (await cooldowns.isOnCooldown(userId, commandName)) {
-  const endsAt = await cooldowns.getCooldownTimestamp(userId, commandName);
-  return interaction.reply({
-    content: `⏳ You must wait before battling again. Try ${endsAt}`,
-  });
-}
+    if (await cooldowns.isOnCooldown(userId, commandName)) {
+      const endsAt = await cooldowns.getCooldownTimestamp(userId, commandName);
+      return interaction.reply({
+        content: `You must wait before battling again. Try ${endsAt}`,
+      });
+    }
 
-await cooldowns.setCooldown(userId, commandName, cooldownMs);
-await handleReminders(interaction, commandName, cooldownMs);
+    await cooldowns.setCooldown(userId, commandName, cooldownMs);
+    await handleReminders(interaction, commandName, cooldownMs);
+
+    const difficulty = interaction.options.getString('difficulty');
 
     const questions = await Question.aggregate([
-      { $match: { difficulty: interaction.options.getString('difficulty') } },
+      { $match: { difficulty } },
       { $sample: { size: 1 } }
     ]);
 
     if (!questions.length) {
-      return interaction.reply({ content: '❌ No questions found for this difficulty.' });
+      return interaction.reply({ content: 'No questions found for this difficulty.' });
     }
 
     const selected = questions[0];
@@ -71,8 +76,23 @@ await handleReminders(interaction, commandName, cooldownMs);
       .setDescription(`**${selected.question}**`)
       .setColor('#b5dff9');
 
-    if (selected.image) embed.setImage(selected.image);
+    if (selected.localImagePath) {
+      const fullPath = path.resolve(__dirname, '../../..', selected.localImagePath);
+      if (fs.existsSync(fullPath)) {
+        embed.setImage(`attachment://${path.basename(fullPath)}`);
+        await interaction.reply({
+          embeds: [embed],
+          components: [buttons],
+          files: [fullPath]
+        });
+        return;
+      }
+    }
 
-    await interaction.reply({ embeds: [embed], components: [buttons] });
+    // Fallback if no local image
+    await interaction.reply({
+      embeds: [embed],
+      components: [buttons]
+    });
   }
 };
