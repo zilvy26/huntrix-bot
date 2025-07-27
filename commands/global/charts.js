@@ -65,11 +65,31 @@ module.exports = {
   }
 
   // ✅ Always use pre-saved stats
-  enriched.push({
-    userId: user.userId,
-    totalCards: user.totalCards,
-    totalStars: user.totalStars
+  let filteredCards = cardDocs;
+
+if (groupFilter || nameFilter || eraFilter) {
+  filteredCards = filteredCards.filter(card => {
+    const groupMatch = !groupFilter || card.group?.toLowerCase() === groupFilter;
+    const nameMatch = !nameFilter || card.name?.toLowerCase() === nameFilter;
+    const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
+    return groupMatch && nameMatch && eraMatch;
   });
+}
+
+// Find how many copies of each matching card user owns
+const cardCounts = inv.cards.reduce((acc, c) => {
+  if (filteredCards.find(fc => fc.cardCode === c.cardCode)) {
+    acc.totalCards += c.amount || 0;
+    acc.totalStars += (c.stars || 0) * (c.amount || 0);
+  }
+  return acc;
+}, { totalCards: 0, totalStars: 0 });
+
+enriched.push({
+  userId: user.userId,
+  totalCards: cardCounts.totalCards,
+  totalStars: cardCounts.totalStars
+});
 }
 
     const sorted = enriched
