@@ -53,19 +53,19 @@ await autoDefer(interaction, 'update');
         let rewardSopop = 0;
 
         if (selected.difficulty === 'easy') {
-      rewardPatterns = getRandomInt(625, 800);
-        if (Math.random() < 0.05) rewardSopop = 1; // 5% chance
+      rewardPatterns = getRandomInt(600, 800);
+        if (Math.random() < 0.1) rewardSopop = 1; // 10% chance
       } else if (selected.difficulty === 'hard') {
-      rewardPatterns = getRandomInt(1000, 1275);
-        if (Math.random() < 0.15) rewardSopop = 1; // 15% chance
+      rewardPatterns = getRandomInt(900, 1100);
+        if (Math.random() < 0.20) rewardSopop = 1; // 20% chance
       } else if (selected.difficulty === 'impossible') {
-      rewardPatterns = getRandomInt(1500, 2000);
-        if (Math.random() < 0.25) rewardSopop = 1; // 25% chance
+      rewardPatterns = getRandomInt(1200, 1400);
+        if (Math.random() < 0.45) rewardSopop = 1; // 45% chance
       }
 
         let streakBonus = '';
         if (userDoc.correctStreak % 25 === 0) {
-          rewardPatterns += 1500;
+          rewardPatterns += 1000;
           streakBonus = '\n**Streak bonus activated!** Extra rewards granted!';
         }
 
@@ -76,7 +76,8 @@ await autoDefer(interaction, 'update');
         await interaction.editReply({
           content: `Correct! You earned <:ehx_patterns:1389584144895315978> **${rewardPatterns} Patterns**${rewardSopop ? ` and <:ehx_sopop:1389584273337618542> **${rewardSopop} Sopop**` : ''}.\nCurrent streak: **${userDoc.correctStreak}**${streakBonus}`,
           embeds: [],
-          components: []
+          components: [],
+          files: []
         });
 
       } else {
@@ -84,7 +85,8 @@ await autoDefer(interaction, 'update');
         await interaction.editReply({
           content: `Incorrect! The correct answer was **${selected.correct}**.\nYour streak has been reset.`,
           embeds: [],
-          components: []
+          components: [],
+          files: []
         });
       }
     } catch (err) {
