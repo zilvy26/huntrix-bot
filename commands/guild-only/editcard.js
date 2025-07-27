@@ -19,7 +19,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('editcards')
     .setDescription('Edit multiple Huntrix cards with preview and confirmation')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDefaultMemberPermissions('0')
     .addStringOption(opt => opt.setName('code').setDescription('Filter by card code'))
     .addStringOption(opt => opt.setName('name').setDescription('Filter by card name'))
     .addStringOption(opt => opt.setName('group').setDescription('Filter by card group'))
@@ -37,6 +37,10 @@ module.exports = {
 
   async execute(interaction) {
     await interaction.deferReply();
+    const allowedRole = process.env.CARD_CREATOR_ROLE_ID;
+if (!interaction.member.roles.cache.has(allowedRole)) {
+  return interaction.editReply({ content: 'You do not have permission to use this command.' });
+}
 
     const opts = interaction.options;
     const filters = {};

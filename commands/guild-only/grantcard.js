@@ -20,6 +20,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('grantcard')
     .setDescription('Grant one or more cards to a user by card code')
+    .setDefaultMemberPermissions('0')
     .addUserOption(opt =>
       opt.setName('user')
         .setDescription('User to receive the cards')

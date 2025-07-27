@@ -6,6 +6,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('addquestion')
     .setDescription('Add a new question')
+    .setDefaultMemberPermissions('0')
     .addStringOption(opt => 
       opt.setName('difficulty')
         .setDescription('Difficulty level')

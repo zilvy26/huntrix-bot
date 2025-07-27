@@ -5,6 +5,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('createcode')
     .setDescription('Admin only: Create a redeem code')
+    .setDefaultMemberPermissions('0')
     .addStringOption(opt =>
       opt.setName('code')
         .setDescription('Custom code (leave blank to generate randomly)'))

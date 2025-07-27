@@ -5,9 +5,13 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('maintenance')
     .setDescription('Toggle bot maintenance mode')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDefaultMemberPermissions('0'),
 
   async execute(interaction) {
+    if (interaction.user.id !== process.env.MAIN_BYPASS_ID) {
+    return interaction.reply({ content: 'You do not have permission to use this command.' });
+    }
+
     const current = await Maintenance.findOne() || new Maintenance();
     current.active = !current.active;
     await current.save();

@@ -10,11 +10,13 @@ const UserInventory = require('../../models/UserInventory');
 const UserRecord = require('../../models/UserRecord');
 const generateStars = require('../../utils/starGenerator');
 const awaitUserButton = require('../../utils/awaitUserButton');
+const GRANTING_ROLE_ID = process.env.GRANTING_ROLE_ID;
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('grantrandom')
     .setDescription('Grant random cards with filters and limits')
+    .setDefaultMemberPermissions('0')
     .addUserOption(o => o.setName('user').setDescription('Recipient').setRequired(true))
     .addIntegerOption(o => o.setName('amount').setDescription('Number of cards to grant').setRequired(true))
     .addStringOption(o => o.setName('groups').setDescription('Comma-separated group names'))
@@ -25,6 +27,10 @@ module.exports = {
 
   async execute(interaction) {
     await interaction.deferReply();
+    const sender = interaction.member;
+if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
+  return interaction.editReply({ content: 'You lack permission to use this.' });
+}
 
     const recipient = interaction.options.getUser('user');
     const groups = interaction.options.getString('groups')?.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) || [];

@@ -18,7 +18,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('createcard')
     .setDescription('Create a new Huntrix card')
-    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
+    .setDefaultMemberPermissions('0')
     .addStringOption(opt =>
       opt.setName('cardcode').setDescription('Unique card code (e.g. HTX-001)').setRequired(true))
     .addStringOption(opt =>

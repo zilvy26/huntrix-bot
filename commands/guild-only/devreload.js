@@ -5,8 +5,13 @@ const path = require('path');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('devreload')
-    .setDescription('Reload command logic (dev only)'),
+    .setDescription('Reload command logic (dev only)')
+    .setDefaultMemberPermissions('0'),
   async execute(interaction) {
+    if (interaction.user.id !== process.env.MAIN_BYPASS_ID) {
+    return interaction.reply({ content: 'You do not have permission to use this command.' });
+    }
+
     const commandFolders = ['global', 'guild-only'];
     let reloaded = [];
 
