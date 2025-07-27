@@ -46,42 +46,28 @@ module.exports = {
     const enriched = [];
 
     for (const user of charts) {
-      if (!groupFilter && !nameFilter && !eraFilter) {
-        enriched.push({
-          userId: user.userId,
-          totalCards: user.totalCards,
-          totalStars: user.totalStars
-        });
-        continue;
-      }
-
       const inv = await UserInventory.findOne({ userId: user.userId }).lean();
-      if (!inv) continue;
+if (!inv) continue;
 
-      const cardCodes = inv.cards.map(c => c.cardCode);
-      const cardDocs = await Card.find({ cardCode: { $in: cardCodes } }).lean();
+const cardCodes = inv.cards.map(c => c.cardCode);
+const cardDocs = await Card.find({ cardCode: { $in: cardCodes } }).lean();
 
-      let totalCards = 0;
-      let totalStars = 0;
+const hasMatchingCard = cardDocs.some(card => {
+  const groupMatch = !groupFilter || card.group?.toLowerCase() === groupFilter;
+  const nameMatch = !nameFilter || card.name?.toLowerCase() === nameFilter;
+  const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
+  return groupMatch && nameMatch && eraMatch;
+});
 
-      for (const entry of inv.cards) {
-        const card = cardDocs.find(c => c.cardCode === entry.cardCode);
-        if (!card) continue;
+if (groupFilter || nameFilter || eraFilter) {
+  if (!hasMatchingCard) continue;
+}
 
-        const groupMatch = !groupFilter || card.group.toLowerCase() === groupFilter;
-        const nameMatch = !nameFilter || card.name.toLowerCase() === nameFilter;
-        const eraMatch = !eraFilter || card.era?.toLowerCase() === eraFilter;
-        if (groupMatch && nameMatch && eraMatch) {
-          totalCards += entry.quantity;
-          totalStars += card.rarity * entry.quantity;
-        }
-      }
-
-      enriched.push({
-        userId: user.userId,
-        totalCards,
-        totalStars
-      });
+enriched.push({
+  userId: user.userId,
+  totalCards: user.totalCards,
+  totalStars: user.totalStars
+});
     }
 
     const sorted = enriched
