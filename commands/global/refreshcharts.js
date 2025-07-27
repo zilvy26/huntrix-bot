@@ -10,6 +10,8 @@ module.exports = {
     .setDescription('Refresh your chart stats'),
 
   async execute(interaction) {
+    await interaction.deferReply();
+
     const userId = interaction.user.id;
     const now = new Date();
     const cooldownLimit = 30 * 60 * 1000; // 30 minutes
@@ -20,7 +22,7 @@ module.exports = {
       const timePassed = now - cooldownDoc.lastUsed;
       if (timePassed < cooldownLimit) {
         const remaining = Math.ceil((cooldownLimit - timePassed) / 60000);
-        return interaction.reply({ content: `Please wait ${remaining} more minute(s) before refreshing again.` });
+        return interaction.editReply({ content: `Please wait ${remaining} more minute(s) before refreshing again.` });
       }
     }
 
@@ -33,7 +35,7 @@ module.exports = {
 
     const inv = await UserInventory.findOne({ userId });
     if (!inv || inv.cards.length === 0) {
-      return interaction.reply({ content: 'You have no cards to calculate.' });
+      return interaction.editReply({ content: 'You have no cards to calculate.' });
     }
 
     const allCardCodes = inv.cards.map(c => c.cardCode);
@@ -118,6 +120,6 @@ for (const era of eras) {
   );
 }
 
-    return interaction.reply({ content: 'Your chart stats have been refreshed!' });
+    return interaction.editReply({ content: 'Your chart stats have been refreshed!' });
   }
 };
