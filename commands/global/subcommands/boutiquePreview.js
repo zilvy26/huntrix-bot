@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const templateOptions = require('../../../data/templateOptions');
-const User = require('../../models/User');
+const User = require('../../../models/User');
 
 module.exports = async function(interaction) {
   const user = await User.findOne({ userId: interaction.user.id });
