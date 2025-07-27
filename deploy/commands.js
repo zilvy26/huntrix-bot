@@ -85,15 +85,17 @@ for (const cmd of registeredGuildCmds) {
   }
 
   await rest.put(
-    Routes.applicationCommandPermissions(CLIENT_ID, GUILD_ID, cmd.id),
-    {
-      body: allowedRoles.map(roleId => ({
+  Routes.applicationCommandPermissions(CLIENT_ID, GUILD_ID, cmd.id),
+  {
+    body: {
+      permissions: allowedRoles.map(roleId => ({
         id: roleId,
         type: 2, // Role
         permission: true
       }))
     }
-  );
+  }
+);
 
   console.log(`🔒 Restricted "${cmd.name}" to roles: ${allowedRoles.join(', ')}`);
 }
