@@ -46,7 +46,6 @@ module.exports = {
     const enriched = [];
 
     for (const user of charts) {
-      for (const user of charts) {
   const inv = await UserInventory.findOne({ userId: user.userId }).lean();
   if (!inv) continue;
 
@@ -89,11 +88,12 @@ module.exports = {
     });
   }
 }
-    }
+
 
     const sorted = enriched
       .sort((a, b) => sortBy === 'cards' ? b.totalCards - a.totalCards : b.totalStars - a.totalStars)
-      .filter(u => (u.totalCards > 0 || u.totalStars > 0));
+      .filter(u => (u.totalCards > 0 || u.totalStars > 0))
+      .slice(0, 30);
 
     const pageSize = 10;
     let current = 0;
