@@ -42,6 +42,7 @@ async function loadCommands() {
 
   loadFromFolder('global', globalCommands);
   loadFromFolder('guild-only', guildCommands);
+  let registeredGuildCmds;
 
   try {
     // 🌐 Register global commands
@@ -62,13 +63,14 @@ async function loadCommands() {
 
     // 🏠 Register guild-only commands
     console.log('🏠 Registering guild-only commands...');
-    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: guildCommands });
-    console.log('✅ Guild-only commands registered.');
+    registeredGuildCmds = await rest.put(
+  Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+  { body: guildCommands }
+);
+console.log('✅ Guild-only commands registered.');
   } catch (error) {
     console.error('❌ Failed to register commands:', error);
   }
-
-  const RESTRICTED_ROLE_ID = 'YOUR_ADMIN_OR_MOD_ROLE_ID_HERE'; // ⬅️ Add this
 
 // ...existing code to register guild commands...
 
