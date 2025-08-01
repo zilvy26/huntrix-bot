@@ -72,7 +72,7 @@ module.exports = async function drawProfile(user, userProfile, favoriteCardImage
       cardImage = await loadImage(favoriteCardImageURL); // local path
     }
 
-    ctx.drawImage(cardImage, 890, 200, 500, 735);
+    ctx.drawImage(cardImage, 890, 194, 500, 735);
 
   } catch (err) {
     console.warn('⚠️ Failed to load favorite card image:', err.message);
