@@ -29,6 +29,7 @@ module.exports = {
           { name: 'KPOP', value: 'kpop' },
           { name: 'ANIME', value: 'anime' },
           { name: 'GAME', value: 'game' },
+          { name: 'FRANCHISE', value: 'franchise' },
           { name: 'EVENT', value: 'event' },
           { name: 'ZODIAC', value: 'zodiac' },
           { name: 'OTHERS', value: 'others' }

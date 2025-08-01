@@ -85,12 +85,20 @@ if (rarityRangeRaw) {
     }
 
     // Prepare filtered list
-    const owned = await Promise.all(
-      invDoc.cards.map(async c => ({
-        card: await Card.findOne({ cardCode: c.cardCode }),
-        qty: c.quantity
-      }))
-    );
+    // Create a list of all cardCodes from the inventory
+const allCardCodes = invDoc.cards.map(c => c.cardCode);
+
+// Fetch all cards in one go
+const cardDocs = await Card.find({ cardCode: { $in: allCardCodes } });
+
+// Build a quick-access map: cardCode -> cardDoc
+const cardMap = new Map(cardDocs.map(c => [c.cardCode, c]));
+
+// Build the owned array
+const owned = invDoc.cards.map(c => ({
+  card: cardMap.get(c.cardCode),
+  qty: c.quantity
+}));
 
     const matches = owned.filter(o => {
   const card = o.card;
