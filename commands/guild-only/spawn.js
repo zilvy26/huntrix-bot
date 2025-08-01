@@ -8,6 +8,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('spawn')
     .setDescription('Drop a card or currency for the fastest person to claim')
+    .setDefaultMemberPermissions('0')
     .addStringOption(opt =>
       opt.setName('reward')
         .setDescription('CardCode or currency name (patterns / sopop)')
@@ -26,7 +27,7 @@ module.exports = {
     const ALLOWED_ROLE_ID = '1386797486680703036'; // replace with your actual role ID
 
     if (!interaction.member.roles.cache.has(ALLOWED_ROLE_ID)) {
-    return interaction.reply({ content: 'Only authorized staff can use this command.' });
+    return interaction.editReply({ content: 'Only authorized staff can use this command.' });
 }
 
     const reward = interaction.options.getString('reward').toLowerCase();
@@ -65,7 +66,7 @@ module.exports = {
 
       collector.on('end', (_, reason) => {
         if (reason === 'time') {
-          interaction.editReply({ content: '⏱No one claimed in time.', components: [] });
+          interaction.editReply({ content: 'No one claimed in time.', components: [] });
         }
       });
 

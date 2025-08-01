@@ -5,7 +5,8 @@ const Card = require('../../models/Card');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('tophoard')
-    .setDescription('View the top 25 most collected groups across all users'),
+    .setDescription('View the top 25 most collected groups across all users')
+    .setDefaultMemberPermissions('0'),
 
   async execute(interaction) {
     await interaction.deferReply();
@@ -14,7 +15,7 @@ module.exports = {
     const ALLOWED_ROLE_ID = '1386797486680703036'; // replace with your actual role ID
 
     if (!interaction.member.roles.cache.has(ALLOWED_ROLE_ID)) {
-    return interaction.reply({ content: 'Only authorized staff can use this command.' });
+    return interaction.editReply({ content: 'Only authorized staff can use this command.' });
 }
 
     // Fetch all inventories

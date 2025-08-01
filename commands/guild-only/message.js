@@ -4,6 +4,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('message')
     .setDescription('Send a message as the bot to a specific channel')
+    .setDefaultMemberPermissions('0')
     .addChannelOption(opt =>
       opt.setName('channel')
         .setDescription('Channel to send the message in')

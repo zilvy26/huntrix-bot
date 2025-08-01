@@ -47,7 +47,10 @@ client.on('interactionCreate', async interaction => {
   if (interaction.isChatInputCommand()) {
     const maintenance = await Maintenance.findOne();
     const bypassRoleId = process.env.MAIN_BYPASS_ID;
-    const isBypassed = interaction.member?.roles?.cache.has(bypassRoleId);
+    let isBypassed = false;
+if (interaction.inGuild() && interaction.member?.roles?.cache) {
+  isBypassed = interaction.member.roles.cache.has(bypassRoleId);
+}
     const isDev = interaction.user.id === interaction.client.application?.owner?.id;
 
     if (maintenance?.active && !isBypassed && !isDev) {

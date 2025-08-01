@@ -40,20 +40,23 @@ async function getCooldowns(userId) {
 
 async function getEffectiveCooldown(interaction, commandName) {
   const config = cooldownConfig[commandName];
-
   if (!config) return 0;
 
   const duration = typeof config === 'object' ? config.default : config;
   const reductions = typeof config === 'object' ? config.reductions || [] : [];
 
   let totalReduction = 0;
-  for (const { id, percent } of reductions) {
-    if (interaction.member.roles.cache.has(id)) {
-      totalReduction += percent;
+
+  // ✅ Safe guard to support DMs
+  if (interaction.inGuild() && interaction.member?.roles?.cache) {
+    for (const { id, percent } of reductions) {
+      if (interaction.member.roles.cache.has(id)) {
+        totalReduction += percent;
+      }
     }
   }
 
-  const cap = 80; // Set your max reduction cap here
+  const cap = 80;
   totalReduction = Math.min(totalReduction, cap);
 
   return Math.floor(duration * (1 - totalReduction / 100));
