@@ -1,9 +1,13 @@
 module.exports = async function autoDefer(interaction, type = 'reply') {
+  if (interaction.deferred || interaction.replied) return;
+
   try {
-    if (!interaction.deferred && !interaction.replied) {
-      return type === 'update' ? await interaction.deferUpdate() : await interaction.deferReply();
+    if (type === 'update') {
+      await interaction.deferUpdate();
+    } else {
+      await interaction.deferReply();
     }
   } catch (err) {
-    console.warn('Auto-defer failed:', err.message);
+    console.warn(`Auto-defer failed [${type}]:`, err.message);
   }
 };
