@@ -149,34 +149,32 @@ if (filters.show === 'dupes') {
   }
 
   try {
-    if (btn.customId === 'copy') {
-  const slice = cardList.slice(page * perPage, page * perPage + perPage);
-  const codes = slice.map(c => c.cardCode).join(', ');
-
-  await btn.update({
-    content: `Codes:\n\`\`\`${codes}\`\`\``,
-    embeds: [makeEmbed(page)],
-    components: [makeRow()],
-  });
-
-  continue;
-}
-
     // Set page state for navigation
     if (btn.customId === 'first') page = 0;
     else if (btn.customId === 'prev') page = Math.max(page - 1, 0);
     else if (btn.customId === 'next') page = Math.min(page + 1, totalPages - 1);
     else if (btn.customId === 'last') page = totalPages - 1;
+    else if (btn.customId === 'copy') {
+  const slice = cardList.slice(page * perPage, page * perPage + perPage);
+  const codes = slice.map(c => c.cardCode).join(', ');
 
-    // Ensure button interaction is acknowledged
-    if (!btn.replied && !btn.deferred) {
-      await btn.deferUpdate();
-    }
+  // Prevent double replies
+  if (!btn.replied && !btn.deferred) {
+    await btn.reply({ content: `Codes:\n\`\`\`${codes}\`\`\``, ephemeral: true });
+  }
 
-    await btn.editReply({
-      embeds: [makeEmbed(page)],
-      components: [makeRow()],
-    });
+  continue; // ✅ exit early, don’t fall through
+}
+
+// Only defer/update for other buttons
+if (!btn.replied && !btn.deferred) {
+  await btn.deferUpdate(); // ✅ allows .update() to safely run
+}
+
+await btn.editReply({
+  embeds: [makeEmbed(page)],
+  components: [makeRow()],
+});
   } catch (err) {
     console.error('Failed to update message:', err.message);
     break;
