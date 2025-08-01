@@ -153,18 +153,15 @@ if (filters.show === 'dupes') {
   const slice = cardList.slice(page * perPage, page * perPage + perPage);
   const codes = slice.map(c => c.cardCode).join(', ');
 
-  try {
-    if (!btn.replied && !btn.deferred) {
-      await btn.reply({ content: `\`\`\`${codes}\`\`\`` });
-    } else {
-      // If already acknowledged, send a follow-up message
-      await btn.followUp({ content: `\`\`\`${codes}\`\`\`` });
-    }
-  } catch (err) {
-    console.warn('Failed to send copy codes:', err.message);
-  }
+  const embed = makeEmbed(page);
 
-  continue; // prevent falling through to page update
+  await btn.update({
+    content: `\`\`\`\n${codes}\n\`\`\``, // 👈 shows above embed
+    embeds: [embed],
+    components: [makeRow()],
+  });
+
+  continue;
 }
 
     // Set page state for navigation
