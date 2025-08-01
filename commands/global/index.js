@@ -138,23 +138,39 @@ if (filters.show === 'dupes') {
     await interaction.editReply({ embeds: [makeEmbed(page)], components: [makeRow()] });
 
     while (true) {
-      const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last', 'copy'], 120000);
-      if (!btn) break;
+  let btn;
 
-      if (btn.customId === 'first') page = 0;
-      else if (btn.customId === 'prev') page = Math.max(page - 1, 0);
-      else if (btn.customId === 'next') page = Math.min(page + 1, totalPages - 1);
-      else if (btn.customId === 'last') page = totalPages - 1;
-      else if (btn.customId === 'copy') {
-        const slice = cardList.slice(page * perPage, page * perPage + perPage);
-        const codes = slice.map(c => c.cardCode).join(', ');
-        await btn.editReply({ content: `Codes:\n\`\`\`${codes}\`\`\`` });
-        continue;
-      }
+  try {
+    btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last', 'copy'], 120000);
+    if (!btn) break;
+  } catch (err) {
+    console.warn('Button collector expired or failed:', err.message);
+    break;
+  }
 
-      await interaction.editReply({ embeds: [makeEmbed(page)], components: [makeRow()] });
+  try {
+    if (btn.customId === 'first') page = 0;
+    else if (btn.customId === 'prev') page = Math.max(page - 1, 0);
+    else if (btn.customId === 'next') page = Math.min(page + 1, totalPages - 1);
+    else if (btn.customId === 'last') page = totalPages - 1;
+    else if (btn.customId === 'copy') {
+      const slice = cardList.slice(page * perPage, page * perPage + perPage);
+      const codes = slice.map(c => c.cardCode).join(', ');
+      await btn.reply({ content: `Codes:\n\`\`\`${codes}\`\`\``, ephemeral: true });
+      continue;
     }
 
-    await interaction.editReply({ components: [] });
+    await btn.update({ embeds: [makeEmbed(page)], components: [makeRow()] });
+  } catch (err) {
+    console.error('Failed to update message:', err.message);
+    break;
+  }
+}
+
+try {
+  await interaction.editReply({ components: [] });
+} catch (err) {
+  console.warn('Failed to clean up buttons:', err.message);
+}
   }
 };
