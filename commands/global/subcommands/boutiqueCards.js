@@ -89,13 +89,25 @@ await BoutiqueCooldown.findOneAndUpdate(
   const rawNames = interaction.options.getString('names');
   const rawEras = interaction.options.getString('eras');
 
-  filter = { pullable: true, category: { $nin: ['event', 'zodiac', 'others'] } };
+  const filters = [
+    { pullable: true },
+    { category: { $nin: ['event', 'zodiac', 'others'] } }
+  ];
 
-  if (rawGroups) filter.group = { $in: rawGroups.split(',').map(s => new RegExp(s.trim(), 'i')) };
-  if (rawNames) filter.name = { $in: rawNames.split(',').map(s => new RegExp(s.trim(), 'i')) };
-  if (rawEras) filter.era = { $in: rawEras.split(',').map(s => new RegExp(s.trim(), 'i')) };
+  const buildExpr = (field, values) => ({
+    $expr: {
+      $in: [
+        { $toLower: `$${field}` },
+        values.map(v => v.toLowerCase())
+      ]
+    }
+  });
 
-  let pool = await Card.find(filter);
+  if (rawGroups) filters.push(buildExpr('group', rawGroups.split(',').map(s => s.trim())));
+  if (rawNames) filters.push(buildExpr('name', rawNames.split(',').map(s => s.trim())));
+  if (rawEras) filters.push(buildExpr('era', rawEras.split(',').map(s => s.trim())));
+
+  const pool = await Card.find({ $and: filters });
 
   // 🎯 New check: only drop 5⭐ if at least one card with rarity 1–4 exists
   const hasOnlyRarity5 = pool.every(c => c.rarity === 5);

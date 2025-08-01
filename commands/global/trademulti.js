@@ -101,11 +101,11 @@ if (rarityRangeRaw) {
   const era = (card.era || '').toLowerCase();
 
   if (filters.group.length && !filters.group.includes(group)) return false;
-  if (filters.name.length && !filters.name.some(n => name.includes(n))) return false;
+  if (filters.name.length && !filters.name.includes(name)) return false;
   if (filters.era.length && !filters.era.includes(era)) return false;
 
   if (filters.exclude_group.length && filters.exclude_group.includes(group)) return false;
-  if (filters.exclude_name.length && filters.exclude_name.some(n => name.includes(n))) return false;
+  if (filters.exclude_name.length && filters.exclude_name.includes(name)) return false;
   if (filters.exclude_era.length && filters.exclude_era.includes(era)) return false;
 
   if (card.rarity < minRarity || card.rarity > maxRarity) return false;
