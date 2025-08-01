@@ -109,6 +109,7 @@ if (filters.show === 'dupes') {
     const perPage = 6;
     const totalPages = Math.ceil(cardList.length / perPage);
     let page = 0;
+    let codesVisible = false;
 
     const makeEmbed = (pg) => {
       const slice = cardList.slice(pg * perPage, pg * perPage + perPage);
@@ -150,14 +151,13 @@ if (filters.show === 'dupes') {
 
   try {
     if (btn.customId === 'copy') {
+  codesVisible = true;
   const slice = cardList.slice(page * perPage, page * perPage + perPage);
   const codes = slice.map(c => c.cardCode).join(', ');
 
-  const embed = makeEmbed(page);
-
   await btn.update({
-    content: `\`\`\`\n${codes}\n\`\`\``, // 👈 shows above embed
-    embeds: [embed],
+    content: `\`\`\`\n${codes}\n\`\`\``,
+    embeds: [makeEmbed(page)],
     components: [makeRow()],
   });
 
@@ -175,10 +175,13 @@ if (filters.show === 'dupes') {
       await btn.deferUpdate();
     }
 
-    await btn.editReply({
-      embeds: [makeEmbed(page)],
-      components: [makeRow()],
-    });
+  await btn.editReply({
+  content: codesVisible
+    ? `\`\`\`\n${cardList.slice(page * perPage, page * perPage + perPage).map(c => c.cardCode).join(', ')}\n\`\`\``
+    : null,
+  embeds: [makeEmbed(page)],
+  components: [makeRow()],
+});
   } catch (err) {
     console.error('Failed to update message:', err.message);
     break;
