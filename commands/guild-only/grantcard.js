@@ -46,7 +46,7 @@ module.exports = {
     const parts = rawCodes.split(',').map(c => c.trim()).filter(Boolean);
 
     for (const part of parts) {
-  const match = part.match(/^([A-Z0-9-]+)(?:x(-?\d+))?$/i);
+  const match = part.match(/^(.+?)(?:x(-?\d+))?$/i);
   if (!match) continue;
 
   const code = match[1];
@@ -60,11 +60,13 @@ module.exports = {
     const uniqueCodes = Object.keys(counts);
     
 
-    const cards = await Card.find({
-  $or: uniqueCodes.map(code => ({
-    cardCode: new RegExp(`^${code}$`, 'i')
-  }))
-});
+    const cardsInDb = await Card.find();
+const cards = cardsInDb.filter(card =>
+  uniqueCodes.some(code => card.cardCode.toLowerCase() === code.toLowerCase())
+);
+
+console.log("Parsed codes:", counts);
+console.log("Found cards:", cards.map(c => c.cardCode));
 
     if (!cards.length) {
       return interaction.editReply({ content: 'No valid cards found for those codes.' });
