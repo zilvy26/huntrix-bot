@@ -20,8 +20,8 @@ module.exports = {
           opt.setName('rarity').setDescription('Rarity filter'))
         .addStringOption(opt =>
           opt.setName('era').setDescription('Era filter'))
-        .addStringOption(opt =>
-          opt.setName('seller').setDescription('Seller ID filter'))
+        .addUserOption(opt =>
+          opt.setName('seller').setDescription('Seller filter'))
         .addBooleanOption(opt =>
           opt.setName('unowned').setDescription('Only show cards you don’t own'))
         .addBooleanOption(opt =>
