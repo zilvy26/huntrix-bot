@@ -194,9 +194,11 @@ await btn.editReply({
 }
 
 try {
-  await interaction.editReply({ components: [] });
+  if (interaction.replied || interaction.deferred) {
+    await interaction.editReply({ components: [] });
+  }
 } catch (err) {
-  console.warn('Failed to clean up buttons:', err.message);
+  console.warn('🔧 Failed to clean up buttons:', err.message);
 }
   }
 };
