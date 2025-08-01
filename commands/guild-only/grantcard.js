@@ -46,15 +46,16 @@ module.exports = {
     const parts = rawCodes.split(',').map(c => c.trim()).filter(Boolean);
 
     for (const part of parts) {
-      const match = part.match(/^([A-Z0-9-]+)(?:x(-?\d+))?$/i);
-      if (!match) continue;
-      const code = match[1].toUpperCase(); // force uppercase
-      const qty = parseInt(match[2] || '1');
-      if (isNaN(qty)) continue;
-      counts[code] += qty;
-      if (!counts[code]) counts[code] = 0;
-      counts[code] += qty;
-    }
+  const match = part.match(/^([A-Z0-9-]+)(?:x(-?\d+))?$/i);
+  if (!match) continue;
+
+  const code = match[1].toUpperCase();
+  const qty = parseInt(match[2] || '1');
+  if (isNaN(qty)) continue;
+
+  if (!counts[code]) counts[code] = 0;
+  counts[code] += qty;
+}
 
     const uniqueCodes = Object.keys(counts);
     
