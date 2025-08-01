@@ -49,7 +49,7 @@ module.exports = {
   const match = part.match(/^([A-Z0-9-]+)(?:x(-?\d+))?$/i);
   if (!match) continue;
 
-  const code = match[1].toUpperCase();
+  const code = match[1];
   const qty = parseInt(match[2] || '1');
   if (isNaN(qty)) continue;
 
@@ -60,7 +60,11 @@ module.exports = {
     const uniqueCodes = Object.keys(counts);
     
 
-    const cards = await Card.find({ cardCode: { $in: uniqueCodes } });
+    const cards = await Card.find({
+  $or: uniqueCodes.map(code => ({
+    cardCode: new RegExp(`^${code}$`, 'i')
+  }))
+});
 
     if (!cards.length) {
       return interaction.editReply({ content: 'No valid cards found for those codes.' });
