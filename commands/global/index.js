@@ -149,18 +149,30 @@ if (filters.show === 'dupes') {
   }
 
   try {
+    if (btn.customId === 'copy') {
+      const slice = cardList.slice(page * perPage, page * perPage + perPage);
+      const codes = slice.map(c => c.cardCode).join(', ');
+      if (!btn.replied && !btn.deferred) {
+        await btn.reply({ content: `\`\`\`${codes}\`\`\``});
+      }
+      continue;
+    }
+
+    // Set page state for navigation
     if (btn.customId === 'first') page = 0;
     else if (btn.customId === 'prev') page = Math.max(page - 1, 0);
     else if (btn.customId === 'next') page = Math.min(page + 1, totalPages - 1);
     else if (btn.customId === 'last') page = totalPages - 1;
-    else if (btn.customId === 'copy') {
-      const slice = cardList.slice(page * perPage, page * perPage + perPage);
-      const codes = slice.map(c => c.cardCode).join(', ');
-      await btn.reply({ content: `Codes:\n\`\`\`${codes}\`\`\``, ephemeral: true });
-      continue;
+
+    // Ensure button interaction is acknowledged
+    if (!btn.replied && !btn.deferred) {
+      await btn.deferUpdate();
     }
 
-    await btn.update({ embeds: [makeEmbed(page)], components: [makeRow()] });
+    await btn.editReply({
+      embeds: [makeEmbed(page)],
+      components: [makeRow()],
+    });
   } catch (err) {
     console.error('Failed to update message:', err.message);
     break;
