@@ -150,13 +150,22 @@ if (filters.show === 'dupes') {
 
   try {
     if (btn.customId === 'copy') {
-      const slice = cardList.slice(page * perPage, page * perPage + perPage);
-      const codes = slice.map(c => c.cardCode).join(', ');
-      if (!btn.replied && !btn.deferred) {
-        await btn.reply({ content: `Codes:\n\`\`\`${codes}\`\`\``, ephemeral: true });
-      }
-      continue;
+  const slice = cardList.slice(page * perPage, page * perPage + perPage);
+  const codes = slice.map(c => c.cardCode).join(', ');
+
+  try {
+    if (!btn.replied && !btn.deferred) {
+      await btn.reply({ content: `\`\`\`${codes}\`\`\`` });
+    } else {
+      // If already acknowledged, send a follow-up message
+      await btn.followUp({ content: `\`\`\`${codes}\`\`\`` });
     }
+  } catch (err) {
+    console.warn('Failed to send copy codes:', err.message);
+  }
+
+  continue; // prevent falling through to page update
+}
 
     // Set page state for navigation
     if (btn.customId === 'first') page = 0;
