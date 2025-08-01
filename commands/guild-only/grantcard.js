@@ -50,6 +50,8 @@ module.exports = {
       if (!match) continue;
       const code = match[1].toUpperCase(); // force uppercase
       const qty = parseInt(match[2] || '1');
+      if (isNaN(qty)) continue;
+      counts[code] += qty;
       if (!counts[code]) counts[code] = 0;
       counts[code] += qty;
     }
@@ -74,22 +76,32 @@ module.exports = {
       if (qty === 0) continue;
 
       const existing = inv.cards.find(c => c.cardCode === card.cardCode);
-      const newQty = existing ? existing.quantity + qty : qty;
+let newQty = existing ? existing.quantity + qty : qty;
 
-      if (existing) existing.quantity = newQty;
-      else inv.cards.push({ cardCode: card.cardCode, quantity: qty });
+if (newQty < 0) newQty = 0;
+
+if (existing) {
+  if (newQty === 0) {
+    inv.cards = inv.cards.filter(c => c.cardCode !== card.cardCode);
+  } else {
+    existing.quantity = newQty;
+  }
+} else if (qty > 0) {
+  inv.cards.push({ cardCode: card.cardCode, quantity: qty });
+}
 
       granted.push({ card, qty, total: newQty });
       totalCards += qty;
       totalSouls += card.rarity * qty;
 
       for (let i = 0; i < qty; i++) {
-        await UserRecord.create({
-          userId: targetUser.id,
-          type: 'grantcard',
-          targetId: interaction.user.id,
-          detail: `Granted ${card.name} (${card.cardCode}) [${card.rarity}] by <@${interaction.user.id}>`
-        });
+       const actionType = qty > 0 ? 'Granted' : 'Removed';
+await UserRecord.create({
+  userId: targetUser.id,
+  type: 'grantcard',
+  targetId: interaction.user.id,
+  detail: `${actionType} ${card.name} (${card.cardCode}) [${card.rarity}] by <@${interaction.user.id}>`
+});
       }
     }
 
@@ -103,7 +115,7 @@ module.exports = {
     const renderEmbed = (page) => {
       const pageItems = granted.slice(page * perPage, (page + 1) * perPage);
       const desc = pageItems.map(g =>
-        `• ${generateStars({ rarity: g.card.rarity, overrideEmoji: g.card.emoji })} \`${g.card.cardCode}\` — **x${g.qty}** [Copies: ${g.total}]`
+        `• ${generateStars({ rarity: g.card.rarity, overrideEmoji: g.card.emoji })} \`${g.card.cardCode}\` — **${g.qty > 0 ? '+' : ''}${g.qty}** [Copies: ${g.total}]`
       ).join('\n') || 'No cards granted.';
 
       return new EmbedBuilder()

@@ -32,7 +32,7 @@ module.exports = {
     .addStringOption(opt => opt.setName('rarity').setDescription('Filter by rarity'))
     .addStringOption(opt =>
   opt.setName('include_customs')
-    .setDescription('Show CUSTOMS and TEST group cards?')
+    .setDescription('Show Customs, Test & Limited cards?')
     .addChoices(
       { name: 'Yes', value: 'yes' },
       { name: 'No', value: 'no' }
@@ -74,7 +74,7 @@ if (inv) {
   const rarityMatch = !filters.rarities.length || filters.rarities.includes(String(card.rarity));
 
   // ❌ Skip unwanted groups unless toggled on
-  if (!filters.includeCustoms && ['customs', 'test'].includes(card.group.toLowerCase())) return false;
+  if (!filters.includeCustoms && ['customs', 'test', 'limited'].includes(card.group.toLowerCase())) return false;
 
   if (!(groupMatch && eraMatch && nameMatch && rarityMatch)) return false;
 
