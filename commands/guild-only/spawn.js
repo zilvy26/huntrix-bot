@@ -72,7 +72,7 @@ module.exports = {
       return;
     }
     // Handle card drop
-    const card = await Card.findOne({ cardCode: reward });
+    const card = await Card.findOne({ cardCode: { $regex: new RegExp(`^${reward}$`, 'i') } });
     if (!card) {
       return interaction.editReply({ content: 'Invalid cardCode or currency name.' });
     }
