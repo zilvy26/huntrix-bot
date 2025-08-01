@@ -46,7 +46,7 @@ module.exports = {
     const parts = rawCodes.split(',').map(c => c.trim()).filter(Boolean);
 
     for (const part of parts) {
-      const match = part.match(/^([A-Z0-9\-]+?)(?:X(\d+))?$/i);
+      const match = part.match(/^([A-Z0-9-]+)(?:x(-?\d+))?$/i);
       if (!match) continue;
       const code = match[1].toUpperCase(); // force uppercase
       const qty = parseInt(match[2] || '1');
