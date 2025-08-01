@@ -27,7 +27,7 @@ module.exports = {
         .setRequired(true))
     .addStringOption(opt =>
       opt.setName('cardcodes')
-        .setDescription('Comma-separated card codes (e.g. CODE1x2, CODE2)')
+        .setDescription('Comma-separated card codes (e.g. CODE1x2, CODE2, CODE1x-2)')
         .setRequired(true)),
 
   async execute(interaction) {
@@ -65,8 +65,6 @@ const cards = cardsInDb.filter(card =>
   uniqueCodes.some(code => card.cardCode.toLowerCase() === code.toLowerCase())
 );
 
-console.log("Parsed codes:", counts);
-console.log("Found cards:", cards.map(c => c.cardCode));
 
     if (!cards.length) {
       return interaction.editReply({ content: 'No valid cards found for those codes.' });
