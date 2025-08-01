@@ -153,7 +153,7 @@ if (filters.show === 'dupes') {
       const slice = cardList.slice(page * perPage, page * perPage + perPage);
       const codes = slice.map(c => c.cardCode).join(', ');
       if (!btn.replied && !btn.deferred) {
-        await btn.reply({ content: `\`\`\`${codes}\`\`\``});
+        await btn.reply({ content: `Codes:\n\`\`\`${codes}\`\`\``, ephemeral: true });
       }
       continue;
     }
