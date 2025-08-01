@@ -161,14 +161,14 @@ if (filters.show === 'dupes') {
   try {
     if (!btn.replied && !btn.deferred) {
       await btn.reply({
-        content: `Codes:\n\`\`\`${codes}\`\`\``,
-        ephemeral: true
+        content: `\n\`\`\`${codes}\`\`\``,
+        flags: 1 << 6
       });
     } else {
       // fallback: edit reply if already replied or deferred
       await btn.followUp({
-        content: `Codes:\n\`\`\`${codes}\`\`\``,
-        ephemeral: true
+        content: `\n\`\`\`${codes}\`\`\``,
+        flags: 1 << 6
       });
     }
   } catch (err) {
