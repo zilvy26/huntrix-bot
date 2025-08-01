@@ -29,10 +29,10 @@ module.exports = {
 
     try {
       await channel.send({ content: text });
-      await interaction.reply({ content: `Message sent to ${channel}`, ephemeral: true });
+      await interaction.reply({ content: `Message sent to ${channel}`,  flags: 1 << 6 });
     } catch (err) {
       console.error('Failed to send message:', err);
-      await interaction.reply({ content: 'Failed to send the message.', ephemeral: true });
+      await interaction.reply({ content: 'Failed to send the message.',  flags: 1 << 6 });
     }
   }
 };
