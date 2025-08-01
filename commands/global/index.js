@@ -158,12 +158,24 @@ if (filters.show === 'dupes') {
   const slice = cardList.slice(page * perPage, page * perPage + perPage);
   const codes = slice.map(c => c.cardCode).join(', ');
 
-  // Prevent double replies
-  if (!btn.replied && !btn.deferred) {
-    await btn.reply({ content: `Codes:\n\`\`\`${codes}\`\`\``, ephemeral: true });
+  try {
+    if (!btn.replied && !btn.deferred) {
+      await btn.reply({
+        content: `Codes:\n\`\`\`${codes}\`\`\``,
+        ephemeral: true
+      });
+    } else {
+      // fallback: edit reply if already replied or deferred
+      await btn.followUp({
+        content: `Codes:\n\`\`\`${codes}\`\`\``,
+        ephemeral: true
+      });
+    }
+  } catch (err) {
+    console.warn('Failed to send code reply:', err.message);
   }
 
-  continue; // ✅ exit early, don’t fall through
+  continue; // Don't fall through to editReply
 }
 
 // Only defer/update for other buttons
