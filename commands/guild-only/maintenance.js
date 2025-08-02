@@ -8,7 +8,7 @@ module.exports = {
     .setDefaultMemberPermissions('0'),
 
   async execute(interaction) {
-    if (interaction.role.id !== process.env.MAIN_BYPASS_ID) {
+    if (!interaction.member.roles.cache.has(process.env.MAIN_BYPASS_ID)) {
     return interaction.reply({ content: 'You do not have permission to use this command.' });
     }
 
