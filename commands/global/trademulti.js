@@ -76,8 +76,8 @@ if (rarityRangeRaw) {
   }
 }
 
-    if (target.id === giver.id) {
-      return interaction.editReply('You can’t gift cards to yourself.');
+    if (target.bot || target.id === giver.id) {
+      return interaction.editReply('You can’t gift cards to yourself or bots.');
     }
     const invDoc = await UserInventory.findOne({ userId: giver.id });
     if (!invDoc || !invDoc.cards.length) {

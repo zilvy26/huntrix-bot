@@ -28,12 +28,13 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply();
 
+
     const giver = interaction.user;
     const receiver = interaction.options.getUser('user');
     const rawCodes = interaction.options.getString('cardcodes');
 
-    if (giver.id === receiver.id) {
-      return interaction.editReply({ content: 'You cannot trade cards to yourself.' });
+    if (receiver.bot || giver.id === receiver.id) {
+      return interaction.editReply({ content: 'You cannot trade cards to yourself or bots.' });
     }
 
     const counts = {};
