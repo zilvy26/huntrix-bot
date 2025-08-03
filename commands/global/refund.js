@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const User = require('../../models/User');
 const Card = require('../../models/Card');
 const UserInventory = require('../../models/UserInventory');
@@ -50,11 +50,11 @@ module.exports = {
     const userId = interaction.user.id;
 
     const codesRaw = interaction.options.getString('cardcodes');
-    const group = interaction.options.getString('group')?.toLowerCase();
-    const name = interaction.options.getString('name')?.toLowerCase();
-    const era = interaction.options.getString('era')?.toLowerCase();
-    const excludeName = interaction.options.getString('exclude_name')?.toLowerCase();
-    const excludeEra = interaction.options.getString('exclude_era')?.toLowerCase();
+    const group = interaction.options.getString('group')?.toLowerCase().split(',').map(s => s.trim());
+    const name = interaction.options.getString('name')?.toLowerCase().split(',').map(s => s.trim());
+    const era = interaction.options.getString('era')?.toLowerCase().split(',').map(s => s.trim());
+    const excludeName = interaction.options.getString('exclude_name')?.toLowerCase().split(',').map(s => s.trim());
+    const excludeEra = interaction.options.getString('exclude_era')?.toLowerCase().split(',').map(s => s.trim());
     const mode = interaction.options.getString('mode') || 'all';
     const includeSpecials = interaction.options.getBoolean('include_specials') || false;
     const inventory = await UserInventory.findOne({ userId });
@@ -90,11 +90,11 @@ module.exports = {
 
       for (const card of cardDocs) {
         const qty = cardMap.get(card.cardCode);
-        const groupMatch = !group || card.group.toLowerCase() === group;
-        const nameMatch = !name || card.name.toLowerCase() === name;
-        const eraMatch = !era || (card.era?.toLowerCase() === era);
-        const excludeNameMatch = !excludeName || card.name.toLowerCase() !== excludeName;
-        const excludeEraMatch = !excludeEra || card.era?.toLowerCase() !== excludeEra;
+        const groupMatch = !group || group.includes(card.group?.toLowerCase());
+        const nameMatch = !name || name.includes(card.name?.toLowerCase());
+        const eraMatch = !era || era.includes(card.era?.toLowerCase());
+        const excludeNameMatch = !excludeName || !excludeName.includes(card.name?.toLowerCase());
+        const excludeEraMatch = !excludeEra || !excludeEra.includes(card.era?.toLowerCase());
 
         if (groupMatch && nameMatch && eraMatch && excludeNameMatch && excludeEraMatch) {
           const refundQty = (mode === 'dupes') ? Math.max(0, qty - 1) : qty;
@@ -103,9 +103,70 @@ module.exports = {
       }
     }
 
-    if (cardsToRefund.length === 0) {
-      return interaction.editReply('No eligible cards found to refund.');
-    }
+    let previewPage = 0;
+const perPage = 10;
+const totalPages = Math.ceil(cardsToRefund.length / perPage);
+
+const makePreviewEmbed = () => {
+  const slice = cardsToRefund.slice(previewPage * perPage, previewPage * perPage + perPage);
+  return {
+    title: `Refund Preview (${cardsToRefund.length} cards total)`,
+    description: slice.map(entry =>
+      `\`${entry.card.cardCode}\` • R${entry.card.rarity} ×${entry.qty}`
+    ).join('\n'),
+    footer: { text: `Page ${previewPage + 1} of ${totalPages}` }
+  };
+};
+
+const makeButtons = () => {
+  const navRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(previewPage === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+    new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(previewPage === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+    new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(previewPage >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+    new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(previewPage >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' })
+  );
+
+  const confirmRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('confirm_refund').setLabel('Confirm').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId('cancel_refund').setLabel('Cancel').setStyle(ButtonStyle.Danger)
+  );
+
+  return [navRow, confirmRow];
+};
+
+let msg = await interaction.editReply({
+  embeds: [makePreviewEmbed()],
+  components: makeButtons()
+});
+
+while (true) {
+  const btn = await msg.awaitMessageComponent({
+    filter: i => i.user.id === interaction.user.id,
+    time: 20000
+  }).catch(() => null);
+
+  if (!btn) {
+  await interaction.editReply({ content: 'Timed out. Refund cancelled.', components: [], embeds: [] });
+  return;
+}
+
+if (btn.customId === 'cancel_refund') {
+  await btn.update({ content: 'Refund cancelled.', components: [], embeds: [] });
+  return;
+}
+
+  if (btn.customId === 'confirm_refund') {
+    await btn.update({ content: 'Processing refund...', components: [], embeds: [] });
+    break;
+  }
+
+  if (btn.customId === 'first') previewPage = 0;
+  if (btn.customId === 'prev') previewPage = Math.max(0, previewPage - 1);
+  if (btn.customId === 'next') previewPage = Math.min(totalPages - 1, previewPage + 1);
+  if (btn.customId === 'last') previewPage = totalPages - 1;
+
+  await btn.update({ embeds: [makePreviewEmbed()], components: [makeButtons()] });
+}
 
     let totalRefund = 0;
     let refundDetails = [];
