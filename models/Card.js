@@ -11,6 +11,7 @@ const cardSchema = new mongoose.Schema({
   era: { type: String },                                    // Era or expansion tag
   localImagePath: { type: String},
   designerIds: { type: [String], default: [] },                             // Discord user ID of the designer(s)
+  designerId: { type: String },
 }, {
   timestamps: true
 });
