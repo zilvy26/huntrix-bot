@@ -14,7 +14,7 @@ module.exports = async function interactionRouter(interaction) {
 
   // 🎯 Battle Answer Buttons
   if (customId.startsWith('question')) {
-    const message = await interaction.message.fetch();
+    const message = await interaction.fetchReply();
 if (interaction.user.id !== message.interaction.user.id) {
   return safeReply(interaction, { content: 'These buttons are not yours.', flags: 1 << 6 });
 }
@@ -29,7 +29,7 @@ await autoDefer(interaction, 'update');
 }
 
     try {
-      const message = await interaction.message.fetch();
+      const message = await interaction.fetchReply();
       const embed = message.embeds[0];
       if (!embed || !embed.description) {
         return safeReply(interaction, { content: '❌ Question data missing.' });
@@ -179,7 +179,7 @@ await autoDefer(interaction, 'update');
     }
 
     if (customId.startsWith('rehearsal')) {
-      const message = await interaction.message.fetch();
+      const message = await interaction.fetchReply();
 if (interaction.user.id !== message.interaction.user.id) {
   return safeReply(interaction, { content: 'These buttons are not yours', flags: 1 << 6 });
 }

@@ -34,13 +34,13 @@ for (const folder of commandFolders) {
 
 client.on('interactionCreate', async interaction => {
   if (!isBotReady) {
-    return interaction.reply({ content: '🕒 Bot is still starting up. Try again in a moment.' }).catch(() => {});
+    return interaction.reply({ content: 'Bot is still starting up. Try again in a moment.' }).catch(() => {});
   }
 
   // 🧩 Route Buttons & Menus
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
     return interactionRouter(interaction).catch(err =>
-  console.error('❌ Router error:', err)
+  console.error('Router error:', err)
 )}
 
   // 💬 Slash Commands
@@ -71,9 +71,9 @@ if (interaction.inGuild() && interaction.member?.roles?.cache) {
     try {
       interaction.userData = await getOrCreateUser(interaction);
     } catch (err) {
-      console.error('❌ Failed to get user data:', err);
+      console.error('Failed to get user data:', err);
       return interaction.reply({
-        content: '⚠️ Failed to load your profile. Please try again later.',
+        content: 'Failed to load your profile. Please try again later.',
         
       });
     }
@@ -84,11 +84,11 @@ if (interaction.inGuild() && interaction.member?.roles?.cache) {
     try {
       await command.execute(interaction);
     } catch (err) {
-      console.error(`❌ Error in command "${interaction.commandName}":`, err);
+      console.error(`Error in command "${interaction.commandName}":`, err);
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: '❌ There was an error executing the command.' });
+        await interaction.reply({ content: 'There was an error executing the command.' });
       } else {
-        await interaction.editReply({ content: '❌ There was an error executing the command.' });
+        await interaction.editReply({ content: 'There was an error executing the command.' });
       }
     }
   }

@@ -71,7 +71,7 @@ if (rarityRangeRaw) {
     minRarity = maxRarity = Math.max(1, Math.min(5, parseInt(matchSingle[1])));
   } else {
     return interaction.reply({
-      content: `❌ Invalid rarity format. Use \`1\` or \`2-4\`.`,
+      content: `Invalid rarity format. Use \`1\` or \`2-4\`.`,
     });
   }
 }
