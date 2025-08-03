@@ -33,6 +33,8 @@ module.exports = {
     .addStringOption(opt => opt.setName('setemoji').setDescription('Override emoji used for rarity'))
     .addBooleanOption(opt => opt.setName('setpullable').setDescription('Set pullable?'))
     .addUserOption(opt => opt.setName('designer').setDescription('Set new designer'))
+    .addUserOption(opt => opt.setName('designer2').setDescription('Set optional second designer'))
+    .addUserOption(opt => opt.setName('designer3').setDescription('Set optional third designer'))
     .addAttachmentOption(opt => opt.setName('setimage').setDescription('Upload a new card image')),
 
   async execute(interaction) {
@@ -79,7 +81,14 @@ if (!interaction.member.roles.cache.has(allowedRole)) {
     }
 
     if (opts.getBoolean('setpullable') !== null) updates.pullable = opts.getBoolean('setpullable');
-    if (opts.getUser('designer')) updates.designerId = opts.getUser('designer').id;
+    const d1 = opts.getUser('designer');
+const d2 = opts.getUser('designer2');
+const d3 = opts.getUser('designer3');
+
+const designerIds = [d1, d2, d3].filter(Boolean).map(d => d.id);
+if (designerIds.length > 0) {
+  updates.designerIds = designerIds;
+}
     if (opts.getString('setemoji')) updates.emoji = opts.getString('setemoji');
 
     const imageAttachment = opts.getAttachment('setimage');
@@ -117,7 +126,13 @@ if (!interaction.member.roles.cache.has(allowedRole)) {
           { name: 'Era', value: updates.era || card.era || '—', inline: true },
           { name: 'Rarity', value: rarityDisplay, inline: true },
           { name: 'Pullable', value: String(updates.pullable !== undefined ? updates.pullable : card.pullable), inline: true },
-          { name: 'Designer', value: `<@${updates.designerId || card.designerId || 'None'}>`, inline: true }
+          {
+  name: 'Designer(s)',
+  value: (updates.designerIds || card.designerIds || [])
+    .map(id => `<@${id}>`)
+    .join(', ') || 'None',
+  inline: true
+}
         )
         .setColor('Blurple');
         const previewImagePath = updates.localImagePath || card.localImagePath;

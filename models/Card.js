@@ -10,7 +10,7 @@ const cardSchema = new mongoose.Schema({
   emoji: { type: String},
   era: { type: String },                                    // Era or expansion tag
   localImagePath: { type: String},
-  designerId: { type: String },                             // Discord user ID of the designer
+  designerIds: { type: [String], default: [] },                             // Discord user ID of the designer(s)
 }, {
   timestamps: true
 });

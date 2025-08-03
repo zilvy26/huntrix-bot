@@ -80,10 +80,10 @@ await autoDefer(interaction, 'update');
         if (Math.random() < 0.1) rewardSopop = 1; // 10% chance
       } else if (selected.difficulty === 'hard') {
       rewardPatterns = getRandomInt(1100, 1325);
-        if (Math.random() < 0.3) rewardSopop = 1; // 30% chance
+        if (Math.random() < 0.25) rewardSopop = 1; // 25% chance
       } else if (selected.difficulty === 'impossible') {
       rewardPatterns = getRandomInt(1425, 1675);
-        if (Math.random() < 0.5) rewardSopop = 1; // 50% chance
+        if (Math.random() < 0.4) rewardSopop = 1; // 40% chance
       }
 
         let streakBonus = '';
@@ -255,7 +255,7 @@ if (!cards || cards.length < 3) {
 }
 
 const selected = cards[index];
-const sopop = Math.random() < 0.65 ? (Math.random() < 0.75 ? 1 : 2) : 0;
+const sopop = Math.random() < 0.6 ? (Math.random() < 0.75 ? 1 : 2) : 0;
 await giveCurrency(userId, { sopop });
 
 let inv = await UserInventory.findOne({ userId });

@@ -28,12 +28,12 @@ module.exports = async function drawProfile(user, userProfile, favoriteCardImage
   ctx.restore();
 
   // === Username ===
-  ctx.font = '19px sans-serif';
+  ctx.font = '15px sans-serif';
   ctx.fillStyle = '#2f1b39';
   ctx.fillText(`${user.username}#${user.discriminator}`, 400, 225);
 
   // === Patterns Count ===
-  ctx.font = '24px sans-serif';
+  ctx.font = '20px sans-serif';
   ctx.fillStyle = '#2f1b39';
   ctx.fillText(userProfile.patterns?.toLocaleString() || '0', 345, 277);
 

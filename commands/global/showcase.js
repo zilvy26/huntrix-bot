@@ -51,7 +51,7 @@ module.exports = {
         `**Group:** ${card.group}`,
         `**Card Code:** \`${card.cardCode}\``,
         `**Copies Owned:** ${copies}`,
-        `**Designer:** <@${card.designerId || 'Unknown'}>`
+        `**Designer(s):** <@${card.designerIds || 'Unknown'}>`
       ];
 
       const embed = new EmbedBuilder()

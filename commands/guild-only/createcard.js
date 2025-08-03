@@ -22,8 +22,6 @@ module.exports = {
     .addStringOption(opt =>
       opt.setName('cardcode').setDescription('Unique card code (e.g. HTX-001)').setRequired(true))
     .addStringOption(opt =>
-      opt.setName('name').setDescription('Card name').setRequired(true))
-    .addStringOption(opt =>
       opt.setName('category').setDescription('Card category')
         .addChoices(
           { name: 'KPOP', value: 'kpop' },
@@ -34,12 +32,10 @@ module.exports = {
           { name: 'ZODIAC', value: 'zodiac' },
           { name: 'OTHERS', value: 'others' }
         ).setRequired(true))
-    .addAttachmentOption(opt =>
-      opt.setName('image').setDescription('Upload the card image').setRequired(true))
     .addStringOption(opt =>
       opt.setName('rarity')
         .setDescription('Rarity (1–5)')
-        .setRequired(false)
+        .setRequired(true)
         .addChoices(
           { name: '1 Star', value: '1' },
           { name: '2 Stars', value: '2' },
@@ -47,11 +43,19 @@ module.exports = {
           { name: '4 Stars', value: '4' },
           { name: '5 Stars', value: '5' }
         ))
+    .addStringOption(opt => opt.setName('group').setDescription('Card group or pack').setRequired(true))
+    .addStringOption(opt =>
+      opt.setName('name').setDescription('Card name').setRequired(true))
+    .addAttachmentOption(opt =>
+      opt.setName('image').setDescription('Upload the card image').setRequired(true))
     .addStringOption(opt =>
       opt.setName('emoji').setDescription('Optional custom emoji (one) to override stars').setRequired(false))
     .addUserOption(opt =>
       opt.setName('designer').setDescription('Card designer').setRequired(false))
-    .addStringOption(opt => opt.setName('group').setDescription('Card group or pack').setRequired(false))
+    .addUserOption(opt =>
+  opt.setName('designer2').setDescription('Optional second designer').setRequired(false))
+    .addUserOption(opt =>
+  opt.setName('designer3').setDescription('Optional third designer').setRequired(false))
     .addStringOption(opt =>
       opt.setName('era').setDescription('Era or event tag').setRequired(false))
     .addBooleanOption(opt =>
@@ -73,8 +77,14 @@ module.exports = {
       const rarityInput = opts.getString('rarity');
       const rarity = parseRarity(rarityInput); // 0–5
       const emoji = opts.getString('emoji');
-      const designerUser = opts.getUser('designer') || interaction.user;
-      const designerId = designerUser.id;
+      const designer1 = opts.getUser('designer') || interaction.user;
+      const designer2 = opts.getUser('designer2');
+      const designer3 = opts.getUser('designer3');
+
+      const designerIds = [designer1, designer2, designer3]
+  .filter(Boolean)
+  .map(user => `<@${user.id}>`)
+  .join(', ');
       const pullable = opts.getBoolean('pullable') ?? true;
       const group = opts.getString('group');
       const era = opts.getString('era');
@@ -104,7 +114,7 @@ module.exports = {
           { name: 'Category', value: category, inline: true },
           { name: 'Group', value: group || '-', inline: true },
           { name: 'Era', value: era || '-', inline: true },
-          { name: 'Designer', value: `<@${designerId}>`, inline: true }
+          { name: 'Designer(s)', value: designerIds, inline: true }
         );
 
       const row = new ActionRowBuilder().addComponents(
@@ -139,7 +149,7 @@ module.exports = {
           category,
           rarity,
           emoji: emoji || null,
-          designerId,
+          designerIds,
           localImagePath: localPath,
           pullable,
           group,
