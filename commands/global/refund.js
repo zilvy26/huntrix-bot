@@ -165,7 +165,7 @@ if (btn.customId === 'cancel_refund') {
   if (btn.customId === 'next') previewPage = Math.min(totalPages - 1, previewPage + 1);
   if (btn.customId === 'last') previewPage = totalPages - 1;
 
-  await btn.update({ embeds: [makePreviewEmbed()], components: [makeButtons()] });
+  await btn.update({ embeds: [makePreviewEmbed()], components: makeButtons() });
 }
 
     let totalRefund = 0;
