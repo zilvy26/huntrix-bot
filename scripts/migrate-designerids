@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Card = require('./models/Card'); // Adjust path if needed
+const Card = require('../models/Card'); // Adjust path if needed
 const MONGODB_URI = process.env.MONGO_URI;
 
 (async () => {
