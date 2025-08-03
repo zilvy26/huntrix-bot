@@ -15,18 +15,31 @@ module.exports = async function interactionRouter(interaction) {
   // 🎯 Battle Answer Buttons
   if (customId.startsWith('question')) {
     let message;
+
 try {
-  message = await interaction.fetchReply();
+  // Prefer interaction.message if available (works for buttons)
+  message = interaction.message || await interaction.fetchReply();
 } catch (err) {
-  console.warn('Failed to fetch message:', err.message);
+  console.warn('⚠️ Failed to fetch message:', err.message);
   return safeReply(interaction, {
     content: '⚠️ This interaction has expired or can’t be accessed.',
     flags: 1 << 6
   });
 }
 
-if (interaction.user.id !== message.interaction.user.id) {
-  return safeReply(interaction, { content: 'These buttons are not yours.', flags: 1 << 6 });
+if (!message) {
+  return safeReply(interaction, {
+    content: '❌ Could not find the message for this interaction.',
+    flags: 1 << 6
+  });
+}
+
+// Ensure only the original user interacts
+if (message.interaction?.user?.id && interaction.user.id !== message.interaction.user.id) {
+  return safeReply(interaction, {
+    content: 'These buttons are not yours.',
+    flags: 1 << 6
+  });
 }
 await autoDefer(interaction, 'update');
   const [, questionId, selectedIndexRaw] = customId.split('_');
@@ -39,7 +52,7 @@ await autoDefer(interaction, 'update');
 }
 
     try {
-      const message = await interaction.fetchReply();
+      const message = await interaction.message.fetch();
       const embed = message.embeds[0];
       if (!embed || !embed.description) {
         return safeReply(interaction, { content: '❌ Question data missing.' });
@@ -99,6 +112,14 @@ await autoDefer(interaction, 'update');
           components: [],
           files: []
         });
+
+        if (interaction.deferred || interaction.replied) {
+  try {
+    await interaction.editReply({ components: [] });
+  } catch (err) {
+    console.warn('editReply failed:', err.message);
+  }
+}
       }
     } catch (err) {
       console.error('❌ Error handling battle button:', err);
@@ -190,18 +211,31 @@ await autoDefer(interaction, 'update');
 
     if (customId.startsWith('rehearsal')) {
       let message;
+
 try {
-  message = await interaction.fetchReply();
+  // Prefer interaction.message if available (works for buttons)
+  message = interaction.message || await interaction.fetchReply();
 } catch (err) {
-  console.warn('Failed to fetch message:', err.message);
+  console.warn('⚠️ Failed to fetch message:', err.message);
   return safeReply(interaction, {
     content: '⚠️ This interaction has expired or can’t be accessed.',
     flags: 1 << 6
   });
 }
 
-if (interaction.user.id !== message.interaction.user.id) {
-  return safeReply(interaction, { content: 'These buttons are not yours.', flags: 1 << 6 });
+if (!message) {
+  return safeReply(interaction, {
+    content: '❌ Could not find the message for this interaction.',
+    flags: 1 << 6
+  });
+}
+
+// Ensure only the original user interacts
+if (message.interaction?.user?.id && interaction.user.id !== message.interaction.user.id) {
+  return safeReply(interaction, {
+    content: 'These buttons are not yours.',
+    flags: 1 << 6
+  });
 }
 await autoDefer(interaction, 'update');
   const index = parseInt(interaction.customId.split('_')[1], 10);
@@ -272,6 +306,14 @@ await interaction.editReply({
   components: [],
   files: imageAttachment ? [imageAttachment] : []
   });
+
+  if (interaction.deferred || interaction.replied) {
+  try {
+    await interaction.editReply({ components: [] });
+  } catch (err) {
+    console.warn('editReply failed:', err.message);
+  }
+}
 }
 
 const showcasePattern = /^(show_first|show_prev|show_next|show_last)$/;
