@@ -1,12 +1,18 @@
+require('dotenv').config();
 const mongoose = require('mongoose');
-const Card = require('../models/Card'); // Adjust path if needed
+const Card = require('../models/Card');
+
 const MONGODB_URI = process.env.MONGO_URI;
 
 (async () => {
   try {
-    await mongoose.connect(MONGODB_URI); // replace with your URI
+    if (!MONGODB_URI) throw new Error('❌ MONGO_URI is not defined');
+    await mongoose.connect(MONGODB_URI);
 
-    const cardsToUpdate = await Card.find({ designerId: { $exists: true }, designerIds: { $exists: false } });
+    const cardsToUpdate = await Card.find({
+      designerId: { $exists: true },
+      designerIds: { $exists: false },
+    });
 
     for (const card of cardsToUpdate) {
       card.designerIds = [card.designerId];
