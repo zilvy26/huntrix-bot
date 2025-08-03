@@ -14,7 +14,17 @@ module.exports = async function interactionRouter(interaction) {
 
   // 🎯 Battle Answer Buttons
   if (customId.startsWith('question')) {
-    const message = await interaction.fetchReply();
+    let message;
+try {
+  message = await interaction.fetchReply();
+} catch (err) {
+  console.warn('Failed to fetch message:', err.message);
+  return safeReply(interaction, {
+    content: '⚠️ This interaction has expired or can’t be accessed.',
+    flags: 1 << 6
+  });
+}
+
 if (interaction.user.id !== message.interaction.user.id) {
   return safeReply(interaction, { content: 'These buttons are not yours.', flags: 1 << 6 });
 }
@@ -179,9 +189,19 @@ await autoDefer(interaction, 'update');
     }
 
     if (customId.startsWith('rehearsal')) {
-      const message = await interaction.fetchReply();
+      let message;
+try {
+  message = await interaction.fetchReply();
+} catch (err) {
+  console.warn('Failed to fetch message:', err.message);
+  return safeReply(interaction, {
+    content: '⚠️ This interaction has expired or can’t be accessed.',
+    flags: 1 << 6
+  });
+}
+
 if (interaction.user.id !== message.interaction.user.id) {
-  return safeReply(interaction, { content: 'These buttons are not yours', flags: 1 << 6 });
+  return safeReply(interaction, { content: 'These buttons are not yours.', flags: 1 << 6 });
 }
 await autoDefer(interaction, 'update');
   const index = parseInt(interaction.customId.split('_')[1], 10);
