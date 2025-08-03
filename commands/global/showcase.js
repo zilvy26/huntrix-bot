@@ -51,7 +51,7 @@ module.exports = {
         `**Group:** ${card.group}`,
         `**Card Code:** \`${card.cardCode}\``,
         `**Copies Owned:** ${copies}`,
-        `**Designer(s):** <@${card.designerIds || 'Unknown'}>`
+        `**Designer(s):** ${Array.isArray(card.designerIds) ? card.designerIds.map(id => `<@${id}>`).join(', ') : (card.designerId ? `<@${card.designerId}>` : 'Unknown')}`
       ];
 
       const embed = new EmbedBuilder()
