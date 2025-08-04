@@ -35,5 +35,6 @@ module.exports = {
       { id: '1394847239557615666', percent: 20 }, // Leader
     ]
   },
+  Vote: 12 * 60 * 60 * 1000,
   // Add more as needed
 };

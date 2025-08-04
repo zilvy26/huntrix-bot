@@ -8,13 +8,14 @@ const emojiMap = {
   Rehearsal: '<:e_rehearsal:1393011624788627456>',
   Battle: '<:e_battle:1393020277671329822>',
   Daily: '<:e_daily:1393021981808656424>',
-  Perform: '<:e_perform:1393015619162472459>'
+  Perform: '<:e_perform:1393015619162472459>',
+  Vote: `<:e_vote:1401719014828408832>`
 };
 
 const categories = {
   Cards: ['Pull', 'Pull10', 'Rehearsal'],
   Games: ['Battle'],
-  Economy: ['Daily', 'Perform']
+  Economy: ['Daily', 'Perform', 'Vote']
 };
 
 module.exports = {

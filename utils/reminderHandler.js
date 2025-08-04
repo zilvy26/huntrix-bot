@@ -1,12 +1,7 @@
 const User = require('../models/User');
+const Reminder = require('../models/Reminder');
 
-/**
- * Handles reminder preference persistence and sets up reminders.
- * @param {object} interaction - Discord interaction
- * @param {string} commandName - The command being run
- * @param {number} duration - Cooldown duration (in ms)
- */
-async function handleReminders(interaction, commandName, duration) {
+module.exports = async function handleReminders(interaction, commandName, duration) {
   const user = interaction.userData;
 
   const remind = interaction.options.getBoolean('reminder') 
@@ -15,7 +10,7 @@ async function handleReminders(interaction, commandName, duration) {
   const remindInChannel = interaction.options.getBoolean('remindinchannel') 
     ?? user?.reminderPreferences?.remindInChannel ?? true;
 
-  // Save new preferences if changed
+  // Save new preferences
   if (
     user.reminderPreferences?.reminder !== remind ||
     user.reminderPreferences?.remindInChannel !== remindInChannel
@@ -27,21 +22,14 @@ async function handleReminders(interaction, commandName, duration) {
     await user.save();
   }
 
-  // Set reminder message
-  if (remind) {
-    setTimeout(async () => {
-      const msg = `<@${interaction.user.id}>, \`${commandName}\` cooldown is over!`;
-      try {
-        if (remindInChannel && interaction.channel) {
-          await interaction.channel.send(msg);
-        } else {
-          await interaction.user.send(msg);
-        }
-      } catch (err) {
-        console.warn(`❌ Reminder failed for ${interaction.user.id}:`, err.message);
-      }
-    }, duration);
-  }
-}
+  if (!remind) return;
 
-module.exports = handleReminders;
+  const expiresAt = new Date(Date.now() + duration);
+
+  await Reminder.create({
+    userId: interaction.user.id,
+    channelId: remindInChannel ? interaction.channel.id : null,
+    command: commandName,
+    expiresAt
+  });
+};

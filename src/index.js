@@ -9,6 +9,8 @@ const User = require('../models/User');
 const getOrCreateUser = require('../utils/getOrCreateUser');
 const interactionRouter = require('../utils/interactionRouter');
 const vanityRoleChecker = require('../utils/vanityRoleChecker');
+const Reminder = require('../models/Reminder');
+const sendReminder = require('../utils/sendReminder');
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildPresences]
@@ -134,6 +136,21 @@ function getRandomDelay() {
 client.once('ready', () => {
   console.log(`🤖 Bot is online as ${client.user.tag}`);
   isBotReady = true;
+  // Reload persistent reminders from database
+  Reminder.find().then(reminders => {
+    const now = Date.now();
+    for (const r of reminders) {
+      const delay = new Date(r.expiresAt).getTime() - now;
+      if (delay > 0) {
+        setTimeout(() => sendReminder(client, r), delay);
+      } else {
+        Reminder.deleteOne({ _id: r._id }).catch(console.error);
+      }
+    }
+    console.log(`🔁 Restored ${reminders.length} reminders`);
+  }).catch(err => {
+    console.error('❌ Failed to load reminders:', err);
+  });
   cycleStatus();
   setInterval(() => vanityRoleChecker(client).catch(console.error), 10 * 60 * 1000);
 });
