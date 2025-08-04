@@ -74,7 +74,7 @@ if (interaction.inGuild() && interaction.member?.roles?.cache) {
     const blacklisted = await Blacklist.findOne({ userId: interaction.user.id });
 if (blacklisted) {
   return interaction.reply({
-    content: `You are blacklisted from using this bot.\n**Reason:** ${blacklisted.reason || 'No reason specified.'}`,
+    content: `You are blacklisted from using this bot.\n** Blacklist Reason:** ${blacklisted.reason || 'No reason specified.'}`,
   });
 }
 
