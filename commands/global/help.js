@@ -44,7 +44,7 @@ module.exports = {
       new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
     );
 
-    const msg = await interaction.reply({ embeds: [pages[page]], components: [row], ephemeral: true, fetchReply: true });
+    const msg = await interaction.reply({ embeds: [pages[page]], components: [row], fetchReply: true });
 
     const collector = msg.createMessageComponentCollector({
       filter: i => i.user.id === interaction.user.id,
