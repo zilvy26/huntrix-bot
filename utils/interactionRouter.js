@@ -54,20 +54,21 @@ await autoDefer(interaction, 'update');
 
     try {
       try {
-  message = await interaction.message.fetch(); // Try from cache
+  // Prefer interaction.message if available (works for buttons)
+  message = interaction.message || await interaction.fetchReply();
 } catch (err) {
-  try {
-    const channel = interaction.channel ?? await interaction.client.channels.fetch(interaction.channelId).catch(() => null);
-    if (!channel) throw new Error('Channel not found');
+  console.warn('⚠️ Failed to fetch message:', err.message);
+  return safeReply(interaction, {
+    content: '⚠️ This interaction has expired or can’t be accessed.',
+    flags: 1 << 6
+  });
+}
 
-    message = await channel.messages.fetch(interaction.message.id); // Fallback
-  } catch (fetchErr) {
-    console.error(`❌ Cannot fetch message [${interaction.message?.id}] in channel [${interaction.channelId}]`, fetchErr);
-    return safeReply(interaction, {
-      content: '⚠️ Could not access the message. It may have been deleted or is unavailable.',
-      ephemeral: true
-    });
-  }
+if (!message) {
+  return safeReply(interaction, {
+    content: '❌ Could not find the message for this interaction.',
+    flags: 1 << 6
+  });
 }
       const embed = message.embeds[0];
       if (!embed || !embed.description) {
