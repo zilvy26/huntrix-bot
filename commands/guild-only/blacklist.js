@@ -31,7 +31,7 @@ module.exports = {
 
     try {
       const dm = await user.createDM();
-      await dm.send(`# You have been blacklisted from using the bot.\nIf you feel you have been wrongfully blacklisted or would like more information regarding it, please join our **Discord support server** - discord.gg/huntrixbot & open a support ticket!\n**Blacklist Reason:** ${reason}`);
+      await dm.send(`# You have been blacklisted from using the bot.\nIf you feel you have been wrongfully blacklisted or would like more information regarding it, please join our **Discord support server** - discord.gg/huntrixbot & open a support ticket!\n\n**Blacklist Reason:** ${reason}`);
     } catch (err) {
       console.warn(`Could not DM user ${user.tag}:`, err.message);
     }
