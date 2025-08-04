@@ -70,6 +70,14 @@ if (interaction.inGuild() && interaction.member?.roles?.cache) {
       }
     }
 
+    const Blacklist = require('../models/Blacklist'); // Create this model separately
+    const blacklisted = await Blacklist.findOne({ userId: interaction.user.id });
+if (blacklisted) {
+  return interaction.reply({
+    content: `You are blacklisted from using this bot.\n**Reason:** ${blacklisted.reason || 'No reason specified.'}`,
+  });
+}
+
     try {
       interaction.userData = await getOrCreateUser(interaction);
     } catch (err) {
