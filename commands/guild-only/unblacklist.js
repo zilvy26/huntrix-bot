@@ -1,4 +1,5 @@
 // commands/guild-only/unblacklist.js
+require('dotenv').config();
 const { SlashCommandBuilder } = require('discord.js');
 const Blacklist = require('../../models/Blacklist');
 
