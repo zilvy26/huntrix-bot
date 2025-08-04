@@ -2,6 +2,7 @@
 require('dotenv').config();
 const { SlashCommandBuilder } = require('discord.js');
 const Blacklist = require('../../models/Blacklist');
+const GRANTING_ROLE_ID = process.env.GRANTING_ROLE_ID;
 
 module.exports = {
   data: new SlashCommandBuilder()
