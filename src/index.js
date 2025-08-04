@@ -142,10 +142,12 @@ client.once('ready', () => {
     for (const r of reminders) {
       const delay = new Date(r.expiresAt).getTime() - now;
       if (delay > 0) {
-        setTimeout(() => sendReminder(client, r), delay);
-      } else {
-        Reminder.deleteOne({ _id: r._id }).catch(console.error);
-      }
+  console.log(`⏱️ Scheduling reminder "${r.command}" for ${r.userId} in ${delay}ms`);
+  setTimeout(() => sendReminder(client, r), delay);
+} else {
+  console.log(`🗑️ Deleting expired reminder: ${r.command} for ${r.userId}`);
+  Reminder.deleteOne({ _id: r._id }).catch(console.error);
+}
     }
     console.log(`🔁 Restored ${reminders.length} reminders`);
   }).catch(err => {
