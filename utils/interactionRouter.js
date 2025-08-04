@@ -12,9 +12,10 @@ function getRandomInt(min, max) {
 module.exports = async function interactionRouter(interaction) {
   const { customId, user } = interaction;
 
+  let message;
+
   // 🎯 Battle Answer Buttons
   if (customId.startsWith('question')) {
-    let message;
 
 try {
   // Prefer interaction.message if available (works for buttons)
@@ -52,7 +53,22 @@ await autoDefer(interaction, 'update');
 }
 
     try {
-      const message = await interaction.message.fetch();
+      try {
+  message = await interaction.message.fetch(); // Try from cache
+} catch (err) {
+  try {
+    const channel = interaction.channel ?? await interaction.client.channels.fetch(interaction.channelId).catch(() => null);
+    if (!channel) throw new Error('Channel not found');
+
+    message = await channel.messages.fetch(interaction.message.id); // Fallback
+  } catch (fetchErr) {
+    console.error(`❌ Cannot fetch message [${interaction.message?.id}] in channel [${interaction.channelId}]`, fetchErr);
+    return safeReply(interaction, {
+      content: '⚠️ Could not access the message. It may have been deleted or is unavailable.',
+      ephemeral: true
+    });
+  }
+}
       const embed = message.embeds[0];
       if (!embed || !embed.description) {
         return safeReply(interaction, { content: '❌ Question data missing.' });
@@ -210,7 +226,6 @@ await autoDefer(interaction, 'update');
     }
 
     if (customId.startsWith('rehearsal')) {
-      let message;
 
 try {
   // Prefer interaction.message if available (works for buttons)
