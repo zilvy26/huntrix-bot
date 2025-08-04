@@ -147,7 +147,6 @@ client.once('ready', () => {
   sendReminder(client, r); // <-- this triggers your reminder message AND deletes it
 }
     }
-    console.log(`🔁 Restored ${reminders.length} reminders`);
   }).catch(err => {
     console.error('❌ Failed to load reminders:', err);
   });
