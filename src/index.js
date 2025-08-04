@@ -142,10 +142,8 @@ client.once('ready', () => {
     for (const r of reminders) {
       const delay = new Date(r.expiresAt).getTime() - now;
       if (delay > 0) {
-  console.log(`⏱️ Scheduling reminder "${r.command}" for ${r.userId} in ${delay}ms`);
   setTimeout(() => sendReminder(client, r), delay);
 } else {
-  console.log(`⚡ Reminder already expired for "${r.command}", sending now`);
   sendReminder(client, r); // <-- this triggers your reminder message AND deletes it
 }
     }
