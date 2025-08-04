@@ -28,11 +28,11 @@ module.exports = async function handleReminders(interaction, commandName, durati
   const expiresAt = new Date(Date.now() + duration);
 
   const reminder = await Reminder.create({
-    userId: interaction.user.id,
-    channelId: remindInChannel ? interaction.channel.id : null,
-    command: commandName,
-    expiresAt
-  });
+  userId: interaction.user.id,
+  channelId: remindInChannel && interaction.channel?.id ? interaction.channel.id : null,
+  command: commandName,
+  expiresAt
+});
 
   // ✅ Schedule the reminder immediately so it works without a restart
   setTimeout(() => sendReminder(interaction.client, reminder), duration);
