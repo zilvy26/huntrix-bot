@@ -88,7 +88,7 @@ await autoDefer(interaction, 'update');
 
         let streakBonus = '';
         if (userDoc.correctStreak % 25 === 0) {
-          rewardPatterns += 1500;
+          rewardPatterns += 1250;
           rewardSopop += 1;
           streakBonus = '\n**Streak bonus activated!** Extra rewards granted!';
         }
@@ -255,7 +255,7 @@ if (!cards || cards.length < 3) {
 }
 
 const selected = cards[index];
-const sopop = Math.random() < 0.6 ? (Math.random() < 0.75 ? 1 : 2) : 0;
+const sopop = Math.random() < 0.45 ? (Math.random() < 0.75 ? 1 : 2) : 0;
 await giveCurrency(userId, { sopop });
 
 let inv = await UserInventory.findOne({ userId });

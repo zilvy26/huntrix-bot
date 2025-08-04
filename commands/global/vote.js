@@ -15,7 +15,7 @@ function getRandomInt(min, max) {
 }
 
 function shouldDropSopop() {
-  return Math.random() < 0.4;
+  return Math.random() < 0.5;
 }
 
 module.exports = {
@@ -93,8 +93,8 @@ module.exports = {
 
     await inventory.save();
 
-    const patterns = getRandomInt(3250, 4000);
-    const sopop = shouldDropSopop() ? 1 : 0;
+    const patterns = getRandomInt(3750, 4250);
+    const sopop = shouldDropSopop() ? 2 : 0;
     const user = await giveCurrency(userId, { patterns, sopop });
 
     const embeds = [
