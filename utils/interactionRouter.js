@@ -94,13 +94,13 @@ if (!message) {
 
         if (selected.difficulty === 'easy') {
       rewardPatterns = getRandomInt(800, 1000);
-        if (Math.random() < 0.08) rewardSopop = 1; // 8% chance
+        if (Math.random() < 0.15) rewardSopop = 1; // 15% chance
       } else if (selected.difficulty === 'hard') {
       rewardPatterns = getRandomInt(1100, 1325);
-        if (Math.random() < 0.15) rewardSopop = 1; // 15% chance
+        if (Math.random() < 0.22) rewardSopop = 1; // 22% chance
       } else if (selected.difficulty === 'impossible') {
       rewardPatterns = getRandomInt(1425, 1675);
-        if (Math.random() < 0.3) rewardSopop = 1; // 30% chance
+        if (Math.random() < 0.31) rewardSopop = 1; // 31% chance
       }
 
         let streakBonus = '';
