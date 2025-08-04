@@ -9,7 +9,7 @@ function getRandomInt(min, max) {
 }
 
 function shouldDropSopop() {
-  // ~40% chance to get sopop
+  // ~35% chance to get sopop
   return Math.random() < 0.35;
 }
 
