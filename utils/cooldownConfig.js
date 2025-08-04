@@ -22,6 +22,7 @@ module.exports = {
   Pull10: {
     default: 1.25 * 60 * 60 * 1000,
     reductions: [
+      { id: '1394448143206322267', percent: 10 }, // Huntrixbot
       { id: '1387230787929243780', percent: 20 }, // Booster
       { id: '1394845122180677662', percent: 20 }, // Maknae
       { id: '1394846623971938465', percent: 25 }, // Visual
