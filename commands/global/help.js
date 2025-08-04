@@ -70,5 +70,5 @@ function buildHelpEmbed(title, commands) {
         ? commands.map(cmd => `**${cmd.name}** — ${cmd.description}`).join('\n')
         : '_No commands available._'
     )
-    .setFooter({ text: 'Use the buttons below to navigate pages.' });
+    .setFooter({ text: 'Join the Discord Support Server : [Click Here](https://discord.gg/huntrixbot)' });
 }

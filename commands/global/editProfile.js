@@ -12,7 +12,7 @@ module.exports = {
     .addStringOption(option =>
       option.setName('aboutme')
         .setDescription('Write something about yourself')
-        .setMaxLength(200)
+        .setMaxLength(400)
     )
     .addStringOption(option =>
       option.setName('template')
