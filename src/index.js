@@ -145,8 +145,8 @@ client.once('ready', () => {
   console.log(`⏱️ Scheduling reminder "${r.command}" for ${r.userId} in ${delay}ms`);
   setTimeout(() => sendReminder(client, r), delay);
 } else {
-  console.log(`🗑️ Deleting expired reminder: ${r.command} for ${r.userId}`);
-  Reminder.deleteOne({ _id: r._id }).catch(console.error);
+  console.log(`⚡ Reminder already expired for "${r.command}", sending now`);
+  sendReminder(client, r); // <-- this triggers your reminder message AND deletes it
 }
     }
     console.log(`🔁 Restored ${reminders.length} reminders`);
