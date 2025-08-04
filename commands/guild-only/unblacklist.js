@@ -1,4 +1,3 @@
-// commands/guild-only/unblacklist.js
 require('dotenv').config();
 const { SlashCommandBuilder } = require('discord.js');
 const Blacklist = require('../../models/Blacklist');
@@ -9,31 +8,36 @@ module.exports = {
     .setName('unblacklist')
     .setDescription('Remove a user from blacklist.')
     .setDefaultMemberPermissions('0')
-    .addUserOption(opt => opt.setName('user').setDescription('User to unblacklist').setRequired(true)),
+    .addUserOption(opt =>
+      opt.setName('user').setDescription('User to unblacklist').setRequired(true)),
 
   async execute(interaction) {
     const sender = interaction.member;
 
     if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
-      return interaction.reply({ content: 'You do not have permission to use this command.', flags: 1 << 6 });
+      return interaction.reply({
+        content: 'You do not have permission to use this command.',
+        ephemeral: true
+      });
     }
 
     const user = interaction.options.getUser('user');
 
     const result = await Blacklist.findOneAndDelete({ userId: user.id });
     if (!result) {
-      return interaction.reply({ content: 'User is not blacklisted.' });
+      return interaction.reply({ content: 'User is not blacklisted.'});
     }
 
+    // ✅ DM the user informing they’ve been unblacklisted
     try {
       const dm = await user.createDM();
-      await dm.send(`You have been blacklisted from using the bot.\n**Reason:** ${reason}`);
+      await dm.send(`You have been removed from the bot blacklist. You may now use commands again.`);
     } catch (err) {
       console.warn(`Could not DM user ${user.tag}:`, err.message);
     }
 
     return interaction.reply({
-      content: `<@${user.id}> has been blacklisted.\n**Reason:** ${reason}`,
+      content: `<@${user.id}> has been unblacklisted.`,
     });
   }
 };
