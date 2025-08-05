@@ -169,10 +169,8 @@ const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last)$/;
 
 if (stallPattern.test(customId)) {
   try {
-    // Safety defer (update style)
     await autoDefer(interaction, 'update');
 
-    // ✅ NEW — extracts from title like "Stall Preview – Page 1/5"
     const match = interaction.message.embeds?.[0]?.title?.match(/Page (\d+)\/(\d+)/);
     if (!match || match.length < 3) return;
 
@@ -182,18 +180,17 @@ if (stallPattern.test(customId)) {
     if (customId === 'stall_next') currentPage = Math.min(totalPages, currentPage + 1);
     if (customId === 'stall_last') currentPage = totalPages;
 
-    const updatedEmbed = JSON.parse(JSON.stringify(interaction.message.embeds[0]));
-    updatedEmbed.title = `Stall Page ${currentPage}/${totalPages}`;
-    updatedEmbed.description = `This is stall page ${currentPage}.`;
-
-    // Safe update after deferring
-    await interaction.editReply({ embeds: [updatedEmbed] });
+    // ⬇️ Re-call the original stallPreview function with updated page
+    const stallPreview = require('../commands/guild-only/stall/preview');
+    return await stallPreview(interaction, { page: currentPage });
 
   } catch (err) {
     console.error('Failed to update stall navigation:', err);
+    return interaction.editReply({
+      content: '⚠️ Could not update stall preview.',
+      components: [],
+    });
   }
-
-  return;
 }
 
     // ⬇️ Template select menu handler (select_template)
