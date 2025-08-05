@@ -164,7 +164,7 @@ if (!message) {
     return interaction.update({ embeds: [updatedEmbed] });
   }
 
-  // interactionRouter.js
+  // Stall Section
 const { stallPreviewFilters } = require('../utils/cache');
 const stallPreview = require('../commands/global/subcommands/stallpreview');
 

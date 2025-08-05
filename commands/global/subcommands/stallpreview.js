@@ -110,8 +110,24 @@ const files = listing.localImagePath
 const replyMessage = interaction.replied ? await interaction.fetchReply() : null;
 
 if (replyMessage) {
-  stallPreviewFilters.set(replyMessage.id, options); // save filters
+  stallPreviewFilters.set(replyMessage.id, options);
 
-  setTimeout(() => stallPreviewFilters.delete(replyMessage.id), 10 * 60 * 1000);
+  // Cleanup cache
+  setTimeout(async () => {
+    stallPreviewFilters.delete(replyMessage.id);
+
+    // Disable buttons after timeout
+    try {
+      const disabledRow = ActionRowBuilder.from(row).setComponents(
+        row.components.map(btn => ButtonBuilder.from(btn).setDisabled(true))
+      );
+
+      await replyMessage.edit({
+        components: [disabledRow]
+      });
+    } catch (err) {
+      console.warn('❌ Failed to disable buttons after timeout:', err.message);
+    }
+  }, 10 * 60 * 1000); // 10 minutes
 }
 }
