@@ -137,7 +137,15 @@ const files = listing.localImagePath
     }
   });
 
-  collector.on('end', (_, reason) => {
-    
-  });
+  collector.on('end', async (_, reason) => {
+  try {
+    const disabledRow = new ActionRowBuilder().addComponents(
+      row.components.map(btn => ButtonBuilder.from(btn).setDisabled(true))
+    );
+
+    await interaction.editReply({ components: [disabledRow] });
+  } catch (err) {
+    console.warn('[Collector End] Failed to disable buttons:', err.message);
+  }
+});
 }
