@@ -165,9 +165,14 @@ if (!message) {
   }
 
   // Navigation for "stall" prefixed embeds (like battle history)
-  const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last)$/;
-  if (stallPattern.test(customId)) {
-    const match = interaction.message.embeds?.[0]?.footer?.text?.match(/Stall Page (\d+)\/(\d+)/);
+const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last)$/;
+
+if (stallPattern.test(customId)) {
+  try {
+    // Safety defer (update style)
+    await autoDefer(interaction, 'update');
+
+    const match = interaction.message.embeds?.[0]?.footer?.text?.match(/Page (\d+)\/(\d+)/);
     if (!match) return;
 
     let [ , currentPage, totalPages ] = match.map(Number);
@@ -180,8 +185,15 @@ if (!message) {
     updatedEmbed.footer.text = `Stall Page ${currentPage}/${totalPages}`;
     updatedEmbed.description = `This is stall page ${currentPage}.`;
 
-    return interaction.update({ embeds: [updatedEmbed] });
+    // Safe update after deferring
+    await interaction.editReply({ embeds: [updatedEmbed] });
+
+  } catch (err) {
+    console.error('Failed to update stall navigation:', err);
   }
+
+  return;
+}
 
     // ⬇️ Template select menu handler (select_template)
     if (customId === 'select_template') {
