@@ -55,6 +55,7 @@ module.exports = {
     .addSubcommand(sub =>
   sub.setName('delete')
     .setDescription('Force-delete listing(s) as an admin')
+    
     .addStringOption(opt =>
       opt.setName('buycode')
         .setDescription('Buy Code(s) — comma-separated')

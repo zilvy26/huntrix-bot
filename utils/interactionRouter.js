@@ -171,6 +171,12 @@ const stallPreview = require('../commands/global/subcommands/stallpreview');
 const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last)$/;
 
 if (stallPattern.test(customId)) {
+  if (interaction.user.id !== interaction.message.interaction.user.id) {
+  return interaction.reply({
+    content: "You can't use buttons for someone else's command.",
+    flags: 1 << 6
+  });
+}
   try {
     await autoDefer(interaction, 'update');
 

@@ -9,6 +9,7 @@ const MarketListing = require('../../../models/MarketListing');
 const User = require('../../../models/User');
 const generateStars = require('../../../utils/starGenerator');
 const { stallPreviewFilters } = require('../../../utils/cache');
+const UserInventory = require('../../../models/UserInventory'); // adjust path as needed
 
 const listingsPerPage = 1;
 const maxDefaultPages = 100;
@@ -20,7 +21,6 @@ module.exports = async function(interaction, incomingOptions = {}) {
   if (isButton) {
     options = incomingOptions;
   } else {
-    const subcommand = interaction.options.getSubcommand(); // 'preview'
     options = {
       group: interaction.options.getString('group'),
       name: interaction.options.getString('name'),
@@ -49,12 +49,13 @@ async function renderPreview(interaction, options) {
   if (rarity) filter.rarity = rarity;
   if (era) filter.era = era;
   if (seller) filter.sellerId = seller.id;
+  const inventory = await UserInventory.findOne({ userId: interaction.user.id });
+  const ownedCardCodes = inventory?.cards.map(card => card.cardCode) || [];
+
+// Use this in your card query:
   if (unowned) {
-    const userData = await User.findOne({ userId: interaction.user.id });
-    if (userData?.cards?.length) {
-      filter.cardCode = { $nin: userData.cards.map(c => c.cardCode) };
-    }
-  }
+  query.cardCode = { $nin: ownedCardCodes };
+}
 
   const sort = cheapest ? { price: 1 }
              : newest ? { createdAt: -1 }
