@@ -49,13 +49,10 @@ async function renderPreview(interaction, options) {
   if (rarity) filter.rarity = rarity;
   if (era) filter.era = era;
   if (seller) filter.sellerId = seller.id;
+  if (unowned === 'true') {
   const inventory = await UserInventory.findOne({ userId: interaction.user.id });
-  const ownedCardCodes = inventory?.cards?.map(card => card.cardCode) || [];
-
-  const query = { ...filter }; // Fix: define query based on filter
-
-if (unowned) {
-  query.cardCode = { $nin: ownedCardCodes };
+  const ownedCodes = inventory?.cards.map(c => c.cardCode) || [];
+  filter.cardCode = { $nin: ownedCodes };
 }
 
   const sort = cheapest ? { price: 1 }
