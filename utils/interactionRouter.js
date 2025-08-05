@@ -339,19 +339,15 @@ const imageAttachment = selected.localImagePath
   ? new AttachmentBuilder(selected.localImagePath, { name: `${selected._id || 'preview'}.png` })
   : null;
 
+  if (!interaction.deferred && !interaction.replied) {
+  await interaction.deferReply();
+}
+
 await interaction.editReply({
   embeds: [resultEmbed],
   components: [],
-  files: imageAttachment ? [imageAttachment] : []
-  });
-
-  if (interaction.deferred || interaction.replied) {
-  try {
-    await interaction.editReply({ components: [] });
-  } catch (err) {
-    console.warn('editReply failed:', err.message);
-  }
-}
+  files: imageAttachment ? [imageAttachment] : [],
+});
 }
 
 const showcasePattern = /^(show_first|show_prev|show_next|show_last)$/;

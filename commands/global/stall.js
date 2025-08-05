@@ -16,7 +16,7 @@ module.exports = {
           opt.setName('group').setDescription('Group filter'))
         .addStringOption(opt =>
           opt.setName('name').setDescription('Card name filter'))
-        .addStringOption(opt =>
+        .addIntegerOption(opt =>
           opt.setName('rarity').setDescription('Rarity filter'))
         .addStringOption(opt =>
           opt.setName('era').setDescription('Era filter'))
@@ -55,7 +55,7 @@ module.exports = {
     .addSubcommand(sub =>
   sub.setName('delete')
     .setDescription('Force-delete listing(s) as an admin')
-    
+
     .addStringOption(opt =>
       opt.setName('buycode')
         .setDescription('Buy Code(s) — comma-separated')
