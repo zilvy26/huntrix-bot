@@ -164,14 +164,14 @@ if (!message) {
     return interaction.update({ embeds: [updatedEmbed] });
   }
 
-  // Navigation for "stall" prefixed embeds (like battle history)
-const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last)$/;
+  const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last)$/;
 
 if (stallPattern.test(customId)) {
   try {
     await autoDefer(interaction, 'update');
 
-    const match = interaction.message.embeds?.[0]?.title?.match(/Page (\d+)\/(\d+)/);
+    const embed = interaction.message.embeds?.[0];
+    const match = embed?.title?.match(/Page (\d+)\/(\d+)/);
     if (!match || match.length < 3) return;
 
     let [ , currentPage, totalPages ] = match.map(Number);
@@ -180,17 +180,15 @@ if (stallPattern.test(customId)) {
     if (customId === 'stall_next') currentPage = Math.min(totalPages, currentPage + 1);
     if (customId === 'stall_last') currentPage = totalPages;
 
-    // ⬇️ Re-call the original stallPreview function with updated page
-    const stallPreview = require('../commands/global/subcommands/stallpreview');
-    const previousFilters = interaction.message.interaction?.options?.data?.reduce((acc, opt) => {
-  acc[opt.name] = opt.value;
-  return acc;
-}, {}) || {};
+    const filterFooter = embed.footer?.text?.match(/filters:(.+)/);
+    if (!filterFooter) return;
 
-return await stallPreview(interaction, { ...previousFilters, page: currentPage });
+    const decoded = JSON.parse(Buffer.from(filterFooter[1], 'base64').toString('utf8'));
+    const stallPreview = require('../commands/global/subcommands/stallpreview');
+    return await stallPreview(interaction, { ...decoded, page: currentPage });
 
   } catch (err) {
-    console.error('Failed to update stall navigation:', err);
+    console.error('❌ Failed to navigate stall:', err);
     return interaction.editReply({
       content: '⚠️ Could not update stall preview.',
       components: [],

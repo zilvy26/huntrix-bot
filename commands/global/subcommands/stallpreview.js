@@ -12,22 +12,28 @@ const generateStars = require('../../../utils/starGenerator');
 const listingsPerPage = 1;
 const maxDefaultPages = 100;
 
-let activeCollector = null;
+module.exports = async function(interaction, incomingOptions = {}) {
+  const isButton = interaction.isButton?.(); // button = pagination
+  let options;
 
-module.exports = async function(interaction) {
-  const options = {
-    group: interaction.options.getString('group'),
-    name: interaction.options.getString('name'),
-    rarity: interaction.options.getInteger('rarity'),
-    era: interaction.options.getString('era'),
-    seller: interaction.options.getUser('seller'),
-    cheapest: interaction.options.getBoolean('cheapest'),
-    newest: interaction.options.getBoolean('newest'),
-    unowned: interaction.options.getBoolean('unowned'),
-    page: interaction.options.getInteger('page') || 1
-  };
+  if (isButton) {
+    options = incomingOptions;
+  } else {
+    const subcommand = interaction.options.getSubcommand(); // 'preview'
+    options = {
+      group: interaction.options.getString('group'),
+      name: interaction.options.getString('name'),
+      rarity: interaction.options.getInteger('rarity'),
+      era: interaction.options.getString('era'),
+      seller: interaction.options.getUser('seller'),
+      cheapest: interaction.options.getBoolean('cheapest'),
+      newest: interaction.options.getBoolean('newest'),
+      unowned: interaction.options.getBoolean('unowned'),
+      page: interaction.options.getInteger('page') || 1,
+    };
+  }
 
-  await renderPreview(interaction, options);
+  return await renderPreview(interaction, options); // your function
 };
 
 async function renderPreview(interaction, options) {
@@ -83,7 +89,9 @@ const files = listing.localImagePath
     .setColor('#ffc800')
     .setImage(imageUrl)
     .setDescription(`**${stars} ${listing.cardName}**\n **Card Code** : \`${listing.cardCode}\`\n **Price** : <:ehx_patterns:1389584144895315978> ${listing.price}\n**Buy Code** : \`${listing.buyCode}\`\n**Seller** : <@${listing.sellerId}>`)
-    .setFooter({ text: `Use /stall buy [buycode] to purchase cards` });
+    .setFooter({
+  text: `filters:${Buffer.from(JSON.stringify(options)).toString('base64')}`
+});
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('stall_first').setStyle(ButtonStyle.Secondary).setDisabled(page === 1).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
