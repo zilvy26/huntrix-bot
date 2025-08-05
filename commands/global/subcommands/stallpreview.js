@@ -91,7 +91,7 @@ const files = listing.localImagePath
     .setImage(imageUrl)
     .setDescription(`**${stars} ${listing.cardName}**\n **Card Code** : \`${listing.cardCode}\`\n **Price** : <:ehx_patterns:1389584144895315978> ${listing.price}\n**Buy Code** : \`${listing.buyCode}\`\n**Seller** : <@${listing.sellerId}>`)
     .setFooter({
-  text: `filters:${Buffer.from(JSON.stringify(options)).toString('base64')}`
+  text: `Use /stall buy [buycode] to purchase cards`
 });
 
   const row = new ActionRowBuilder().addComponents(
