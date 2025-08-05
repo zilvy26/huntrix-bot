@@ -181,7 +181,7 @@ if (stallPattern.test(customId)) {
     if (customId === 'stall_last') currentPage = totalPages;
 
     // ⬇️ Re-call the original stallPreview function with updated page
-    const stallPreview = require('../commands/guild-only/stall/preview');
+    const stallPreview = require('../../../commands/guild-only/stall/preview');
     return await stallPreview(interaction, { page: currentPage });
 
   } catch (err) {
