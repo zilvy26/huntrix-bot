@@ -183,7 +183,7 @@ if (stallPattern.test(customId)) {
     if (customId === 'stall_last') currentPage = totalPages;
 
     const updatedEmbed = JSON.parse(JSON.stringify(interaction.message.embeds[0]));
-    updatedEmbed.footer.text = `Stall Page ${currentPage}/${totalPages}`;
+    updatedEmbed.title = `Stall Page ${currentPage}/${totalPages}`;
     updatedEmbed.description = `This is stall page ${currentPage}.`;
 
     // Safe update after deferring
