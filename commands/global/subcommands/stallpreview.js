@@ -49,7 +49,7 @@ async function renderPreview(interaction, options) {
   if (rarity) filter.rarity = rarity;
   if (era) filter.era = era;
   if (seller) filter.sellerId = seller.id;
-  if (unowned === 'true') {
+  if (unowned) {
   const inventory = await UserInventory.findOne({ userId: interaction.user.id });
   const ownedCodes = inventory?.cards.map(c => c.cardCode) || [];
   filter.cardCode = { $nin: ownedCodes };
