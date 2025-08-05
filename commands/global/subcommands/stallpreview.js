@@ -50,10 +50,11 @@ async function renderPreview(interaction, options) {
   if (era) filter.era = era;
   if (seller) filter.sellerId = seller.id;
   const inventory = await UserInventory.findOne({ userId: interaction.user.id });
-  const ownedCardCodes = inventory?.cards.map(card => card.cardCode) || [];
+  const ownedCardCodes = inventory?.cards?.map(card => card.cardCode) || [];
 
-// Use this in your card query:
-  if (unowned) {
+  const query = { ...filter }; // Fix: define query based on filter
+
+if (unowned) {
   query.cardCode = { $nin: ownedCardCodes };
 }
 
