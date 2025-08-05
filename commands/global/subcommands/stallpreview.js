@@ -8,6 +8,7 @@ const {
 const MarketListing = require('../../../models/MarketListing');
 const User = require('../../../models/User');
 const generateStars = require('../../../utils/starGenerator');
+const { stallPreviewFilters } = require('../../../utils/cache');
 
 const listingsPerPage = 1;
 const maxDefaultPages = 100;
@@ -105,4 +106,13 @@ const files = listing.localImagePath
   } else {
     await interaction.reply({ embeds: [embed], components: [row], files });
   }
+
+  // After replying to the interaction (e.g. after interaction.reply or editReply)
+const replyMessage = interaction.replied ? await interaction.fetchReply() : null;
+
+if (replyMessage) {
+  stallPreviewFilters.set(replyMessage.id, options); // save filters
+
+  setTimeout(() => stallPreviewFilters.delete(replyMessage.id), 10 * 60 * 1000);
+}
 }

@@ -164,7 +164,11 @@ if (!message) {
     return interaction.update({ embeds: [updatedEmbed] });
   }
 
-  const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last)$/;
+  // interactionRouter.js
+const { stallPreviewFilters } = require('../utils/cache');
+const stallPreview = require('../commands/global/subcommands/stallpreview');
+
+const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last)$/;
 
 if (stallPattern.test(customId)) {
   try {
@@ -180,12 +184,11 @@ if (stallPattern.test(customId)) {
     if (customId === 'stall_next') currentPage = Math.min(totalPages, currentPage + 1);
     if (customId === 'stall_last') currentPage = totalPages;
 
-    const filterFooter = embed.footer?.text?.match(/filters:(.+)/);
-    if (!filterFooter) return;
+    // ✅ Read filters from cache based on message ID
+    const messageId = interaction.message.id;
+    const previousFilters = stallPreviewFilters.get(messageId) || {};
 
-    const decoded = JSON.parse(Buffer.from(filterFooter[1], 'base64').toString('utf8'));
-    const stallPreview = require('../commands/global/subcommands/stallpreview');
-    return await stallPreview(interaction, { ...decoded, page: currentPage });
+    return await stallPreview(interaction, { ...previousFilters, page: currentPage });
 
   } catch (err) {
     console.error('❌ Failed to navigate stall:', err);
