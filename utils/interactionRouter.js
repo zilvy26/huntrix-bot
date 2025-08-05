@@ -172,8 +172,8 @@ if (stallPattern.test(customId)) {
     // Safety defer (update style)
     await autoDefer(interaction, 'update');
 
-    const match = interaction.message.embeds?.[0]?.footer?.text?.match(/Page (\d+)\/(\d+)/);
-    if (!match) return;
+    const match = interaction.message.embeds?.[0]?.footer?.text?.match(/Stall Page (\d+)\/(\d+)/);
+    if (!match || match.length < 3) return;
 
     let [ , currentPage, totalPages ] = match.map(Number);
     if (customId === 'stall_first') currentPage = 1;
