@@ -86,8 +86,8 @@ const files = listing.localImagePath
     .setFooter({ text: `Use /stall buy [buycode] to purchase cards` });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('stall_first').setStyle(ButtonStyle.Secondary).setDisabled(page === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-    new ButtonBuilder().setCustomId('stall_prev').setStyle(ButtonStyle.Primary).setDisabled(page === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+    new ButtonBuilder().setCustomId('stall_first').setStyle(ButtonStyle.Secondary).setDisabled(page === 1).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+    new ButtonBuilder().setCustomId('stall_prev').setStyle(ButtonStyle.Primary).setDisabled(page === 1).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
     new ButtonBuilder().setCustomId('stall_next').setStyle(ButtonStyle.Primary).setDisabled(page >= totalPages).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
     new ButtonBuilder().setCustomId('stall_last').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
   );

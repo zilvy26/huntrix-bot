@@ -182,7 +182,12 @@ if (stallPattern.test(customId)) {
 
     // ⬇️ Re-call the original stallPreview function with updated page
     const stallPreview = require('../commands/global/subcommands/stallpreview');
-    return await stallPreview(interaction, { page: currentPage });
+    const previousFilters = interaction.message.interaction?.options?.data?.reduce((acc, opt) => {
+  acc[opt.name] = opt.value;
+  return acc;
+}, {}) || {};
+
+return await stallPreview(interaction, { ...previousFilters, page: currentPage });
 
   } catch (err) {
     console.error('Failed to update stall navigation:', err);
