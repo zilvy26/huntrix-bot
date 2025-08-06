@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const COMMANDS_DIR = path.resolve(__dirname, 'commands/global'); // adjust if needed
+const COMMANDS_DIR = path.resolve(__dirname, '../commands/global'); // adjust if needed
 const SAFE_REPLY_IMPORT = `const safeReply = require('../../utils/safeReply');`;
 
 function walkDir(dir, callback) {
