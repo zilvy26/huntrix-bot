@@ -198,7 +198,9 @@ try {
     await interaction.editReply({ components: [] });
   }
 } catch (err) {
-  console.warn('🔧 Failed to clean up buttons:', err.message);
+  if (err.message !== 'Unknown Message') {
+    console.warn('🔧 Failed to clean up buttons:', err.message);
+  }
 }
   }
 };
