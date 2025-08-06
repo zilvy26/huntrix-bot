@@ -9,7 +9,7 @@ module.exports = async function(interaction) {
   const buyCodes = interaction.options.getString('buycode').split(',').map(c => c.trim().toUpperCase());
 
   if (!member.roles.cache.has(GRANTING_ROLE_ID)) {
-    return interaction.reply({ content: 'You do not have permission to use this command.' });
+    return safeReply(interaction, { content: 'You do not have permission to use this command.' });
   }
 
   const results = [];
@@ -41,5 +41,5 @@ module.exports = async function(interaction) {
     results.push(`Force-deleted \`${code}\` | Returned **${listing.cardCode}** to <@${listing.sellerId}>`);
   }
 
-  return interaction.reply({ content: results.join('\n').slice(0, 2000) });
+  return safeReply(interaction, { content: results.join('\n').slice(0, 2000) });
 };

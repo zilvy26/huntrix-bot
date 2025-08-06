@@ -1,3 +1,4 @@
+const safeReply = require('../../utils/safeReply');
 const { SlashCommandBuilder } = require('discord.js');
 
 // Import subcommand logic modules

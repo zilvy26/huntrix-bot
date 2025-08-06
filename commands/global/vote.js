@@ -1,3 +1,4 @@
+const safeReply = require('../../utils/safeReply');
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const cooldowns = require('../../utils/cooldownManager');
 const cooldownConfig = require('../../utils/cooldownConfig');
@@ -35,7 +36,7 @@ module.exports = {
 
     if (await cooldowns.isOnCooldown(userId, commandName)) {
           const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
-          return interaction.reply({
+          return safeReply(interaction, {
             content: `You can vote again in **${nextTime}**\n [Vote here](${voteLink})`,
           });
         }
@@ -50,7 +51,7 @@ module.exports = {
     }
 
     if (!hasVoted) {
-      return interaction.editReply({
+      return safeReply(interaction, {
         content: `You haven’t voted yet!\n [Click here to vote](${voteLink})`,
         ephemeral: true
       });
@@ -120,6 +121,6 @@ module.exports = {
       detail: `Voted & received 3 cards + ${patterns} patterns + ${sopop} sopop`
     });
 
-    return interaction.editReply({ embeds });
+    return safeReply(interaction, { embeds });
   }
 };

@@ -23,10 +23,10 @@ module.exports = {
     const selectedCardInput = interaction.options.getString('cardcode')?.trim().toUpperCase();
 
     const code = await RedeemCode.findOne({ code: codeInput });
-    if (!code) return interaction.reply({ content: '❌ Invalid code.' });
-    if (code.expiresAt && code.expiresAt < new Date()) return interaction.reply({ content: '⚠️ This code has expired.' });
-    if (code.maxUses && code.usedBy.length >= code.maxUses) return interaction.reply({ content: '⚠️ This code has reached its usage limit.' });
-    if (code.usedBy.includes(userId)) return interaction.reply({ content: '⚠️ You already used this code.' });
+    if (!code) return safeReply(interaction, { content: '❌ Invalid code.' });
+    if (code.expiresAt && code.expiresAt < new Date()) return safeReply(interaction, { content: '⚠️ This code has expired.' });
+    if (code.maxUses && code.usedBy.length >= code.maxUses) return safeReply(interaction, { content: '⚠️ This code has reached its usage limit.' });
+    if (code.usedBy.includes(userId)) return safeReply(interaction, { content: '⚠️ You already used this code.' });
 
     // Handle currency rewards
     if (code.reward && (code.reward.patterns || code.reward.sopop)) {
@@ -62,12 +62,12 @@ module.exports = {
     // Handle manual card choice
     if (code.allowCardChoice) {
       if (!selectedCardInput) {
-        return interaction.reply({ content: 'This code requires you to manually specify a valid card code using `/redeem code:<code> cardcode:<yourCard>`.' });
+        return safeReply(interaction, { content: 'This code requires you to manually specify a valid card code using `/redeem code:<code> cardcode:<yourCard>`.' });
       }
 
       const validCard = await Card.findOne({ cardCode: selectedCardInput, category: { $ne: 'others' } });
       if (!validCard) {
-        return interaction.reply({ content: 'Invalid card code or not redeemable.' });
+        return safeReply(interaction, { content: 'Invalid card code or not redeemable.' });
       }
 
       const inv = await UserInventory.findOneAndUpdate(
@@ -86,7 +86,7 @@ module.exports = {
       code.usedBy.push(userId);
       await code.save();
 
-      return interaction.reply({ content: `Redeemed and received card **${selectedCardInput}**!` });
+      return safeReply(interaction, { content: `Redeemed and received card **${selectedCardInput}**!` });
     }
 
     // Track usage
@@ -100,6 +100,6 @@ module.exports = {
       code.cardCode ? `• Card Code: ${code.cardCode}` : null
     ].filter(Boolean).join('\n');
 
-    return interaction.reply({ content: summary });
+    return safeReply(interaction, { content: summary });
   }
 };

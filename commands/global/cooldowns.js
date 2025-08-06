@@ -53,6 +53,6 @@ module.exports = {
       }
     }
 
-    await interaction.reply({ embeds: [embed] });
+    await safeReply(interaction, { embeds: [embed] });
   }
 };

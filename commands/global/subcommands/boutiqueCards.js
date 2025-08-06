@@ -32,7 +32,7 @@ module.exports = async function(interaction) {
 
 if (cooldown && cooldown.expiresAt > now) {
   const remaining = Math.ceil((cooldown.expiresAt - now) / 1000);
-  return interaction.editReply({ content: `Please wait ${remaining} more seconds before using this again.` });
+  return safeReply(interaction, { content: `Please wait ${remaining} more seconds before using this again.` });
 }
 
 await BoutiqueCooldown.findOneAndUpdate(
@@ -43,7 +43,7 @@ await BoutiqueCooldown.findOneAndUpdate(
 
     // ➖ Load currency
     const currency = await UserCurrency.findOne({ userId });
-    if (!currency) return interaction.editReply('No currency account found.');
+    if (!currency) return safeReply(interaction, 'No currency account found.');
     // ➖ Determine cost
     let patternCost = 0, sopopCost = 0;
     if (shopType === 'random20') patternCost = 12500 * amount;
@@ -51,10 +51,10 @@ await BoutiqueCooldown.findOneAndUpdate(
     if (shopType === 'special') sopopCost = 2 * amount;
 
     if (currency.patterns < patternCost) {
-      return interaction.editReply(`You need ${patternCost} Patterns (have ${currency.patterns}).`);
+      return safeReply(interaction, `You need ${patternCost} Patterns (have ${currency.patterns}).`);
     }
     if (currency.sopop < sopopCost) {
-      return interaction.editReply(`You need ${sopopCost} Sopop${sopopCost > 1 ? 's' : ''} (have ${currency.sopop}).`);
+      return safeReply(interaction, `You need ${sopopCost} Sopop${sopopCost > 1 ? 's' : ''} (have ${currency.sopop}).`);
     }
 
     // ➖ Shared vars for results
@@ -71,7 +71,7 @@ await BoutiqueCooldown.findOneAndUpdate(
       const pool = await Card.find(filter);
       const fives = pool.filter(c => c.rarity === 5);
       if (pool.length < 20 || fives.length === 0) {
-        return interaction.editReply('Not enough cards in database for random20.');
+        return safeReply(interaction, 'Not enough cards in database for random20.');
       }
       for (let i = 0; i < amount; i++) {
         const guaranteed = fives[Math.floor(Math.random() * fives.length)];
@@ -114,11 +114,11 @@ await BoutiqueCooldown.findOneAndUpdate(
   const hasOnlyRarity5 = pool.every(c => c.rarity === 5);
 
 if (hasOnlyRarity5) {
-  return interaction.editReply('Only 5 Star cards found — must be at least one 1–4 Star cards to use this shop.');
+  return safeReply(interaction, 'Only 5 Star cards found — must be at least one 1–4 Star cards to use this shop.');
 }
 
   if (pool.length === 0) {
-    return interaction.editReply('No cards match those filters.');
+    return safeReply(interaction, 'No cards match those filters.');
   }
 
   for (let i = 0; i < amount * 10; i++) {
@@ -127,7 +127,7 @@ if (hasOnlyRarity5) {
   }
 
   if (pulls.length === 0) {
-    return interaction.editReply('No valid cards were pulled, no charges applied.');
+    return safeReply(interaction, 'No valid cards were pulled, no charges applied.');
   }
 }
 
@@ -146,7 +146,7 @@ if (hasOnlyRarity5) {
       filter = { pullable: true, category: { $in: ['event', 'zodiac'] } };
       const pool = await Card.find(filter);
       if (pool.length === 0) {
-  return interaction.editReply('No special cards found for that filter.');
+  return safeReply(interaction, 'No special cards found for that filter.');
 }
 
 for (let i = 0; i < amount; i++) {
@@ -225,7 +225,7 @@ for (let i = 0; i < amount; i++) {
                       new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
                     );
                 
-                    await interaction.editReply({ embeds: [await renderEmbed(current)], components: [renderRow()] });
+                    await safeReply(interaction, { embeds: [await renderEmbed(current)], components: [renderRow()] });
                 
                     while (true) {
                       const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
@@ -236,12 +236,12 @@ for (let i = 0; i < amount; i++) {
                       if (btn.customId === 'next') current = Math.min(totalPages - 1, current + 1);
                       if (btn.customId === 'last') current = totalPages - 1;
                 
-                      await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
+                      await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
                     }
                 
                     // Final cleanup
                     try {
-                      await interaction.editReply({ components: [] });
+                      await safeReply(interaction, { components: [] });
                     } catch (err) {
                       console.warn('Pagination cleanup failed:', err.message);
                     }

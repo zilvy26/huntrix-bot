@@ -35,7 +35,7 @@ module.exports = {
     const rawCodes = interaction.options.getString('cardcodes');
 
     if (receiver.bot || giver.id === receiver.id) {
-      return interaction.editReply({ content: 'You cannot trade cards to yourself or bots.' });
+      return safeReply(interaction, { content: 'You cannot trade cards to yourself or bots.' });
     }
 
     const counts = {};
@@ -58,11 +58,11 @@ for (const code of inputCodes) {
     if (!cards.length || cards.length !== uniqueCodes.length) {
     const foundCodes = new Set(cards.map(c => c.cardCode));
     const missing = uniqueCodes.filter(code => !foundCodes.has(code));
-  return interaction.editReply({ content: `These codes are invalid or not found: ${missing.join(', ')}` });
+  return safeReply(interaction, { content: `These codes are invalid or not found: ${missing.join(', ')}` });
     }
 
     const giverInv = await UserInventory.findOne({ userId: giver.id });
-    if (!giverInv) return interaction.editReply({ content: 'You have no cards to trade.' });
+    if (!giverInv) return safeReply(interaction, { content: 'You have no cards to trade.' });
     
 
 
@@ -118,7 +118,7 @@ for (const code of inputCodes) {
     await receiverInv.save();
 
     if (!traded.length) {
-      return interaction.editReply({ content: 'No cards were successfully traded.' });
+      return safeReply(interaction, { content: 'No cards were successfully traded.' });
     }
 
     // Pagination Setup
@@ -169,12 +169,12 @@ await interaction.followUp({
       if (btn.customId === 'next') current = Math.min(pages - 1, current + 1);
       if (btn.customId === 'last') current = pages - 1;
 
-      await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
+      await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
     }
 
     // Final cleanup
     try {
-      await interaction.editReply({ components: [] });
+      await safeReply(interaction, { components: [] });
     } catch (err) {
       console.warn('Pagination cleanup failed:', err.message);
     }

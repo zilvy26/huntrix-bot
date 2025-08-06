@@ -60,7 +60,7 @@ module.exports = {
     const includeSpecials = interaction.options.getBoolean('include_specials') || false;
     const inventory = await UserInventory.findOne({ userId });
     if (!inventory || inventory.cards.length === 0) {
-      return interaction.editReply('You don’t own any cards to refund.');
+      return safeReply(interaction, 'You don’t own any cards to refund.');
     }
 
     const cardMap = new Map(inventory.cards.map(c => [c.cardCode, c.quantity]));
@@ -135,7 +135,7 @@ const makeButtons = () => {
   return [navRow, confirmRow];
 };
 
-let msg = await interaction.editReply({
+let msg = await safeReply(interaction, {
   embeds: [makePreviewEmbed()],
   components: makeButtons()
 });
@@ -147,7 +147,7 @@ while (true) {
   }).catch(() => null);
 
   if (!btn) {
-  await interaction.editReply({ content: 'Timed out. Refund cancelled.', components: [], embeds: [] });
+  await safeReply(interaction, { content: 'Timed out. Refund cancelled.', components: [], embeds: [] });
   return;
 }
 
@@ -221,6 +221,6 @@ if (btn.customId === 'cancel_refund') {
       .setDescription(`You received **${totalRefund} <:ehx_patterns:1389584144895315978>**`)
       .addFields({ name: 'Details', value: refundDetails.join('\n').slice(0, 1024) });
 
-    return interaction.editReply({ embeds: [embed] });
+    return safeReply(interaction, { embeds: [embed] });
   }
 };

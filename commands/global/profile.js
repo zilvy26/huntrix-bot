@@ -64,10 +64,10 @@ module.exports = {
       }, favoriteCardImageURL);
 
       const attachment = new AttachmentBuilder(buffer, { name: 'profile.png' });
-      await interaction.editReply({ files: [attachment] });
+      await safeReply(interaction, { files: [attachment] });
     } catch (error) {
       console.error("Error generating profile:", error);
-      await interaction.editReply({ content: "There was an error generating the profile image." });
+      await safeReply(interaction, { content: "There was an error generating the profile image." });
     }
   }
 };

@@ -27,5 +27,5 @@ module.exports = async function(interaction) {
     )
     .setFooter({ text: 'Use /boutique cards or /boutique decors to buy items.' });
 
-  await interaction.reply({ embeds: [embed] });
+  await safeReply(interaction, { embeds: [embed] });
 };

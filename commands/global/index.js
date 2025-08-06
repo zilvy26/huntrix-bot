@@ -88,7 +88,7 @@ if (inv) {
     cardList.sort((a, b) => parseInt(b.rarity) - parseInt(a.rarity));
 
     if (!cardList.length) {
-      return interaction.editReply({ content: 'No cards match your filters.' });
+      return safeReply(interaction, { content: 'No cards match your filters.' });
     }
 
     let totalCopies = 0;
@@ -136,7 +136,7 @@ if (filters.show === 'dupes') {
       new ButtonBuilder().setCustomId('copy').setLabel('Copy Codes').setStyle(ButtonStyle.Success)
     );
 
-    await interaction.editReply({ embeds: [makeEmbed(page)], components: [makeRow()] });
+    await safeReply(interaction, { embeds: [makeEmbed(page)], components: [makeRow()] });
 
     while (true) {
   let btn;
@@ -196,7 +196,7 @@ await btn.editReply({
 
 try {
   if (interaction.replied || interaction.deferred) {
-    await interaction.editReply({ components: [] });
+    await safeReply(interaction, { components: [] });
   }
 } catch (err) {
   if (err.message !== 'Unknown Message') {

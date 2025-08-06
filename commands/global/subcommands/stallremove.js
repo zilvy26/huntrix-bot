@@ -42,5 +42,5 @@ module.exports = async function(interaction) {
     results.push(`Removed **${listing.cardName}** \`${listing.cardCode}\` ${code} & returned to inventory.`);
   }
 
-  return interaction.reply({ content: results.join('\n').slice(0, 2000) });
+  return safeReply(interaction, { content: results.join('\n').slice(0, 2000) });
 };

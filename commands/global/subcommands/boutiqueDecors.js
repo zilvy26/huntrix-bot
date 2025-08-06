@@ -8,7 +8,7 @@ module.exports = async function(interaction) {
   const user = await User.findOne({ userId });
 
   if (!user) {
-    return interaction.reply({ content: 'User not found.' });
+    return safeReply(interaction, { content: 'User not found.' });
   }
 
   const embed = new EmbedBuilder()
@@ -32,7 +32,7 @@ module.exports = async function(interaction) {
 
   const row = new ActionRowBuilder().addComponents(menu);
 
-  await interaction.reply({
+  await safeReply(interaction, {
     embeds: [embed],
     components: [row],
     

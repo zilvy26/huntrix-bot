@@ -30,7 +30,7 @@ module.exports = {
 
     if (await cooldowns.isOnCooldown(userId, commandName)) {
       const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
-      return interaction.editReply({
+      return safeReply(interaction, {
         content: `You must wait **${nextTime}** before rehearsing again.`
       });
     }
@@ -50,7 +50,7 @@ for (let i = 0; i < 3; i++) {
 
 
     if (cards.length < 3) {
-      return interaction.editReply({ content: 'Not enough pullable cards in the database.' });
+      return safeReply(interaction, { content: 'Not enough pullable cards in the database.' });
     }
 
     const canvas = Canvas.createCanvas(600, 340);
@@ -105,7 +105,7 @@ for (let i = 0; i < 3; i++) {
     interaction.client.cache.rehearsal ??= {};
     interaction.client.cache.rehearsal[userId] = cards;
 
-    await interaction.editReply({
+    await safeReply(interaction, {
       embeds: [embed],
       files: [attachment],
       components: [row]

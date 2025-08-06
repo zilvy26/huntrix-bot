@@ -27,7 +27,7 @@ module.exports = {
 
     if (await cooldowns.isOnCooldown(userId, commandName)) {
       const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
-      return interaction.reply({
+      return safeReply(interaction, {
         content: `You must wait ${nextTime} before using \`/pull\` again.`,
       });
     }
@@ -39,7 +39,7 @@ module.exports = {
     const card = await getRandomCardByRarity(rarity);
 
     if (!card) {
-      return interaction.editReply({ content: `No pullable cards found for rarity ${rarity}.` });
+      return safeReply(interaction, { content: `No pullable cards found for rarity ${rarity}.` });
     }
 
     let userInventory = await UserInventory.findOne({ userId });
@@ -90,6 +90,6 @@ module.exports = {
       detail: `Pulled ${card.name} (${card.cardCode}) [${card.rarity}]`
     });
 
-    return interaction.editReply({ embeds: [embed], files });
+    return safeReply(interaction, { embeds: [embed], files });
   }
 };

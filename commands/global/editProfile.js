@@ -49,7 +49,7 @@ module.exports = {
     // Always allow fallback to base
     if (template !== 'profile_base') {
       if (!userData?.templatesOwned?.includes(template)) {
-        return interaction.editReply({
+        return safeReply(interaction, {
           content: `You don’t own the template \`${template}\`. Use /boutique decors to buy it.`,
         });
       }
@@ -65,7 +65,7 @@ module.exports = {
     });
 
     if (!ownsCard) {
-      return interaction.editReply({
+      return safeReply(interaction, {
         content: `You don’t own a card with code \`${favoriteCard}\`.`,
       });
     }
@@ -75,7 +75,7 @@ module.exports = {
 
   await profile.save();
 
-  return interaction.editReply({
+  return safeReply(interaction, {
     content: 'Your profile has been updated.',
   });
 }

@@ -27,7 +27,7 @@ module.exports = {
     // Check cooldown
     if (await cooldowns.isOnCooldown(userId, commandName)) {
   const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
-  return interaction.reply({
+  return safeReply(interaction, {
     content: `You already claimed your daily reward. Try again **${nextTime}**.`,
   });
 }
@@ -46,7 +46,7 @@ module.exports = {
     let streak = userData.dailystreak?.count || 0;
 
     if (diff < oneDay) {
-      return interaction.reply({
+      return safeReply(interaction, {
         content: `You already claimed your daily reward. Try again later.`,
         
       });
@@ -85,6 +85,6 @@ module.exports = {
       ].join('\n'))
       .setColor('#78c5f1');
 
-    return interaction.reply({ embeds: [embed] });
+    return safeReply(interaction, { embeds: [embed] });
   }
 };

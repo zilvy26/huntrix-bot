@@ -74,10 +74,10 @@ module.exports = {
       if (sub === 'remove') return await handleRemove(interaction);
       if (sub === 'delete') return await handleDelete(interaction);
 
-      return interaction.reply({ content: `Unknown subcommand: ${sub}` });
+      return safeReply(interaction, { content: `Unknown subcommand: ${sub}` });
     } catch (err) {
       console.error(`[STALL/${sub}] Error:`, err);
-      return interaction.reply({ content: `Something went wrong.` });
+      return safeReply(interaction, { content: `Something went wrong.` });
     }
   }
 };

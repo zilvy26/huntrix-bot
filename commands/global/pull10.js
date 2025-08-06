@@ -31,7 +31,7 @@ module.exports = {
 
   if (await cooldowns.isOnCooldown(userId, commandName)) {
     const ts = await cooldowns.getCooldownTimestamp(userId, commandName);
-    return interaction.reply({ content: `You must wait **${ts}** to pull again.` });
+    return safeReply(interaction, { content: `You must wait **${ts}** to pull again.` });
   }
 
   await cooldowns.setCooldown(userId, commandName, cooldownMs);
@@ -51,7 +51,7 @@ module.exports = {
   }
 
   if (pulls.length < 10) {
-    return interaction.editReply({ content: '❌ Not enough cards available to pull 10.' });
+    return safeReply(interaction, { content: '❌ Not enough cards available to pull 10.' });
   }
 
   // 🖼️ Canvas Layout
@@ -107,7 +107,7 @@ module.exports = {
     .setDescription(pullLines.join('\n'))
     .setFooter({ text: `Pulled at ${new Date().toUTCString()}` });
 
-  await interaction.editReply({
+  await safeReply(interaction, {
     embeds: [embed],
     files: [attachment]
   });

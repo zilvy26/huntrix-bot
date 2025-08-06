@@ -24,12 +24,12 @@ module.exports = {
         ? `You have now debuted — let us build the Honmoon together!`
         : `Welcome back, ${user.username}! You're already registered.`;
 
-      await interaction.reply({ content: message });
+      await safeReply(interaction, { content: message });
 
     } catch (err) {
       console.error('❌ Error in /register:', err);
       if (!interaction.replied) {
-        await interaction.reply({
+        await safeReply(interaction, {
           content: '❌ Something went wrong while registering you.',
         });
       }

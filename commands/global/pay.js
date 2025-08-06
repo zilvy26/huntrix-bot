@@ -28,11 +28,11 @@ module.exports = {
     const sopopToSend = interaction.options.getInteger('sopop') || 0;
 
     if (!patternsToSend && !sopopToSend) {
-      return interaction.reply({ content: '❌ You must send at least one currency type.' });
+      return safeReply(interaction, { content: '❌ You must send at least one currency type.' });
     }
 
     if (recipient.bot || recipient.id === senderId) {
-      return interaction.reply({ content: '❌ You cannot pay yourself or a bot.' });
+      return safeReply(interaction, { content: '❌ You cannot pay yourself or a bot.' });
     }
 
     const [sender, receiver] = await Promise.all([
@@ -41,11 +41,11 @@ module.exports = {
     ]);
 
     if (!sender || (!sender.patterns && !sender.sopop)) {
-      return interaction.reply({ content: '❌ You have no currency to send.' });
+      return safeReply(interaction, { content: '❌ You have no currency to send.' });
     }
 
     if (sender.patterns < patternsToSend || sender.sopop < sopopToSend) {
-      return interaction.reply({ content: '❌ You don’t have enough balance to complete this payment.' });
+      return safeReply(interaction, { content: '❌ You don’t have enough balance to complete this payment.' });
     }
 
     // Perform the transaction
@@ -83,6 +83,6 @@ await UserRecord.create({
   detail: `Received <:ehx_patterns:1389584144895315978> ${patternsToSend} and <:ehx_sopop:1389584273337618542> ${sopopToSend} from <@${interaction.user.tag}>`
 });
 
-    return interaction.reply({ embeds: [embed] });
+    return safeReply(interaction, { embeds: [embed] });
   }
 };

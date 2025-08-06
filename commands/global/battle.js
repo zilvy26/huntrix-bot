@@ -42,7 +42,7 @@ module.exports = {
 
     if (await cooldowns.isOnCooldown(userId, commandName)) {
       const endsAt = await cooldowns.getCooldownTimestamp(userId, commandName);
-      return interaction.reply({
+      return safeReply(interaction, {
         content: `You must wait before battling again. Try ${endsAt}`,
       });
     }
@@ -58,7 +58,7 @@ module.exports = {
     ]);
 
     if (!questions.length) {
-      return interaction.reply({ content: 'No questions found for this difficulty.' });
+      return safeReply(interaction, { content: 'No questions found for this difficulty.' });
     }
 
     const selected = questions[0];
@@ -81,7 +81,7 @@ module.exports = {
       const fullPath = path.resolve(__dirname, '../../..', selected.localImagePath);
       if (fs.existsSync(fullPath)) {
         embed.setImage(`attachment://${path.basename(fullPath)}`);
-        await interaction.reply({
+        await safeReply(interaction, {
           embeds: [embed],
           components: [buttons],
           files: [fullPath]
@@ -91,7 +91,7 @@ module.exports = {
     }
 
     // Fallback if no local image
-    await interaction.reply({
+    await safeReply(interaction, {
       embeds: [embed],
       components: [buttons]
     });

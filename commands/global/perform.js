@@ -34,7 +34,7 @@ module.exports = {
 
 if (await cooldowns.isOnCooldown(userId, commandName)) {
   const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
-  return interaction.reply({
+  return safeReply(interaction, {
     content: `You're tired from your last performance. Come back **${nextTime}**.`,
   });
 }
@@ -60,6 +60,6 @@ await cooldowns.setCooldown(userId, commandName, cooldownMs);
       ].join('\n'))
       .setColor('#f9a825');
 
-    return interaction.reply({ embeds: [embed] });
+    return safeReply(interaction, { embeds: [embed] });
   }
 };

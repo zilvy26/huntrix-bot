@@ -71,18 +71,18 @@ if (rarityRangeRaw) {
   } else if (matchSingle) {
     minRarity = maxRarity = Math.max(1, Math.min(5, parseInt(matchSingle[1])));
   } else {
-    return interaction.reply({
+    return safeReply(interaction, {
       content: `Invalid rarity format. Use \`1\` or \`2-4\`.`,
     });
   }
 }
 
     if (target.bot || target.id === giver.id) {
-      return interaction.editReply('You can’t gift cards to yourself or bots.');
+      return safeReply(interaction, 'You can’t gift cards to yourself or bots.');
     }
     const invDoc = await UserInventory.findOne({ userId: giver.id });
     if (!invDoc || !invDoc.cards.length) {
-      return interaction.editReply('You have no cards to gift.');
+      return safeReply(interaction, 'You have no cards to gift.');
     }
 
     // Prepare filtered list
@@ -123,7 +123,7 @@ const owned = invDoc.cards.map(c => ({
 });
 
     if (!matches.length) {
-      return interaction.editReply('No matching cards found in your inventory.');
+      return safeReply(interaction, 'No matching cards found in your inventory.');
     }
 
     // Determine gift quantities
@@ -147,7 +147,7 @@ for (const o of matches) {
 }
 
     if (!gifts.length) {
-      return interaction.editReply('No cards available to gift under this mode.');
+      return safeReply(interaction, 'No cards available to gift under this mode.');
     }
 
     // Fetch or create receiver's inventory
@@ -216,7 +216,7 @@ for (const o of matches) {
         );
     
         // 1. Send the embed page without a mention first
-await interaction.editReply({
+await safeReply(interaction, {
   embeds: [renderEmbed(current)],
   components: [renderRow()]
 });
@@ -236,12 +236,12 @@ await interaction.followUp({
           if (btn.customId === 'next') current = Math.min(pages - 1, current + 1);
           if (btn.customId === 'last') current = pages - 1;
     
-          await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
+          await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
         }
     
         // Final cleanup
         try {
-          await interaction.editReply({ components: [] });
+          await safeReply(interaction, { components: [] });
         } catch (err) {
           console.warn('Pagination cleanup failed:', err.message);
         }

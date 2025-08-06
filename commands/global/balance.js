@@ -34,6 +34,6 @@ module.exports = {
       .setColor('#FFD700')
       .setFooter({ text: `Requested by ${interaction.user.username}` });
 
-    return interaction.reply({ embeds: [embed] });
+    return safeReply(interaction, { embeds: [embed] });
   }
 };

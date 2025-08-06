@@ -26,7 +26,7 @@ module.exports = {
     const userId = interaction.user.id;
 
     if (!codes.length) {
-      return interaction.reply({ content: 'You must provide at least one valid card code.' });
+      return safeReply(interaction, { content: 'You must provide at least one valid card code.' });
     }
 
     const [cards, userInventory] = await Promise.all([
@@ -35,7 +35,7 @@ module.exports = {
     ]);
 
     if (!cards.length) {
-      return interaction.reply({ content: 'No cards found for those codes.' });
+      return safeReply(interaction, { content: 'No cards found for those codes.' });
     }
 
     const showcaseItems = [];
@@ -82,7 +82,7 @@ module.exports = {
 
     const first = showcaseItems[0];
 
-    await interaction.reply({
+    await safeReply(interaction, {
       embeds: [first.embed],
       components: [row],
       files: first.attachment ? [first.attachment] : []

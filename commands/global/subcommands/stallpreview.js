@@ -63,7 +63,7 @@ async function renderPreview(interaction, options) {
   const skip = (page - 1) * listingsPerPage;
   const listings = await MarketListing.find(filter).sort(sort).skip(skip).limit(listingsPerPage).exec();
   if (!listings.length) {
-    return interaction.reply({ content: "No listings found for that page or filter." });
+    return safeReply(interaction, { content: "No listings found for that page or filter." });
   }
 
   const count = await MarketListing.countDocuments(filter);
@@ -102,9 +102,9 @@ const files = listing.localImagePath
   );
 
   if (interaction.replied || interaction.deferred) {
-    await interaction.editReply({ embeds: [embed], components: [row], files });
+    await safeReply(interaction, { embeds: [embed], components: [row], files });
   } else {
-    await interaction.reply({ embeds: [embed], components: [row], files });
+    await safeReply(interaction, { embeds: [embed], components: [row], files });
   }
 
   // After replying to the interaction (e.g. after interaction.reply or editReply)

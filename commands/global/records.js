@@ -35,7 +35,7 @@ module.exports = {
     }).sort({ createdAt: -1 });
 
     if (!allLogs.length) {
-      return interaction.editReply({ content: `No records found for ${target.username}.` });
+      return safeReply(interaction, { content: `No records found for ${target.username}.` });
     }
 
     const logsPerPage = 10;
@@ -65,12 +65,12 @@ module.exports = {
             new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
     );
 
-    await interaction.editReply({
+    await safeReply(interaction, {
       embeds: [getPage(current)],
       components: [getRow(current)]
     });
 
-    await interaction.editReply({ embeds: [getPage(current)], components: [getRow()] });
+    await safeReply(interaction, { embeds: [getPage(current)], components: [getRow()] });
     
         while (true) {
           const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
@@ -81,12 +81,12 @@ module.exports = {
           if (btn.customId === 'next') current = Math.min(totalPages - 1, current + 1);
           if (btn.customId === 'last') current = totalPages - 1;
     
-          await interaction.editReply({ embeds: [getPage(current)], components: [getRow()] });
+          await safeReply(interaction, { embeds: [getPage(current)], components: [getRow()] });
         }
     
         // Final cleanup
         try {
-          await interaction.editReply({ components: [] });
+          await safeReply(interaction, { components: [] });
         } catch (err) {
           console.warn('Pagination cleanup failed:', err.message);
         }

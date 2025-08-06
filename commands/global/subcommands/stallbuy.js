@@ -11,7 +11,7 @@ module.exports = async function(interaction) {
   const codes = input.split(',').map(c => c.trim().toUpperCase());
 
   const buyer = await User.findOne({ userId: buyerId });
-  if (!buyer) return interaction.reply({ content: 'Buyer profile not found.' });
+  if (!buyer) return safeReply(interaction, { content: 'Buyer profile not found.' });
 
   const results = [];
   let totalCost = 0;
@@ -86,7 +86,7 @@ module.exports = async function(interaction) {
 
   await buyer.save();
 
-  return interaction.reply({
+  return safeReply(interaction, {
     content: `Purchase complete:\n${results.join('\n')}\n\n Total Spent: **${totalCost} Patterns**`
   });
 };

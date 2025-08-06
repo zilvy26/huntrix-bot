@@ -13,25 +13,25 @@ module.exports = async function(interaction) {
   
 
   if (price <= 0) {
-    return interaction.reply({ content: 'Price must be greater than 0.' });
+    return safeReply(interaction, { content: 'Price must be greater than 0.' });
   }
 
   const listingCount = await MarketListing.countDocuments({ sellerId: userId });
   if (listingCount >= 50) {
-    return interaction.reply({ content: 'You can only have 50 listings at a time.' });
+    return safeReply(interaction, { content: 'You can only have 50 listings at a time.' });
   }
 
   const inventoryDoc = await UserInventory.findOne({ userId });
   
 
   if (!inventoryDoc) {
-    return interaction.reply({ content: 'You have no inventory record.' });
+    return safeReply(interaction, { content: 'You have no inventory record.' });
   }
 
   const ownedCard = inventoryDoc.cards.find(c => c.cardCode.trim().toUpperCase() === cardCode);
   
   if (!ownedCard || ownedCard.quantity <= 0) {
-    return interaction.reply({ content: `You do not own the card with code **${cardCode}**.` });
+    return safeReply(interaction, { content: `You do not own the card with code **${cardCode}**.` });
   }
 
   const cardData = await Card.findOne({ cardCode });
@@ -46,19 +46,19 @@ module.exports = async function(interaction) {
 const isSpecialRarity5 = cardData.rarity === 5 && ['kpop', 'anime', 'game'].includes((cardData.category || '').toLowerCase());
 
 if (cardData.rarity < 5 && price > priceCaps[cardData.rarity]) {
-  return interaction.reply({
+  return safeReply(interaction, {
     content: `Price cap for rarity ${cardData.rarity} cards is **${priceCaps[cardData.rarity]}** <:ehx_patterns:1389584144895315978>.`
   });
 }
 
 if (isSpecialRarity5 && price > 5000) {
-  return interaction.reply({
+  return safeReply(interaction, {
     content: `5 Star Standard cards are capped at **3000** <:ehx_patterns:1389584144895315978>.`
   });
 }
 
   if (!cardData) {
-    return interaction.reply({ content: `Metadata for **${cardCode}** not found in card database.` });
+    return safeReply(interaction, { content: `Metadata for **${cardCode}** not found in card database.` });
   }
 
   const buyCode = shortid.generate().toUpperCase();
@@ -86,7 +86,7 @@ if (isSpecialRarity5 && price > 5000) {
 
   await inventoryDoc.save();
 
-  await interaction.reply({
+  await safeReply(interaction, {
     content: `<@${userId}> listed **${cardData.name}** \`${cardData.cardCode}\` for **${price} <:ehx_patterns:1389584144895315978>**!\n Buy Code: \`${buyCode}\``
   });
 };
