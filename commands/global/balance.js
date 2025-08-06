@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const User = require('../../models/User');
+const safeReply = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

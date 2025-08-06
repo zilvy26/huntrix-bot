@@ -4,6 +4,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const UserProfile = require('../../models/UserProfile');
 const UserInventory = require('../../models/UserInventory');
 const templateOptions = require('../../data/templateOptions');
+const safeReply = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

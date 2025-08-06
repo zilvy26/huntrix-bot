@@ -7,6 +7,7 @@ const {
 } = require('discord.js');
 const UserRecord = require('../../models/UserRecord');
 const awaitUserButton = require('../../utils/awaitUserButton');
+const safeReply = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

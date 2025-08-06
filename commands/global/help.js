@@ -2,6 +2,7 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const safeReply = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

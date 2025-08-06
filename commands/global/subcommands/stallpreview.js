@@ -10,6 +10,7 @@ const User = require('../../../models/User');
 const generateStars = require('../../../utils/starGenerator');
 const { stallPreviewFilters } = require('../../../utils/cache');
 const UserInventory = require('../../../models/UserInventory'); // adjust path as needed
+const safeReply = require('../../../utils/safeReply');
 
 const listingsPerPage = 1;
 const maxDefaultPages = 100;

@@ -3,6 +3,7 @@ const MarketListing = require('../../../models/MarketListing');
 const User = require('../../../models/User');
 const UserInventory = require('../../../models/UserInventory');
 const UserRecord = require('../../../models/UserRecord');
+const safeReply = require('../../../utils/safeReply');
 
 module.exports = async function(interaction) {
   const input = interaction.options.getString('buycode');

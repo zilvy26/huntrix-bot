@@ -11,6 +11,7 @@ const Question = require('../../models/Question');
 const cooldowns = require('../../utils/cooldownManager');
 const cooldownConfig = require('../../utils/cooldownConfig');
 const handleReminders = require('../../utils/reminderHandler');
+const safeReply = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

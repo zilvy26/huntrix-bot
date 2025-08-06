@@ -12,6 +12,7 @@ const Card = require('../../../models/Card');
 const generateStars = require('../../../utils/starGenerator');
 const awaitUserButton = require('../../../utils/awaitUserButton');
 const BoutiqueCooldown = require('../../../models/BoutiqueCooldown');
+const safeReply = require('../../../utils/safeReply');
 const rarityWeights = {
   '5': 0.01,
   '4': 0.11,

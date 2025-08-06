@@ -3,6 +3,7 @@ const cooldowns = require('../../utils/cooldownManager');
 const cooldownConfig = require('../../utils/cooldownConfig');
 const giveCurrency = require('../../utils/giveCurrency');
 const handleReminders = require('../../utils/reminderHandler');
+const safeReply = require('../../utils/safeReply');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;

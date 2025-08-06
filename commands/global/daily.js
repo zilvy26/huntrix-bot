@@ -4,6 +4,7 @@ const cooldownConfig = require('../../utils/cooldownConfig');
 const giveCurrency = require('../../utils/giveCurrency');
 const handleReminders = require('../../utils/reminderHandler');
 const User = require('../../models/User'); // Adjust path if needed
+const safeReply = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

@@ -9,6 +9,7 @@ const UserInventory = require('../../models/UserInventory');
 const rarityEmoji = require('../../utils/rarityEmoji');
 const pickRarity = require('../../utils/rarityPicker');
 const generateStars = require('../../utils/starGenerator');
+const safeReply = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

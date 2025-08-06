@@ -8,6 +8,7 @@ const cooldownConfig = require('../../utils/cooldownConfig');
 const handleReminders = require('../../utils/reminderHandler');
 const User = require('../../models/User');
 const UserRecord = require('../../models/UserRecord');
+const safeReply = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

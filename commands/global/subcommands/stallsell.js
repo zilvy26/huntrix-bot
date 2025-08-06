@@ -1,6 +1,7 @@
 const UserInventory = require('../../../models/UserInventory');
 const Card = require('../../../models/Card');
 const MarketListing = require('../../../models/MarketListing');
+const safeReply = require('../../../utils/safeReply');
 const shortid = require('shortid');
 
 module.exports = async function(interaction) {

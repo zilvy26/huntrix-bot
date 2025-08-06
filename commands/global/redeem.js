@@ -3,6 +3,7 @@ const RedeemCode = require('../../models/RedeemCode');
 const Card = require('../../models/Card');
 const User = require('../../models/User');
 const UserInventory = require('../../models/UserInventory');
+const safeReply = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

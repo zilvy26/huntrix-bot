@@ -2,6 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, Butt
 const User = require('../../models/User');
 const Card = require('../../models/Card');
 const UserInventory = require('../../models/UserInventory');
+const safeReply = require('../../utils/safeReply');
 
 const REFUND_VALUES = {
   1: 75,
