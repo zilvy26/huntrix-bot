@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const COMMANDS_DIR = path.resolve(__dirname, '../commands/global'); // adjust if needed
+const COMMANDS_DIR = path.resolve(__dirname, '../commands/global');
 const SAFE_REPLY_IMPORT = `const safeReply = require('../../utils/safeReply');`;
 
 function walkDir(dir, callback) {
@@ -15,31 +15,34 @@ function walkDir(dir, callback) {
   });
 }
 
-function processFile(filePath) {
-  let contents = fs.readFileSync(filePath, 'utf8');
+function processFile(fullPath) {
+  let contents = fs.readFileSync(fullPath, 'utf8');
   let modified = false;
 
-  // Replace reply and editReply with safeReply
-  const replyRegex = /await\s+interaction\.(reply|editReply)\s*\(/g;
-  if (replyRegex.test(contents)) {
-    contents = contents.replace(replyRegex, 'await safeReply(interaction, ');
+  // Add safeReply import if missing
+  if (!contents.includes('safeReply')) {
+    contents = SAFE_REPLY_IMPORT + '\n' + contents;
     modified = true;
   }
 
-  // Ensure safeReply is imported
-  if (modified && !contents.includes('safeReply')) {
-    const lines = contents.split('\n');
-    const insertIndex = lines.findIndex(line =>
-      line.startsWith('const') || line.startsWith("'use strict'")
-    ) + 1;
-
-    lines.splice(insertIndex, 0, SAFE_REPLY_IMPORT);
-    contents = lines.join('\n');
+  // Replace interaction.reply(...)
+  const replyRegex = /interaction\.reply\(([^)]*)\)/g;
+  if (replyRegex.test(contents)) {
+    contents = contents.replace(replyRegex, 'safeReply(interaction, $1)');
+    modified = true;
   }
 
+  // Replace interaction.editReply(...)
+  const editReplyRegex = /interaction\.editReply\(([^)]*)\)/g;
+  if (editReplyRegex.test(contents)) {
+    contents = contents.replace(editReplyRegex, 'safeReply(interaction, $1)');
+    modified = true;
+  }
+
+  // Save changes
   if (modified) {
-    fs.writeFileSync(filePath, contents, 'utf8');
-    console.log(`✅ Updated: ${filePath}`);
+    fs.writeFileSync(fullPath, contents, 'utf8');
+    console.log(`✅ Updated: ${fullPath}`);
   }
 }
 
