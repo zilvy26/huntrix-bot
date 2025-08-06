@@ -83,7 +83,7 @@ module.exports = {
 
       const designerIds = [designer1, designer2, designer3]
   .filter(Boolean)
-  .map(user => `<@${user.id}>`)
+  .map(user => `${user.id}`)
   .join(', ');
       const pullable = opts.getBoolean('pullable') ?? true;
       const group = opts.getString('group');
