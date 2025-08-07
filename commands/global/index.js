@@ -32,7 +32,7 @@ module.exports = {
     .addStringOption(opt => opt.setName('name').setDescription('Filter by card name'))
     .addStringOption(opt => opt.setName('rarity').setDescription('Filter by rarity'))
     .addStringOption(opt =>
-  opt.setName('include_customs')
+  opt.setName('include_others')
     .setDescription('Show Customs, Test & Limited cards?')
     .addChoices(
       { name: 'Yes', value: 'yes' },
@@ -53,7 +53,7 @@ const filters = {
   names: parseList(interaction.options.getString('name')),
   rarities: parseList(interaction.options.getString('rarity')),
   show: interaction.options.getString('show') || 'owned',
-  includeCustoms: interaction.options.getString('include_customs') === 'yes'
+  includeCustoms: interaction.options.getString('include_others') === 'yes'
 };
 
 const allCards = await Card.find().lean();
@@ -75,7 +75,7 @@ if (inv) {
   const rarityMatch = !filters.rarities.length || filters.rarities.includes(String(card.rarity));
 
   // ❌ Skip unwanted groups unless toggled on
-  if (!filters.includeCustoms && ['customs', 'test', 'limited'].includes(card.group.toLowerCase())) return false;
+  if (!filters.includeCustoms && ['customs', 'test', 'limited'].includes(card.era?.toLowerCase())) return false;
 
   if (!(groupMatch && eraMatch && nameMatch && rarityMatch)) return false;
 
