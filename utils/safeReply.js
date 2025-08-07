@@ -3,8 +3,6 @@ let replyCount = 0; // Track how many times safeReply is called
 module.exports = async function safeReply(interaction, options = {}, retries = 3, delay = 500) {
   replyCount++;
 
-  console.log(`🧪 safeReply called (${replyCount}x) in command: ${interaction.commandName}`);
-
   try {
     if (interaction.deferred || interaction.replied) {
       return await interaction.editReply(options);
