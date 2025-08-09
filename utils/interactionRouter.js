@@ -350,6 +350,87 @@ await interaction.editReply({
 });
 }
 
+  interaction.client.cache = interaction.client.cache || {};
+  interaction.client.cache.indexSessions = interaction.client.cache.indexSessions || {};
+
+  const m = /^index:(first|prev|next|last|copy)$/.exec(customId || '');
+  if (m) {
+    const action = m[1];
+
+    // session is keyed by message id (no persistence across restarts)
+    const msgId = interaction.message?.id;
+    const session = interaction.client.cache.indexSessions[msgId];
+
+    if (!session) {
+      // Session died (bot restarted or cache evicted)
+      if (!interaction.replied && !interaction.deferred) {
+        return interaction.reply({ content: '⚠️ This index view expired. Run /index again.', flags: 1 << 6 }).catch(()=>{});
+      }
+      return;
+    }
+
+    // Only the command invoker can use the controls
+    const ownerId = interaction.message?.interaction?.user?.id;
+    if (ownerId && interaction.user.id !== ownerId) {
+      return interaction.reply({ content: "These buttons aren't yours.", flags: 1 << 6 }).catch(()=>{});
+    }
+
+    // Read current page from footer: "Page X of Y • ..."
+    const footer = interaction.message.embeds?.[0]?.footer?.text || '';
+    const match = footer.match(/Page\s+(\d+)\s+of\s+(\d+)/i);
+    let page = Math.max(0, (match ? (parseInt(match[1], 10) - 1) : 0));
+    const perPage = session.perPage;
+    const totalPages = session.totalPages;
+
+    // Adjust page
+    if (action === 'first') page = 0;
+    if (action === 'prev')  page = Math.max(0, page - 1);
+    if (action === 'next')  page = Math.min(totalPages - 1, page + 1);
+    if (action === 'last')  page = totalPages - 1;
+
+    // Copy codes (ephemeral), do not touch the main message
+    if (action === 'copy') {
+      const slice = session.entries.slice(page * perPage, page * perPage + perPage);
+      const codes = slice.map(c => c.cardCode).join(', ');
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+      } else {
+        await interaction.followUp({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+      }
+      return;
+    }
+
+    // Make page description
+    const slice = session.entries.slice(page * perPage, page * perPage + perPage);
+    const description = slice.map(card => {
+      const stars = card.stars; // precomputed to avoid recomputing
+      const eraPart = card.category === 'kpop' && card.era ? ` | Era: ${card.era}` : '';
+      return `**${stars} ${card.name}**\nGroup: ${card.group}${eraPart} | Code: \`${card.cardCode}\` | Copies: ${card.copies}`;
+    }).join('\n\n');
+
+    const embed = {
+      ...interaction.message.embeds[0].data,
+      description,
+      footer: {
+        text: `Page ${page + 1} of ${totalPages} • Total Cards: ${session.totalCards} • Total Copies: ${session.totalCopies} • Total Stars: ${session.totalStars}`
+      }
+    };
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('index:first').setStyle(ButtonStyle.Secondary).setDisabled(page === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new ButtonBuilder().setCustomId('index:prev').setStyle(ButtonStyle.Primary).setDisabled(page === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new ButtonBuilder().setCustomId('index:next').setStyle(ButtonStyle.Primary).setDisabled(page >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
+      new ButtonBuilder().setCustomId('index:last').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+      new ButtonBuilder().setCustomId('index:copy').setLabel('Copy Codes').setStyle(ButtonStyle.Success)
+    );
+
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.update({ embeds: [embed], components: [row] }).catch(e => console.warn('index update fail:', e.message));
+    } else {
+      await interaction.editReply({ embeds: [embed], components: [row] }).catch(e => console.warn('index edit fail:', e.message));
+    }
+    return;
+  }
+
 const showcasePattern = /^(show_first|show_prev|show_next|show_last)$/;
 if (showcasePattern.test(customId)) {
   const userId = interaction.user.id;
@@ -357,7 +438,7 @@ if (showcasePattern.test(customId)) {
 
   if (!showcasePages?.length) {
     return interaction.update({
-      content: '❌ Showcase session expired or not found.',
+      content: 'Showcase session expired or not found.',
       embeds: [],
       components: []
     });

@@ -9,23 +9,19 @@ const {
 const Card = require('../../models/Card');
 const UserInventory = require('../../models/UserInventory');
 const generateStars = require('../../utils/starGenerator');
-const awaitUserButton = require('../../utils/awaitUserButton');
-const safeReply = require('../../utils/safeReply'); // assumed to reply/edit safely
+const safeReply = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('index')
     .setDescription('View your inventory with filters and pagination.')
     .addStringOption(opt =>
-      opt.setName('show')
-        .setDescription('Which cards to show')
-        .setRequired(true)
-        .addChoices(
-          { name: 'Owned Only', value: 'owned' },
-          { name: 'Missing Only', value: 'missing' },
-          { name: 'Duplicates Only', value: 'dupes' },
-          { name: 'All', value: 'all' }
-        )
+      opt.setName('show').setDescription('Which cards to show').setRequired(true).addChoices(
+        { name: 'Owned Only', value: 'owned' },
+        { name: 'Missing Only', value: 'missing' },
+        { name: 'Duplicates Only', value: 'dupes' },
+        { name: 'All', value: 'all' }
+      )
     )
     .addUserOption(opt => opt.setName('user').setDescription('Whose inventory to view?'))
     .addStringOption(opt => opt.setName('group').setDescription('Filter by group'))
@@ -35,18 +31,18 @@ module.exports = {
     .addStringOption(opt =>
       opt.setName('include_others')
         .setDescription('Show Customs, Test & Limited cards?')
-        .addChoices(
-          { name: 'Yes', value: 'yes' },
-          { name: 'No', value: 'no' }
-        )
+        .addChoices({ name: 'Yes', value: 'yes' }, { name: 'No', value: 'no' })
     ),
 
-    async execute(interaction) {
+  async execute(interaction) {
     await interaction.deferReply();
 
+    // init cache bucket
+    interaction.client.cache = interaction.client.cache || {};
+    interaction.client.cache.indexSessions = interaction.client.cache.indexSessions || {};
+
     const user = interaction.options.getUser('user') || interaction.user;
-    const parseList = (input) =>
-      input?.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) || [];
+    const parseList = (s) => s?.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) || [];
 
     const filters = {
       groups: parseList(interaction.options.getString('group')),
@@ -59,147 +55,90 @@ module.exports = {
 
     const allCards = await Card.find().lean();
     const inv = await UserInventory.findOne({ userId: user.id });
-    const inventoryMap = new Map();
-    if (inv) {
-      for (const entry of inv.cards) {
-        inventoryMap.set(entry.cardCode, entry.quantity);
-      }
-    }
-
+    const inventoryMap = new Map(inv?.cards.map(c => [c.cardCode, c.quantity]) || []);
     const cardList = allCards.filter(card => {
       const inInv = inventoryMap.has(card.cardCode);
       const copies = inventoryMap.get(card.cardCode) || 0;
 
-      const groupMatch = !filters.groups.length || filters.groups.includes(card.group.toLowerCase());
-      const eraMatch = !filters.eras.length || filters.eras.includes((card.era || '').toLowerCase());
-      const nameMatch = !filters.names.length || filters.names.includes(card.name.toLowerCase());
+      const groupMatch  = !filters.groups.length   || filters.groups.includes(card.group.toLowerCase());
+      const eraMatch    = !filters.eras.length     || filters.eras.includes((card.era || '').toLowerCase());
+      const nameMatch   = !filters.names.length    || filters.names.includes(card.name.toLowerCase());
       const rarityMatch = !filters.rarities.length || filters.rarities.includes(String(card.rarity));
 
-      // Skip unwanted groups unless toggled on
-      if (!filters.includeCustoms && ['customs', 'test', 'limited'].includes(card.era?.toLowerCase())) return false;
-
+      if (!filters.includeCustoms && ['customs','test','limited'].includes(card.era?.toLowerCase())) return false;
       if (!(groupMatch && eraMatch && nameMatch && rarityMatch)) return false;
 
-      if (filters.show === 'owned') return inInv && copies > 0;
-      if (filters.show === 'missing') return !inInv;
-      if (filters.show === 'dupes') return inInv && copies > 1;
+      if (filters.show === 'owned')  return inInv && copies > 0;
+      if (filters.show === 'missing')return !inInv;
+      if (filters.show === 'dupes')  return inInv && copies > 1;
       return true;
-    });
-
-    cardList.sort((a, b) => parseInt(b.rarity) - parseInt(a.rarity));
+    }).sort((a, b) => parseInt(b.rarity) - parseInt(a.rarity));
 
     if (!cardList.length) {
       return safeReply(interaction, { content: 'No cards match your filters.' });
     }
-    // Totals
-    let totalCopies = 0;
-    let totalStars = 0;
+
+    // totals
+    let totalCopies = 0, totalStars = 0;
     if (filters.show === 'dupes') {
       for (const card of cardList) {
         const qty = inventoryMap.get(card.cardCode) || 0;
         if (qty > 1) {
           totalCopies += qty - 1;
-          totalStars += card.rarity * (qty - 1);
+          totalStars  += card.rarity * (qty - 1);
         }
       }
     } else {
-      totalCopies = cardList.reduce((acc, card) => acc + (inventoryMap.get(card.cardCode) || 0), 0);
-      totalStars  = cardList.reduce((acc, card) => acc + (card.rarity * (inventoryMap.get(card.cardCode) || 0)), 0);
+      totalCopies = cardList.reduce((a,c) => a + (inventoryMap.get(c.cardCode) || 0), 0);
+      totalStars  = cardList.reduce((a,c) => a + c.rarity * (inventoryMap.get(c.cardCode) || 0), 0);
     }
 
-    // Pagination state
+    // build entries we need later (so router doesn’t touch DB again)
+    const entries = cardList.map(c => ({
+      name: c.name,
+      group: c.group,
+      category: (c.category || '').toLowerCase(),
+      era: c.era || '',
+      cardCode: c.cardCode,
+      rarity: c.rarity,
+      copies: inventoryMap.get(c.cardCode) || 0,
+      stars: generateStars({ rarity: c.rarity, overrideEmoji: c.emoji })
+    }));
+
     const perPage = 6;
-    const totalPages = Math.ceil(cardList.length / perPage);
-    let page = 0;
+    const totalPages = Math.ceil(entries.length / perPage);
+    const page = 0;
 
-    const makeEmbed = (pg) => {
-      const slice = cardList.slice(pg * perPage, pg * perPage + perPage);
-      const description = slice.map(card => {
-        const copies = inventoryMap.get(card.cardCode) || 0;
-        const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji });
-        return `**${stars} ${card.name}**\nGroup: ${card.group}${card.category?.toLowerCase() === 'kpop' && card.era ? ` | Era: ${card.era}` : ''} | Code: \`${card.cardCode}\` | Copies: ${copies}`;
-      }).join('\n\n');
+    const pageSlice = entries.slice(0, perPage);
+    const description = pageSlice.map(card => {
+      const eraPart = card.category === 'kpop' && card.era ? ` | Era: ${card.era}` : '';
+      return `**${card.stars} ${card.name}**\nGroup: ${card.group}${eraPart} | Code: \`${card.cardCode}\` | Copies: ${card.copies}`;
+    }).join('\n\n');
 
-      return new EmbedBuilder()
-        .setTitle(`${user.username}'s Inventory`)
-        .setDescription(description)
-        .setColor('#FF69B4')
-        .setFooter({
-          text: `Page ${pg + 1} of ${totalPages} • Total Cards: ${cardList.length} • Total Copies: ${totalCopies} • Total Stars: ${totalStars}`
-        });
-    };
+    const embed = new EmbedBuilder()
+      .setTitle(`${user.username}'s Inventory`)
+      .setDescription(description)
+      .setColor('#FF69B4')
+      .setFooter({
+        text: `Page ${page + 1} of ${totalPages} • Total Cards: ${entries.length} • Total Copies: ${totalCopies} • Total Stars: ${totalStars}`
+      });
 
-    const makeRow = () => new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(page === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-      new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(page === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
-      // NOTE: name must not include colons
-      new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(page >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
-      new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
-      new ButtonBuilder().setCustomId('copy').setLabel('Copy Codes').setStyle(ButtonStyle.Success)
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('index:first').setStyle(ButtonStyle.Secondary).setDisabled(page === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new ButtonBuilder().setCustomId('index:prev').setStyle(ButtonStyle.Primary).setDisabled(page === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new ButtonBuilder().setCustomId('index:next').setStyle(ButtonStyle.Primary).setDisabled(page >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
+      new ButtonBuilder().setCustomId('index:last').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+      new ButtonBuilder().setCustomId('index:copy').setLabel('Copy Codes').setStyle(ButtonStyle.Success)
     );
-    // Send initial message and keep a handle to it
-    await safeReply(interaction, { embeds: [makeEmbed(page)], components: [makeRow()], fetchReply: true });
-    let msg;
-    try {
-      msg = await interaction.fetchReply(); // guaranteed Message object
-    } catch {
-      // If this fails, bail early — nothing to update
-      return;
-    }
 
-    // Interaction loop
-    while (true) {
-      let btn;
-      try {
-        btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last', 'copy'], 120000);
-        if (!btn) break;
-      } catch (err) {
-        console.warn('Button collector expired or failed:', err?.message);
-        break;
-      }
-
-      try {
-        if (btn.customId === 'first') page = 0;
-        else if (btn.customId === 'prev') page = Math.max(page - 1, 0);
-        else if (btn.customId === 'next') page = Math.min(page + 1, totalPages - 1);
-        else if (btn.customId === 'last') page = totalPages - 1;
-        else if (btn.customId === 'copy') {
-          const slice = cardList.slice(page * perPage, page * perPage + perPage);
-          const codes = slice.map(c => c.cardCode).join(', ');
-          // ephemeral reply with codes
-          if (!btn.deferred && !btn.replied) {
-            await btn.reply({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 });
-          } else {
-            await btn.followUp({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 });
-          }
-          continue; // do not edit the main message
-        }
-
-        // Proper way to edit the message a component belongs to
-        if (!btn.deferred && !btn.replied) {
-          await btn.deferUpdate();
-        }
-        await btn.update({
-          embeds: [makeEmbed(page)],
-          components: [makeRow()]
-        });
-      } catch (err) {
-        console.error('Failed to update message:', err?.message);
-        // If message no longer exists (10008), stop the loop
-        if (err?.code === 10008) break;
-      }
-    }
-
-    // Cleanup: remove buttons if the message is still around
-    try {
-      if (msg && !msg.deleted) {
-        await msg.edit({ components: [] });
-      }
-    } catch (err) {
-      // swallow the "Unknown Message" (10008) noise
-      if (err?.code !== 10008) {
-        console.warn('🔧 Failed to clean up buttons:', err?.message);
-      }
-    }
+    // send the message
+    await safeReply(interaction, { embeds: [embed], components: [row] });
+    // stash the session in memory keyed by the sent message id
+    const sent = await interaction.fetchReply();
+    interaction.client.cache.indexSessions[sent.id] = {
+      entries, perPage, totalPages,
+      totalCards: entries.length,
+      totalCopies, totalStars
+    };
   }
 };
