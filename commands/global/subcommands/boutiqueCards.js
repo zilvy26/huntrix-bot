@@ -132,16 +132,6 @@ if (hasOnlyRarity5) {
   }
 }
 
-// ➖ Deduct currency & log transaction
-    currency.patterns -= patternCost;
-    currency.sopop -= sopopCost;
-    await currency.save();
-    await UserRecord.create({
-      userId,
-      type: 'cardboutique',
-      detail: `Spent ${patternCost} Patterns & ${sopopCost} Sopop on ${shopType} x${amount}`
-    });
-
     // zodiac1
     if (shopType === 'zodiac1') {
       filter = { pullable: true, category: { $in: 'zodiac' } };
@@ -195,6 +185,16 @@ for (let i = 0; i < amount; i++) {
 
   return pool[Math.floor(Math.random() * pool.length)];
 }
+
+// ➖ Deduct currency & log transaction
+    currency.patterns -= patternCost;
+    currency.sopop -= sopopCost;
+    await currency.save();
+    await UserRecord.create({
+      userId,
+      type: 'cardboutique',
+      detail: `Spent ${patternCost} Patterns & ${sopopCost} Sopop on ${shopType} x${amount}`
+    });
 
     // ➖ Process pulls: stack, update inventory & records
     const counts = {};
