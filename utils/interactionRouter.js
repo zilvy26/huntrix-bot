@@ -350,6 +350,7 @@ await interaction.editReply({
 });
 }
 
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
   interaction.client.cache = interaction.client.cache || {};
   interaction.client.cache.indexSessions = interaction.client.cache.indexSessions || {};
 
