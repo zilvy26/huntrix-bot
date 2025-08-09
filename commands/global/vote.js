@@ -95,7 +95,7 @@ module.exports = {
     await inventory.save();
 
     const patterns = getRandomInt(3750, 4250);
-    const sopop = shouldDropSopop() ? 2 : 0;
+    const sopop = shouldDropSopop() ? 2 : 1;
     const user = await giveCurrency(userId, { patterns, sopop });
 
     const embeds = [

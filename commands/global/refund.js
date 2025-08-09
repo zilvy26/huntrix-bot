@@ -185,7 +185,7 @@ if (btn.customId === 'cancel_refund') {
      if (isSpecial) {
         refundAmount = 3750 * qty;
       } else if (isR5Main) {
-        refundAmount = 2000 * qty;
+        refundAmount = 2500 * qty;
      }
    } else {
     // Don't refund or deduct anything, skip this card

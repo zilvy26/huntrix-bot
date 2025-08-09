@@ -20,7 +20,8 @@ module.exports = {
             .addChoices(
               { name: '20x Random & Guaranteed 5S', value: 'random20' },
               { name: '10x Cards of Choice', value: 'choice10' },
-              { name: '1x Special Pull', value: 'special' }
+              { name: '1x Zodiac Pull', value: 'zodiac1' },
+              { name: '1x Event Pull', value: 'event1' }
             )
         )
         .addIntegerOption(opt =>

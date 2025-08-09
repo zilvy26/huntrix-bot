@@ -14,11 +14,11 @@ const awaitUserButton = require('../../../utils/awaitUserButton');
 const BoutiqueCooldown = require('../../../models/BoutiqueCooldown');
 const safeReply = require('../../../utils/safeReply');
 const rarityWeights = {
-  '5': 0.01,
+  '5': 0.02,
   '4': 0.11,
   '3': 0.20,
   '2': 0.28,
-  '1': 0.40
+  '1': 0.39
 };
 
 module.exports = async function(interaction) {
@@ -37,7 +37,7 @@ if (cooldown && cooldown.expiresAt > now) {
 
 await BoutiqueCooldown.findOneAndUpdate(
   { userId: interaction.user.id },
-  { expiresAt: new Date(now.getTime() + 60 * 1000) }, // 1 minute
+  { expiresAt: new Date(now.getTime() + 30 * 1000) }, // 30 seconds
   { upsert: true }
 );
 
@@ -48,7 +48,8 @@ await BoutiqueCooldown.findOneAndUpdate(
     let patternCost = 0, sopopCost = 0;
     if (shopType === 'random20') patternCost = 12500 * amount;
     if (shopType === 'choice10') patternCost = 8500 * amount;
-    if (shopType === 'special') sopopCost = 2 * amount;
+    if (shopType === 'zodiac1') sopopCost = 4 * amount;
+    if (shopType === 'event1') sopopCost = 4 * amount;
 
     if (currency.patterns < patternCost) {
       return safeReply(interaction, `You need ${patternCost} Patterns (have ${currency.patterns}).`);
@@ -141,12 +142,39 @@ if (hasOnlyRarity5) {
       detail: `Spent ${patternCost} Patterns & ${sopopCost} Sopop on ${shopType} x${amount}`
     });
 
-    // special
-    if (shopType === 'special') {
-      filter = { pullable: true, category: { $in: ['event', 'zodiac'] } };
+    // zodiac1
+    if (shopType === 'zodiac1') {
+      filter = { pullable: true, category: { $in: 'zodiac' } };
       const pool = await Card.find(filter);
       if (pool.length === 0) {
-  return safeReply(interaction, 'No special cards found for that filter.');
+  return safeReply(interaction, 'No zodiac cards found for that filter.');
+}
+
+for (let i = 0; i < amount; i++) {
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  pulls.push(pick);
+}
+    }
+
+    function getWeightedRandomCard(cards) {
+  const pool = [];
+
+  for (const card of cards) {
+    const weight = rarityWeights[card.rarity] || 0.01;
+    for (let i = 0; i < Math.floor(weight * 100); i++) {
+      pool.push(card);
+    }
+  }
+
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// event1
+    if (shopType === 'event1') {
+      filter = { pullable: true, category: { $in: 'event' } };
+      const pool = await Card.find(filter);
+      if (pool.length === 0) {
+  return safeReply(interaction, 'No event cards found for that filter.');
 }
 
 for (let i = 0; i < amount; i++) {
