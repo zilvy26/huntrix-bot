@@ -42,7 +42,7 @@ if (await cooldowns.isOnCooldown(userId, commandName)) {
 await cooldowns.setCooldown(userId, commandName, cooldownMs);
 
     // Generate randomized rewards
-    const patterns = getRandomInt(1500, 1850);
+    const patterns = getRandomInt(1400, 1575);
     const sopop = shouldDropSopop() ? 1 : 0;
 
     // Give currency

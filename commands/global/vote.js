@@ -94,7 +94,7 @@ module.exports = {
 
     await inventory.save();
 
-    const patterns = getRandomInt(3750, 4250);
+    const patterns = getRandomInt(2750, 3250);
     const sopop = shouldDropSopop() ? 2 : 1;
     const user = await giveCurrency(userId, { patterns, sopop });
 
