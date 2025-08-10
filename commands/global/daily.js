@@ -60,7 +60,7 @@ module.exports = {
     // Calculate tiered reward scaling
     function calculateDailyReward(streak) {
   const sopop = 6 + Math.min(10, Math.floor(streak / 60));       // +1 per 60 days, max +10
-  const patterns = 10000 + Math.min(10000, Math.floor(streak / 15) * 300);  // +300 per 15 days, max +10000
+  const patterns = 8000 + Math.min(12000, Math.floor(streak / 15) * 325);  // +300 per 15 days, max +12000
   return { sopop, patterns };
   }
 
