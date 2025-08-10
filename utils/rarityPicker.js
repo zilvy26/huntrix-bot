@@ -3,9 +3,9 @@ const parseRarity = require('./parseRarity'); // we'll use the parser too
 // These can stay in "label" form for config, but will be converted
 const rawRarities = {
   '1S': 37,
-  '2S': 28.75,
-  '3S': 20.25,
-  '4S': 12,
+  '2S': 29.75,
+  '3S': 21.25,
+  '4S': 10,
   '5S': 2,
 };
 
