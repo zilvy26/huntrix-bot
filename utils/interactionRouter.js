@@ -93,19 +93,19 @@ if (!message) {
         let rewardSopop = 0;
 
         if (selected.difficulty === 'easy') {
-      rewardPatterns = getRandomInt(800, 1000);
+      rewardPatterns = getRandomInt(850, 975);
         if (Math.random() < 0.2) rewardSopop = 1; // 20% chance
       } else if (selected.difficulty === 'hard') {
-      rewardPatterns = getRandomInt(1000, 1200);
-        if (Math.random() < 0.3) rewardSopop = 1; // 30% chance
+      rewardPatterns = getRandomInt(975, 1100);
+        if (Math.random() < 0.27) rewardSopop = 1; // 27% chance
       } else if (selected.difficulty === 'impossible') {
-      rewardPatterns = getRandomInt(1200, 1400);
-        if (Math.random() < 0.35) rewardSopop = 1; // 40% chance
+      rewardPatterns = getRandomInt(1100, 1250);
+        if (Math.random() < 0.34) rewardSopop = 1; // 34% chance
       }
 
         let streakBonus = '';
         if (userDoc.correctStreak % 15 === 0) {
-          rewardPatterns += 800;
+          rewardPatterns += 700;
           rewardSopop += 1;
           streakBonus = '\n**Streak bonus activated!** Extra rewards granted!';
         }
@@ -293,7 +293,7 @@ if (!cards || cards.length < 3) {
 }
 
 const selected = cards[index];
-const sopop = Math.random() < 0.5 ? (Math.random() < 0.75 ? 1 : 2) : 0;
+const sopop = Math.random() < 0.4 ? (Math.random() < 0.75 ? 1 : 2) : 0;
 await giveCurrency(userId, { sopop });
 
 let inv = await UserInventory.findOne({ userId });
