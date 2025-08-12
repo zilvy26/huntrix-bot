@@ -12,7 +12,7 @@ const Reminder = require('../models/Reminder');
 const sendReminder = require('../utils/sendReminder');
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildPresences]
+  intents: [GatewayIntentBits.Guilds]
 });
 let isBotReady = false;
 
