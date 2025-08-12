@@ -159,7 +159,6 @@ client.once('ready', () => {
     console.error('❌ Failed to load reminders:', err);
   });
   cycleStatus();
-  setInterval(() => vanityRoleChecker(client).catch(console.error), 10 * 60 * 1000);
 });
 
 mongoose.connect(process.env.MONGO_URI).then(() => {
