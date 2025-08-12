@@ -8,7 +8,6 @@ const Maintenance = require('../models/Maintenance');
 const User = require('../models/User');
 const getOrCreateUser = require('../utils/getOrCreateUser');
 const interactionRouter = require('../utils/interactionRouter');
-const vanityRoleChecker = require('../utils/vanityRoleChecker');
 const Reminder = require('../models/Reminder');
 const sendReminder = require('../utils/sendReminder');
 
