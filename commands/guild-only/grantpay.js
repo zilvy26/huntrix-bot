@@ -31,11 +31,11 @@ module.exports = {
     const sopop = interaction.options.getInteger('sopop') || 0;
 
     if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
-      return interaction.reply({ content: 'You do not have permission to use this command.', flags: 1 << 6 });
+      return safeReply(interaction, { content: 'You do not have permission to use this command.', flags: 1 << 6 });
     }
 
     if (!patterns && !sopop) {
-      return interaction.reply({ content: 'You must specify patterns or sopop to grant or remove.', flags: 1 << 6 });
+      return safeReply(interaction, { content: 'You must specify patterns or sopop to grant or remove.', flags: 1 << 6 });
     }
 
     const userDoc = await User.findOneAndUpdate(
@@ -71,6 +71,6 @@ module.exports = {
         sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}**` : null
       ].filter(Boolean).join('\n'));
 
-    return interaction.reply({ embeds: [embed] });
+    return safeReply(interaction, { embeds: [embed] });
   }
 };

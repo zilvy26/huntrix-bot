@@ -16,7 +16,7 @@ module.exports = {
     const sender = interaction.member;
 
     if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
-      return interaction.reply({
+      return safeReply(interaction, {
         content: 'You do not have permission to use this command.',
         ephemeral: true
       });
@@ -26,7 +26,7 @@ module.exports = {
 
     const result = await Blacklist.findOneAndDelete({ userId: user.id });
     if (!result) {
-      return interaction.reply({ content: 'User is not blacklisted.'});
+      return safeReply(interaction, { content: 'User is not blacklisted.'});
     }
 
     // ✅ DM the user informing they’ve been unblacklisted
@@ -37,7 +37,7 @@ module.exports = {
       console.warn(`Could not DM user ${user.tag}:`, err.message);
     }
 
-    return interaction.reply({
+    return safeReply(interaction, {
       content: `<@${user.id}> has been unblacklisted.`,
     });
   }

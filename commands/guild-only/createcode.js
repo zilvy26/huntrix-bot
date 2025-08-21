@@ -36,7 +36,7 @@ module.exports = {
     const ALLOWED_ROLE_ID = '1386797486680703036'; // replace with your actual role ID
 
     if (!interaction.member.roles.cache.has(ALLOWED_ROLE_ID)) {
-    return interaction.reply({ content: 'Only authorized staff can use this command.' });
+    return safeReply(interaction, { content: 'Only authorized staff can use this command.' });
 }
 
     const inputCode = interaction.options.getString('code');
@@ -78,6 +78,6 @@ module.exports = {
       `• Max Uses: ${newCode.maxUses}`
     ].filter(Boolean).join('\n');
 
-    return interaction.reply({ content: `Created redeem code:\n${summary}` });
+    return safeReply(interaction, { content: `Created redeem code:\n${summary}` });
   }
 };

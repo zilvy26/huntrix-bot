@@ -1,3 +1,4 @@
+// commands/global/grantcard.js
 const {
   SlashCommandBuilder,
   EmbedBuilder,
@@ -6,7 +7,6 @@ const {
   ButtonStyle
 } = require('discord.js');
 const dotenv = require('dotenv');
-const safeReply = require('../../utils/safeReply');
 dotenv.config();
 
 const Card = require('../../models/Card');
@@ -14,6 +14,7 @@ const UserInventory = require('../../models/UserInventory');
 const UserRecord = require('../../models/UserRecord');
 const generateStars = require('../../utils/starGenerator');
 const awaitUserButton = require('../../utils/awaitUserButton');
+const safeReply = require('../../utils/safeReply');
 
 const GRANTING_ROLE_ID = process.env.GRANTING_ROLE_ID;
 
@@ -23,143 +24,145 @@ module.exports = {
     .setDescription('Grant one or more cards to a user by card code')
     .setDefaultMemberPermissions('0')
     .addUserOption(opt =>
-      opt.setName('user')
-        .setDescription('User to receive the cards')
-        .setRequired(true))
+      opt.setName('user').setDescription('User to receive the cards').setRequired(true))
     .addStringOption(opt =>
       opt.setName('cardcodes')
-        .setDescription('Comma-separated card codes (e.g. CODE1x2, CODE2, CODE1x-2)')
-        .setRequired(true)),
+        .setDescription('Comma-separated card codes (e.g. CODE1x2, CODE2, CODE3x-2)')
+        .setRequired(true)
+    ),
 
   async execute(interaction) {
-
     const sender = interaction.member;
     const targetUser = interaction.options.getUser('user');
     const rawCodes = interaction.options.getString('cardcodes');
 
-    if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
-      return interaction.editReply({ content: 'You lack permission to use this.' });
+    // --- Permission gate ---
+    if (!sender?.roles?.cache?.has(GRANTING_ROLE_ID)) {
+      return safeReply(interaction, { content: '❌ You lack permission to use this.' }); // was editReply
     }
 
-    // Count quantity per code
+    // --- Parse "CODExN" parts into counts map (case-insensitive) ---
     const counts = {};
     const parts = rawCodes.split(',').map(c => c.trim()).filter(Boolean);
-
     for (const part of parts) {
-  const match = part.match(/^(.+?)(?:x(-?\d+))?$/i);
-  if (!match) continue;
-
-  const code = match[1];
-  const qty = parseInt(match[2] || '1');
-  if (isNaN(qty)) continue;
-
-  if (!counts[code]) counts[code] = 0;
-  counts[code] += qty;
-}
-
+      const m = part.match(/^(.+?)(?:x(-?\d+))?$/i);
+      if (!m) continue;
+      const codeKey = m[1].toLowerCase();
+      const qty = parseInt(m[2] || '1', 10);
+      if (Number.isNaN(qty)) continue;
+      counts[codeKey] = (counts[codeKey] || 0) + qty;
+    }
     const uniqueCodes = Object.keys(counts);
-    
-
-    const cardsInDb = await Card.find();
-const cards = cardsInDb.filter(card =>
-  uniqueCodes.some(code => card.cardCode.toLowerCase() === code.toLowerCase())
-);
-
-
-    if (!cards.length) {
-      return interaction.editReply({ content: 'No valid cards found for those codes.' });
+    if (!uniqueCodes.length) {
+      return safeReply(interaction, { content: '⚠️ No valid codes parsed.' });
     }
 
+    // --- Fetch matching cards in Mongo (case-insensitive) ---
+    const regexes = uniqueCodes.map(c => new RegExp(`^${c}$`, 'i'));
+    const cards = await Card.find({ cardCode: { $in: regexes } });
+
+    if (!cards.length) {
+      return safeReply(interaction, { content: '❌ No valid cards found for those codes.' }); // was editReply
+    }
+
+    // --- Load or create inventory ---
     let inv = await UserInventory.findOne({ userId: targetUser.id });
     if (!inv) inv = await UserInventory.create({ userId: targetUser.id, cards: [] });
+
     const granted = [];
     let totalSouls = 0;
     let totalCards = 0;
 
     for (const card of cards) {
-      const qty = counts[card.cardCode] || 0;
+      const qty = counts[card.cardCode.toLowerCase()] || 0;
       if (qty === 0) continue;
 
       const existing = inv.cards.find(c => c.cardCode === card.cardCode);
-let newQty = existing ? existing.quantity + qty : qty;
+      let newQty = (existing ? existing.quantity : 0) + qty;
+      if (newQty < 0) newQty = 0;
 
-if (newQty < 0) newQty = 0;
-
-if (existing) {
-  if (newQty === 0) {
-    inv.cards = inv.cards.filter(c => c.cardCode !== card.cardCode);
-  } else {
-    existing.quantity = newQty;
-  }
-} else if (qty > 0) {
-  inv.cards.push({ cardCode: card.cardCode, quantity: qty });
-}
+      if (existing) {
+        if (newQty === 0) {
+          inv.cards = inv.cards.filter(c => c.cardCode !== card.cardCode);
+        } else {
+          existing.quantity = newQty;
+        }
+      } else if (qty > 0) {
+        inv.cards.push({ cardCode: card.cardCode, quantity: qty });
+      }
 
       granted.push({ card, qty, total: newQty });
       totalCards += qty;
-      totalSouls += card.rarity * qty;
+      totalSouls += (card.rarity || 0) * qty;
 
-      for (let i = 0; i < qty; i++) {
-       const actionType = qty > 0 ? 'Granted' : 'Removed';
-await UserRecord.create({
-  userId: targetUser.id,
-  type: 'grantcard',
-  targetId: interaction.user.id,
-  detail: `${actionType} ${card.name} (${card.cardCode}) [${card.rarity}] by <@${interaction.user.id}>`
-});
+      // Per-copy audit log (kept for parity with your original)
+      const actionType = qty > 0 ? 'Granted' : 'Removed';
+      const copyCount = Math.abs(qty);
+      for (let i = 0; i < copyCount; i++) {
+        await UserRecord.create({
+          userId: targetUser.id,
+          type: 'grantcard',
+          targetId: interaction.user.id,
+          detail: `${actionType} ${card.name} (${card.cardCode}) [${card.rarity}] by <@${interaction.user.id}>`
+        });
       }
     }
 
     await inv.save();
-
-    // Paginated Embed
-    let current = 0;
+    // --- Paged results embed ---
     const perPage = 5;
-    const pages = Math.ceil(granted.length / perPage);
+    const pages = Math.max(1, Math.ceil(granted.length / perPage));
+    let current = 0;
 
     const renderEmbed = (page) => {
-      const pageItems = granted.slice(page * perPage, (page + 1) * perPage);
-      const desc = pageItems.map(g =>
+      const slice = granted.slice(page * perPage, (page + 1) * perPage);
+      const desc = slice.map(g =>
         `• ${generateStars({ rarity: g.card.rarity, overrideEmoji: g.card.emoji })} \`${g.card.cardCode}\` — **${g.qty > 0 ? '+' : ''}${g.qty}** [Copies: ${g.total}]`
       ).join('\n') || 'No cards granted.';
 
       return new EmbedBuilder()
-        .setTitle(`Cards Granted to ${targetUser.username}`)
+        .setTitle(`Cards Updated for ${targetUser.username}`)
         .setColor('#2f3136')
         .setDescription(desc)
         .addFields(
-          { name: 'Total Cards', value: `${totalCards}`, inline: true },
-          { name: 'Total <:fullstar:1387609456824680528> Given', value: `${totalSouls}`, inline: true }
+          { name: 'Total Cards Δ', value: `${totalCards}`, inline: true },
+          { name: 'Total <:fullstar:1387609456824680528> Δ', value: `${totalSouls}`, inline: true }
         )
         .setFooter({ text: `Page ${page + 1} of ${pages}` });
     };
 
     const renderRow = () => new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-          new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
-          new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= pages - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
-          new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= pages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
-        );
-    
-        await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
-    
-        while (true) {
-          const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
-          if (!btn) break;
-    
-          if (btn.customId === 'first') current = 0;
-          if (btn.customId === 'prev') current = Math.max(0, current - 1);
-          if (btn.customId === 'next') current = Math.min(pages - 1, current + 1);
-          if (btn.customId === 'last') current = pages - 1;
-    
-          await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
-        }
-    
-        // Final cleanup
-        try {
-          await safeReply(interaction, { components: [] });
-        } catch (err) {
-          console.warn('Pagination cleanup failed:', err.message);
-        }
+      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= pages - 1).setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }), // fixed name
+      new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= pages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+    );
+
+    await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
+
+    // --- Pagination loop ---
+    while (true) {
+      const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
+      if (!btn) break;
+
+      // Ack the component to avoid red "failed" banner
+      if (!btn.deferred && !btn.replied) {
+        try { await btn.deferUpdate(); } catch {}
       }
-    };
+
+      if (btn.customId === 'first') current = 0;
+      if (btn.customId === 'prev') current = Math.max(0, current - 1);
+      if (btn.customId === 'next') current = Math.min(pages - 1, current + 1);
+      if (btn.customId === 'last') current = pages - 1;
+
+      await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
+    }
+
+    // Cleanup components when collector ends or timeout
+    try {
+      await interaction.editReply({ components: [] });
+    } catch (err) {
+      console.warn('Pagination cleanup failed:', err.message);
+    }
+  }
+};

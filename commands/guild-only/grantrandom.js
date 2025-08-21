@@ -29,7 +29,7 @@ module.exports = {
   async execute(interaction) {
     const sender = interaction.member;
 if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
-  return interaction.editReply({ content: 'You lack permission to use this.' });
+  return safeReply(interaction, { content: 'You lack permission to use this.' });
 }
 
     const recipient = interaction.options.getUser('user');
@@ -41,7 +41,7 @@ if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
     const maxStars = interaction.options.getInteger('maxstars') ?? Infinity;
 
     if (!recipient || recipient.bot) {
-      return interaction.editReply('❌ Invalid recipient.');
+      return safeReply(interaction, '❌ Invalid recipient.');
     }
 
     // Parse rarities range
@@ -65,7 +65,7 @@ if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
     });
 
     if (pool.length === 0) {
-      return interaction.editReply('No cards match those filters.');
+      return safeReply(interaction, 'No cards match those filters.');
     }
 
     // Prepare recipient inventory
@@ -104,7 +104,7 @@ if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
     await recInv.save();
 
     if (!granted.length) {
-      return interaction.editReply('No cards could be granted under the star/amount limits.');
+      return safeReply(interaction, 'No cards could be granted under the star/amount limits.');
     }
 
     // Build paginated embed and buttons

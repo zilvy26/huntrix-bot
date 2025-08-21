@@ -22,9 +22,6 @@ module.exports = {
     const userId = interaction.user.id;
     const commandName = 'Pull10';
 
-    // 1) ACK first (prevents “did not respond”)
-    await safeDefer(interaction);
-
     // 2) Cooldown check AFTER we own the interaction window
     const cooldownMs = await cooldowns.getEffectiveCooldown(interaction, commandName);
     if (await cooldowns.isOnCooldown(userId, commandName)) {

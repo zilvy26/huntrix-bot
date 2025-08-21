@@ -17,7 +17,7 @@ module.exports = {
     const sender = interaction.member;
 
     if (!sender.roles.cache.has(GRANTING_ROLE_ID)) {
-      return interaction.reply({ content: 'You do not have permission to use this command.', flags: 1 << 6 });
+      return safeReply(interaction, { content: 'You do not have permission to use this command.', flags: 1 << 6 });
     }
 
     const user = interaction.options.getUser('user');
@@ -25,7 +25,7 @@ module.exports = {
 
     const exists = await Blacklist.findOne({ userId: user.id });
     if (exists) {
-      return interaction.reply({ content: 'User is already blacklisted.' });
+      return safeReply(interaction, { content: 'User is already blacklisted.' });
     }
 
     await Blacklist.create({ userId: user.id, reason });
@@ -37,7 +37,7 @@ module.exports = {
       console.warn(`Could not DM user ${user.tag}:`, err.message);
     }
 
-    return interaction.reply({
+    return safeReply(interaction, {
       content: `<@${user.id}> has been blacklisted.\n**Blacklist Reason:** ${reason}`,
     });
   }

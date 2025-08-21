@@ -15,7 +15,7 @@ module.exports = {
   .setDefaultMemberPermissions('0'),
   async execute(interaction) {
     if (interaction.user.id !== process.env.MAIN_BYPASS_ID) {
-    return interaction.reply({ content: 'You do not have permission to use this command.' });
+    return safeReply(interaction, { content: 'You do not have permission to use this command.' });
     }
 
     const target = interaction.options.getString('command');
@@ -44,9 +44,9 @@ for (const folder of commandFolders) {
 }
 
     if (reloaded.length === 0) {
-  return interaction.reply(`❗ No command reloaded. Command "${target}" may not exist.`);
+  return safeReply(interaction, { content: `❗ No command reloaded. Command "${target}" may not exist.`});
 }
 
-await safeReply(interaction, `♻️ Reloaded command${reloaded.length > 1 ? 's' : ''}: ${reloaded.join(', ')}`);
+await safeReply(interaction, { content: `♻️ Reloaded command${reloaded.length > 1 ? 's' : ''}: ${reloaded.join(', ')}`});
   }
 };

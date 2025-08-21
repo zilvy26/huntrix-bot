@@ -42,7 +42,7 @@ module.exports = {
     const imageAttachment = interaction.options.getAttachment('image');
 
     if (!options.includes(correct)) {
-      return interaction.editReply({
+      return safeReply(interaction, {
         content: "The correct answer must be one of the provided options."
       });
     }
@@ -61,7 +61,7 @@ if (imageAttachment) {
     fs.writeFileSync(savePath, imageBuffer.data);
     localImagePath = savePath;
   } catch (err) {
-    return interaction.editReply({ content: `Image save failed: ${err.message}` });
+    return safeReply(interaction, { content: `Image save failed: ${err.message}` });
   }
 }
 
