@@ -1,5 +1,4 @@
 const MarketListing = require('../../../models/MarketListing');
-const safeReply = require('../../utils/safeReply');
 const UserInventory = require('../../../models/UserInventory');
 const safeReply = require('../../../utils/safeReply');
 

@@ -6,7 +6,6 @@ const {
   ButtonStyle
 } = require('discord.js');
 const UserCurrency = require('../../../models/User');
-const safeReply = require('../../utils/safeReply');
 const UserInventory = require('../../../models/UserInventory');
 const UserRecord = require('../../../models/UserRecord');
 const Card = require('../../../models/Card');

@@ -1,5 +1,4 @@
 const { EmbedBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
 const templateOptions = require('../../../data/templateOptions');
 const User = require('../../../models/User');
 const safeReply = require('../../../utils/safeReply');

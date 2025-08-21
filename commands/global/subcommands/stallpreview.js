@@ -6,7 +6,6 @@ const {
   ButtonStyle
 } = require('discord.js');
 const MarketListing = require('../../../models/MarketListing');
-const safeReply = require('../../utils/safeReply');
 const User = require('../../../models/User');
 const generateStars = require('../../../utils/starGenerator');
 const { stallPreviewFilters } = require('../../../utils/cache');

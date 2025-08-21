@@ -1,5 +1,4 @@
 const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
 const User = require('../../../models/User');
 const templateOptions = require('../../../data/templateOptions');
 const safeReply = require('../../../utils/safeReply');
