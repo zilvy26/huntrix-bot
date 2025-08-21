@@ -33,72 +33,74 @@ for (const folder of commandFolders) {
   }
 }
 
+// inside your existing setup file, replace the whole client.on('interactionCreate', ...) block
+
+const { safeReply, safeDefer } = require('../utils/safeReply');
+
 client.on('interactionCreate', async interaction => {
   if (!isBotReady) {
-    return interaction.reply({ content: 'Bot is still starting up. Try again in a moment.' }).catch(() => {});
+    return safeReply(interaction, { content: 'Bot is still starting up. Try again in a moment.', ephemeral: true });
   }
 
-  // 🧩 Route Buttons & Menus
+  // 🧩 Buttons & Menus
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
-    return interactionRouter(interaction).catch(err =>
-  console.error('Router error:', err)
-)}
+    try {
+      await safeDefer(interaction);     // avoid “did not respond”
+      await interactionRouter(interaction);
+    } catch (err) {
+      console.error('Router error:', err);
+      await safeReply(interaction, { content: '❌ Error handling interaction.', ephemeral: true }, { preferFollowUp: true });
+    }
+    return;
+  }
 
   // 💬 Slash Commands
   if (interaction.isChatInputCommand()) {
-    const maintenance = await Maintenance.findOne();
-    const bypassRoleId = process.env.MAIN_BYPASS_ID;
-    let isBypassed = false;
-if (interaction.inGuild() && interaction.member?.roles?.cache) {
-  isBypassed = interaction.member.roles.cache.has(bypassRoleId);
-}
-    const isDev = interaction.user.id === interaction.client.application?.owner?.id;
+    try {
+      await safeDefer(interaction);     // ✅ ACK first — now we own a 15‑min window
 
-    if (maintenance?.active && !isBypassed && !isDev) {
-      return interaction.reply({
-        content: 'The bot is currently under maintenance. Please try again later.'
-      });
-    }
+      // Maintenance check
+      const maintenance = await Maintenance.findOne();
+      const bypassRoleId = process.env.MAIN_BYPASS_ID;
+      const isBypassed = interaction.inGuild() && interaction.member?.roles?.cache?.has(bypassRoleId);
+      const isDev = interaction.user.id === interaction.client.application?.owner?.id;
 
-    if (interaction.commandName !== 'register') {
-      const userExists = await User.exists({ userId: interaction.user.id });
-      if (!userExists) {
-        return interaction.reply({
-          content: 'You must register first using `/register` to use this command.'
+      if (maintenance?.active && !isBypassed && !isDev) {
+        return safeReply(interaction, { content: 'The bot is currently under maintenance. Please try again later.' });
+      }
+
+      // Registration check
+      if (interaction.commandName !== 'register') {
+        const userExists = await User.exists({ userId: interaction.user.id });
+        if (!userExists) {
+          return safeReply(interaction, { content: 'You must register first using `/register` to use this command.' });
+        }
+      }
+
+      // Blacklist check
+      const Blacklist = require('../models/Blacklist');
+      const blacklisted = await Blacklist.findOne({ userId: interaction.user.id });
+      if (blacklisted) {
+        return safeReply(interaction, {
+          content: `You are blacklisted from using this bot.\n**Blacklist Reason:** ${blacklisted.reason || 'No reason specified.'}`
         });
       }
-    }
 
-    const Blacklist = require('../models/Blacklist'); // Create this model separately
-    const blacklisted = await Blacklist.findOne({ userId: interaction.user.id });
-if (blacklisted) {
-  return interaction.reply({
-    content: `You are blacklisted from using this bot.\n** Blacklist Reason:** ${blacklisted.reason || 'No reason specified.'}`,
-  });
-}
+      // Load / create user profile
+      try {
+        interaction.userData = await getOrCreateUser(interaction);
+      } catch (err) {
+        console.error('Failed to get user data:', err);
+        return safeReply(interaction, { content: 'Failed to load your profile. Please try again later.' });
+      }
 
-    try {
-      interaction.userData = await getOrCreateUser(interaction);
-    } catch (err) {
-      console.error('Failed to get user data:', err);
-      return interaction.reply({
-        content: 'Failed to load your profile. Please try again later.',
-        
-      });
-    }
-
-    const command = client.commands.get(interaction.commandName);
-    if (!command) return;
-
-    try {
+      // Execute the command
+      const command = client.commands.get(interaction.commandName);
+      if (!command) return safeReply(interaction, { content: 'Unknown command.' });
       await command.execute(interaction);
     } catch (err) {
       console.error(`Error in command "${interaction.commandName}":`, err);
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: 'There was an error executing the command.' });
-      } else {
-        await interaction.editReply({ content: 'There was an error executing the command.' });
-      }
+      await safeReply(interaction, { content: '❌ There was an error executing the command.' });
     }
   }
 });
