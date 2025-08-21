@@ -47,6 +47,7 @@ module.exports = {
         .setDescription('Exclude specific era name')),
 
   async execute(interaction) {
+    await interaction.deferReply();
     const userId = interaction.user.id;
 
     const codesRaw = interaction.options.getString('cardcodes');

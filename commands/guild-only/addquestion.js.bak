@@ -1,5 +1,4 @@
 const { SlashCommandBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
 const Question = require('../../models/Question');
 const uploadCardImage = require('../../utils/imageUploader'); // Adjust path if needed
 
@@ -33,7 +32,8 @@ module.exports = {
       opt.setName('image')
         .setDescription('Optional image file')),
 
-  async execute(interaction) { // Acknowledge right away
+  async execute(interaction) {
+    await interaction.deferReply(); // Acknowledge right away
 
     const difficulty = interaction.options.getString('difficulty');
     const questionText = interaction.options.getString('question');
@@ -73,7 +73,7 @@ if (imageAttachment) {
       localImagePath
     });
 
-    await safeReply(interaction, {
+    await interaction.editReply({
       content: "Question added successfully!"
     });
   }

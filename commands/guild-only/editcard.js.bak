@@ -10,7 +10,6 @@ const {
 } = require('discord.js');
 
 const Card = require('../../models/Card');
-const safeReply = require('../../utils/safeReply');
 const generateStars = require('../../utils/starGenerator');
 const awaitUserButton = require('../../utils/awaitUserButton');
 const parseRarity = require('../../utils/parseRarity');
@@ -39,6 +38,7 @@ module.exports = {
     .addAttachmentOption(opt => opt.setName('setimage').setDescription('Upload a new card image')),
 
   async execute(interaction) {
+    await interaction.deferReply();
     const allowedRole = process.env.CARD_CREATOR_ROLE_ID;
 if (!interaction.member.roles.cache.has(allowedRole)) {
   return interaction.editReply({ content: 'You do not have permission to use this command.' });
@@ -149,7 +149,7 @@ if (designerIds.length > 0) {
     let index = 0;
     const { embed, attachment } = pages[index];
 
-    await safeReply(interaction, {
+    await interaction.editReply({
       embeds: [embed],
       components: [new ActionRowBuilder().addComponents(backBtn, nextBtn, confirmBtn, cancelBtn)],
       files: attachment ? [attachment] : []
@@ -238,7 +238,7 @@ if (designerIds.length > 0) {
         try {
           const reply = await interaction.fetchReply();
           if (!reply.ephemeral && !reply.deleted) {
-            await safeReply(interaction, {
+            await interaction.editReply({
               content: '⏰ Command timed out with no action.',
               embeds: [],
               components: []

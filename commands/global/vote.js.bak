@@ -41,6 +41,8 @@ module.exports = {
           });
         }
 
+    await interaction.deferReply();
+
     let hasVoted = false;
     try {
       hasVoted = await topgg.hasVoted(userId);

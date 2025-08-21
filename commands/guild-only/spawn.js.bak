@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
 const UserInventory = require('../../models/UserInventory');
 const User = require('../../models/User');
 const Card = require('../../models/Card');
@@ -22,6 +21,7 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    await interaction.deferReply();
 
     // ✅ Optional: Admin check
     const ALLOWED_ROLE_ID = '1386797486680703036'; // replace with your actual role ID
@@ -45,7 +45,7 @@ module.exports = {
         new ButtonBuilder().setCustomId('claim_reward').setLabel('Claim!').setStyle(ButtonStyle.Success)
       );
 
-      const dropMsg = await safeReply(interaction, { embeds: [embed], components: [row] });
+      const dropMsg = await interaction.editReply({ embeds: [embed], components: [row] });
 
       const collector = dropMsg.createMessageComponentCollector({ filter: i => !i.user.bot, max: 1, time: 15000 });
 
@@ -100,7 +100,7 @@ module.exports = {
       new ButtonBuilder().setCustomId('claim_card').setLabel('Claim!').setStyle(ButtonStyle.Success)
     );
 
-    const dropMsg = await safeReply(interaction, { embeds: [cardEmbed], components: [row], files });
+    const dropMsg = await interaction.editReply({ embeds: [cardEmbed], components: [row], files });
 
     const collector = dropMsg.createMessageComponentCollector({ filter: i => !i.user.bot, max: 1, time: 15000 });
 

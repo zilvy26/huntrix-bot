@@ -35,6 +35,7 @@ module.exports = {
     ),
 
   async execute(interaction) {
+    await interaction.deferReply();
 
     // init cache bucket
     interaction.client.cache = interaction.client.cache || {};

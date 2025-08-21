@@ -1,5 +1,4 @@
 const { SlashCommandBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
 const RedeemCode = require('../../models/RedeemCode');
 
 module.exports = {

@@ -1,5 +1,4 @@
 const { SlashCommandBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
 const MarketListing = require('../../../models/MarketListing');
 const User = require('../../../models/User');
 const UserInventory = require('../../../models/UserInventory');

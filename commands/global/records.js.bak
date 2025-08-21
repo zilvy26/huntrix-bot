@@ -27,6 +27,8 @@ module.exports = {
     const filterType = interaction.options.getString('type');
     const userId = target.id;
 
+    await interaction.deferReply();
+
     const allLogs = await UserRecord.find({
       userId,
       ...(filterType && { type: filterType })

@@ -1,5 +1,4 @@
 const { SlashCommandBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
 const fs = require('fs');
 const path = require('path');
 
@@ -47,6 +46,6 @@ for (const folder of commandFolders) {
   return interaction.reply(`❗ No command reloaded. Command "${target}" may not exist.`);
 }
 
-await safeReply(interaction, `♻️ Reloaded command${reloaded.length > 1 ? 's' : ''}: ${reloaded.join(', ')}`);
+await interaction.reply(`♻️ Reloaded command${reloaded.length > 1 ? 's' : ''}: ${reloaded.join(', ')}`);
   }
 };

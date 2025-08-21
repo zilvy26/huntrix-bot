@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
 const UserInventory = require('../../models/UserInventory');
 const Card = require('../../models/Card');
 
@@ -10,6 +9,7 @@ module.exports = {
     .setDefaultMemberPermissions('0'),
 
   async execute(interaction) {
+    await interaction.deferReply();
 
     // ✅ Optional: Admin check
     const ALLOWED_ROLE_ID = '1386797486680703036'; // replace with your actual role ID
@@ -55,6 +55,6 @@ module.exports = {
       )
       .setFooter({ text: 'Based on all user inventories' });
 
-    await safeReply(interaction, { embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   }
 };

@@ -6,7 +6,6 @@ const {
   ButtonStyle
 } = require('discord.js');
 const UserCurrency = require('../../../models/User');
-const safeReply = require('../../utils/safeReply');
 const UserInventory = require('../../../models/UserInventory');
 const UserRecord = require('../../../models/UserRecord');
 const Card = require('../../../models/Card');
@@ -23,6 +22,7 @@ const rarityWeights = {
 };
 
 module.exports = async function(interaction) {
+    await interaction.deferReply();
     const userId = interaction.user.id;
     const shopType = interaction.options.getString('shop');
     const amount = interaction.options.getInteger('amount');
