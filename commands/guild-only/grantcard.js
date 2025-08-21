@@ -125,8 +125,8 @@ module.exports = {
         .setColor('#2f3136')
         .setDescription(desc)
         .addFields(
-          { name: 'Total Cards Δ', value: `${totalCards}`, inline: true },
-          { name: 'Total <:fullstar:1387609456824680528> Δ', value: `${totalSouls}`, inline: true }
+          { name: 'Total Cards', value: `${totalCards}`, inline: true },
+          { name: 'Total <:fullstar:1387609456824680528>', value: `${totalSouls}`, inline: true }
         )
         .setFooter({ text: `Page ${page + 1} of ${pages}` });
     };

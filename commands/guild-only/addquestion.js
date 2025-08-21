@@ -31,7 +31,8 @@ module.exports = {
         .setRequired(true))
     .addAttachmentOption(opt =>
       opt.setName('image')
-        .setDescription('Optional image file')),
+        .setDescription('image file')
+        .setRequired(true)),
 
   async execute(interaction) { // Acknowledge right away
 
