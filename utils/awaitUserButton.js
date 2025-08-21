@@ -1,37 +1,60 @@
+// utils/awaitUserButton.js
 const { ComponentType } = require('discord.js');
 
 /**
- * Waits for a button interaction from a specific user.
- *
- * @param {CommandInteraction} interaction - The original interaction (must already be replied or deferred)
- * @param {User} user - The user who is allowed to click
- * @param {string[]} customIds - Array of customIds to listen for (e.g., ['confirm', 'cancel'])
- * @param {number} timeout - How long to wait for interaction (in ms, default: 60s)
- * @returns {Promise<ButtonInteraction|null>} - The interaction if confirmed, or null on timeout
+ * Waits for a button click by a specific user on the original reply.
+ * @param {ChatInputCommandInteraction} interaction - original slash interaction (already replied/deferred)
+ * @param {string} userId - allowed clicker ID
+ * @param {string[]} ids - allowed customIds
+ * @param {number} timeoutMs - collector timeout (default 120s)
+ * @returns {Promise<import('discord.js').ButtonInteraction | null>}
  */
-module.exports = async function awaitUserButton(interaction, userId, ids, timeout = 120000) {
-  const message = await interaction.fetchReply();
-  return new Promise((resolve) => {
-    const collector = message.createMessageComponentCollector({
-      filter: i => i.user.id === userId && ids.includes(i.customId),
-      time: timeout
-    });
-
-    collector.on('collect', async (btnInteraction) => {
+module.exports = async function awaitUserButton(interaction, userId, ids, timeoutMs = 120000) {
+  let msg;
   try {
-    if (!btnInteraction.replied && !btnInteraction.deferred) {
-      await btnInteraction.deferUpdate(); // Prevent "already acknowledged" error
-    }
+    msg = await interaction.fetchReply();
   } catch (e) {
-    console.warn('Button defer failed:', e.message);
+    // If the reply was deleted or never existed, there’s nothing to collect on
+    console.warn('[awaitUserButton] fetchReply failed:', e?.message || e);
+    return null;
   }
 
-  collector.stop('collected');
-  resolve(btnInteraction);
-});
+  const filter = i => i.user.id === userId && ids.includes(i.customId);
 
-    collector.on('end', (_, reason) => {
-      if (reason !== 'collected') resolve(null);
+  const collector = msg.createMessageComponentCollector({
+    componentType: ComponentType.Button,
+    time: timeoutMs,
+    filter
+  });
+
+  return new Promise(resolve => {
+    let resolved = false;
+
+    collector.on('collect', async i => {
+      // ACK the button ASAP
+      if (!i.deferred && !i.replied) {
+        try {
+          await i.deferUpdate();
+        } catch (err) {
+          const code = err?.code || err?.rawError?.code;
+          // 10062 = Unknown interaction (expired/used), 40060 = already acked
+          if (code !== 10062 && code !== 40060) {
+            console.warn('[awaitUserButton] deferUpdate failed',
+              { customId: i.customId, msgId: msg.id, code, err: err?.message || err });
+          }
+          // Continue anyway; caller can still act on i (or ignore)
+        }
+      }
+
+      if (!resolved) {
+        resolved = true;
+        resolve(i);
+        collector.stop('answered');
+      }
+    });
+
+    collector.on('end', (_, resolved) => {
+      if (!resolved) resolve(null); // timeout / cancelled
     });
   });
 };

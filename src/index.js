@@ -45,7 +45,6 @@ client.on('interactionCreate', async interaction => {
   // 🧩 Buttons & Menus
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
     try {
-      await safeDefer(interaction);     // avoid “did not respond”
       await interactionRouter(interaction);
     } catch (err) {
       console.error('Router error:', err);
