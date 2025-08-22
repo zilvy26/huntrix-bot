@@ -389,20 +389,46 @@ module.exports = async function interactionRouter(interaction) {
     });
   }
 
- // LIST BUTTONS 
+// 📋 LIST CLAIM BUTTONS (global 2‑minute cooldown on successful claim)
+if (interaction.isButton() && interaction.customId?.startsWith('listclaim:')) {
+  const userId = interaction.user.id;
 
-  if (interaction.isButton() && interaction.customId?.startsWith('listclaim:')) {
-  // ACK quickly
+  // 2-minute GLOBAL cooldown key
+  const CLAIM_COMMAND = 'ListClaim';
+  const CLAIM_COOLDOWN_MS = 2 * 60 * 1000;
+
+  const cooldowns = require('../utils/cooldownManager');
+
+  // If user is still on cooldown, tell them and bail (no deferUpdate needed)
+  if (await cooldowns.isOnCooldown(userId, CLAIM_COMMAND)) {
+    const ts = await cooldowns.getCooldownTimestamp(userId, CLAIM_COMMAND);
+    try {
+      // In DMs ephemeral isn't a thing; in servers make it ephemeral
+      return await interaction.reply({
+        content: `You must wait **${ts}** before claiming another list slot.`,
+        ephemeral: interaction.inGuild()
+      });
+    } catch {}
+    return;
+  }
+
+  // Ack the button (gives us time to work)
   if (!interaction.deferred && !interaction.replied) {
     try { await interaction.deferUpdate(); } catch {}
   }
 
   const [, setId, idxStr] = interaction.customId.split(':');
   const idx = parseInt(idxStr, 10);
-  const userId = interaction.user.id;
   const now = new Date();
 
-  // Atomically claim one slot; also enforce one-claim-per-user
+  const ListSet = require('../models/ListSet');
+  const Card = require('../models/Card');
+  const UserInventory = require('../models/UserInventory');
+  const UserRecord = require('../models/UserRecord');
+  const { AttachmentBuilder, EmbedBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js');
+  const generateStars = require('../utils/starGenerator');
+
+  // Atomically claim: set exists, not expired, slot idx unclaimed, and user hasn't claimed another slot in THIS set
   const set = await ListSet.findOneAndUpdate(
     {
       _id: setId,
@@ -418,15 +444,19 @@ module.exports = async function interactionRouter(interaction) {
     { new: true }
   );
 
+  // If claim failed, DO NOT start cooldown — just inform
   if (!set) {
     try {
       await interaction.followUp({
-        content: 'That slot is unavailable or you already claimed one in this list.',
+        content: 'That slot is unavailable (already claimed/expired) or you already claimed one in this list.',
         ephemeral: interaction.inGuild()
       });
     } catch {}
     return;
   }
+
+  // We successfully claimed a slot — now start the GLOBAL cooldown
+  await cooldowns.setCooldown(userId, CLAIM_COMMAND, CLAIM_COOLDOWN_MS);
 
   const slot = set.slots.find(s => s.idx === idx);
   if (!slot) {
@@ -439,7 +469,8 @@ module.exports = async function interactionRouter(interaction) {
     try { await interaction.followUp({ content: 'The card for that slot no longer exists.', ephemeral: interaction.inGuild() }); } catch {}
     return;
   }
-  // Grant inventory
+
+  // Grant inventory (same pattern as /pull)
   let inv = await UserInventory.findOne({ userId });
   if (!inv) inv = await UserInventory.create({ userId, cards: [] });
 
@@ -454,13 +485,12 @@ module.exports = async function interactionRouter(interaction) {
     type: 'listclaim',
     detail: `Claimed ${card.name} (${card.cardCode}) [${card.rarity}] from list ${setId} slot ${idx}`
   });
-
   // Reveal to claimer (ephemeral in guilds, normal in DMs)
-  const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji || '<:fullstar:1387609456824680528>' });
   const imageSource = card.localImagePath
     ? `attachment://${card._id}.png`
     : (card.discordPermalinkImage || card.imgurImageLink);
   const files = card.localImagePath ? [new AttachmentBuilder(card.localImagePath, { name: `${card._id}.png` })] : [];
+  const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji || '<:fullstar:1387609456824680528>' });
 
   try {
     await interaction.followUp({
@@ -485,7 +515,7 @@ module.exports = async function interactionRouter(interaction) {
     });
   } catch {}
 
-  // Update public message: disable just this button; mark done if all claimed
+  // Update original message: disable this button; mark done if all claimed
   try {
     const msg = interaction.message?.id
       ? interaction.message
@@ -509,18 +539,19 @@ module.exports = async function interactionRouter(interaction) {
       return newRow;
     });
 
-    if (!rows.length) return;
+    if (rows.length) {
+      const allClaimed = set.slots.every(s => !!s.claimedBy);
+      const embed0 = msg.embeds?.[0];
+      const updatedEmbed = embed0
+        ? EmbedBuilder.from(embed0).setTitle(allClaimed ? 'Mystery Card List — all claimed' : (embed0.title || 'Mystery Card List'))
+        : new EmbedBuilder().setTitle(allClaimed ? 'Mystery Card List — all claimed' : 'Mystery Card List');
 
-    const allClaimed = set.slots.every(s => !!s.claimedBy);
-    const embed0 = msg.embeds?.[0];
-    const newTitle = allClaimed ? 'Mystery Card List — all claimed ✅' : (embed0?.title || 'Mystery Card List');
-    const updatedEmbed = embed0 ? EmbedBuilder.from(embed0).setTitle(newTitle) : new EmbedBuilder().setTitle(newTitle);
-
-    await msg.edit({ embeds: [updatedEmbed], components: rows });
-    return;
+      await msg.edit({ embeds: [updatedEmbed], components: rows });
+    }
   } catch (e) {
     console.warn('listclaim: failed to update message:', e.message);
-    return;
   }
+
+  return;
 }
 };
