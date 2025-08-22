@@ -406,7 +406,7 @@ if (interaction.isButton() && interaction.customId?.startsWith('listclaim:')) {
       // In DMs ephemeral isn't a thing; in servers make it ephemeral
       return await interaction.reply({
         content: `You must wait **${ts}** before claiming another list slot.`,
-        ephemeral: interaction.inGuild()
+        flags: 1 << 6
       });
     } catch {}
     return;
