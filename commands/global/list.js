@@ -17,7 +17,7 @@ const cooldowns = require('../../utils/cooldownManager');
 const cooldownConfig = require('../../utils/cooldownConfig'); // if you have per‑command config
 
 // ⬇️ this is the same helper you used earlier for reminders on pulls
-const handlerReminders = require('../../utils/handlerReminders'); // <- make sure this path matches your project
+const handlerReminders = require('../../utils/reminderHandler'); // <- make sure this path matches your project
 
 const DEFAULT_MINUTES = 15;
 const COMMAND_NAME = 'List';
