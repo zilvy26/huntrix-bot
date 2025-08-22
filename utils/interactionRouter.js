@@ -1,10 +1,14 @@
 const User = require('../models/User');
 const Question = require('../models/Question');
 const mongoose = require('mongoose');
-const { AttachmentBuilder, ComponentType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { AttachmentBuilder, ComponentType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const safeReply = require('../utils/safeReply');
 const autoDefer = require('../utils/autoDefer'); // your helper that does deferUpdate/Reply based on mode
 const ListSet = require('../models/ListSet');
+const Card = require('../models/Card');
+const UserInventory = require('../models/UserInventory');
+const UserRecord = require('../models/UserRecord');
+const generateStars = require('../utils/starGenerator');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -388,7 +392,7 @@ module.exports = async function interactionRouter(interaction) {
  // LIST BUTTONS 
 
   if (interaction.isButton() && interaction.customId?.startsWith('listclaim:')) {
-  // ACK the button quickly
+  // ACK quickly
   if (!interaction.deferred && !interaction.replied) {
     try { await interaction.deferUpdate(); } catch {}
   }
@@ -398,7 +402,7 @@ module.exports = async function interactionRouter(interaction) {
   const userId = interaction.user.id;
   const now = new Date();
 
-  // Atomically claim: set exists, not expired, slot idx unclaimed, user hasn't claimed another
+  // Atomically claim one slot; also enforce one-claim-per-user
   const set = await ListSet.findOneAndUpdate(
     {
       _id: setId,
@@ -415,11 +419,10 @@ module.exports = async function interactionRouter(interaction) {
   );
 
   if (!set) {
-    // Either already claimed, expired, or you already claimed one
     try {
       await interaction.followUp({
-        content: 'That slot is unavailable or you’ve already claimed one in this list.',
-        ephemeral: !!interaction.guildId // ephemerals don't exist in pure DMs
+        content: 'That slot is unavailable or you already claimed one in this list.',
+        ephemeral: interaction.inGuild()
       });
     } catch {}
     return;
@@ -427,20 +430,16 @@ module.exports = async function interactionRouter(interaction) {
 
   const slot = set.slots.find(s => s.idx === idx);
   if (!slot) {
-    try {
-      await interaction.followUp({ content: '❌ Could not locate that slot.', ephemeral: !!interaction.guildId });
-    } catch {}
+    try { await interaction.followUp({ content: 'Could not locate that slot.', ephemeral: interaction.inGuild() }); } catch {}
     return;
   }
 
   const card = await Card.findById(slot.cardId);
   if (!card) {
-    try {
-      await interaction.followUp({ content: '❌ The card for that slot no longer exists.', ephemeral: !!interaction.guildId });
-    } catch {}
+    try { await interaction.followUp({ content: 'The card for that slot no longer exists.', ephemeral: interaction.inGuild() }); } catch {}
     return;
   }
-  // Grant inventory (same as /pull)
+  // Grant inventory
   let inv = await UserInventory.findOne({ userId });
   if (!inv) inv = await UserInventory.create({ userId, cards: [] });
 
@@ -465,7 +464,7 @@ module.exports = async function interactionRouter(interaction) {
 
   try {
     await interaction.followUp({
-      ephemeral: !!interaction.guildId, // DM-safe: false in DMs
+      ephemeral: interaction.inGuild(),
       embeds: [
         new EmbedBuilder()
           .setTitle(stars)
@@ -486,13 +485,13 @@ module.exports = async function interactionRouter(interaction) {
     });
   } catch {}
 
-  // Update the original message: disable this button; if all claimed, mark closed
+  // Update public message: disable just this button; mark done if all claimed
   try {
     const msg = interaction.message?.id
       ? interaction.message
       : await (await interaction.client.channels.fetch(set.channelId)).messages.fetch(set.messageId);
 
-    const rows = msg.components.map(row => {
+    const rows = (msg.components ?? []).map(row => {
       const newRow = new ActionRowBuilder();
       for (const comp of row.components) {
         if (comp.customId?.startsWith('listclaim:')) {
@@ -510,14 +509,18 @@ module.exports = async function interactionRouter(interaction) {
       return newRow;
     });
 
+    if (!rows.length) return;
+
     const allClaimed = set.slots.every(s => !!s.claimedBy);
     const embed0 = msg.embeds?.[0];
-    const newTitle = allClaimed ? 'Mystery List — all claimed' : (embed0?.title || 'Mystery Cards List');
+    const newTitle = allClaimed ? 'Mystery Card List — all claimed ✅' : (embed0?.title || 'Mystery Card List');
     const updatedEmbed = embed0 ? EmbedBuilder.from(embed0).setTitle(newTitle) : new EmbedBuilder().setTitle(newTitle);
 
     await msg.edit({ embeds: [updatedEmbed], components: rows });
+    return;
   } catch (e) {
     console.warn('listclaim: failed to update message:', e.message);
+    return;
   }
 }
 };

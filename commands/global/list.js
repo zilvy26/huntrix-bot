@@ -77,10 +77,10 @@ module.exports = {
 
     const where = interaction.guildId ? 'this channel' : 'this DM';
     const embed = new EmbedBuilder()
-      .setTitle('Mystery Card List')
+      .setTitle('# Mystery Card List')
       .setColor('#2f3136')
       .setDescription([
-        `Click Buttons <:en_one:1392340101547430039> - <:en_five:1392340185982828629>`,
+        ``,
         ``,
         '',
         ``
