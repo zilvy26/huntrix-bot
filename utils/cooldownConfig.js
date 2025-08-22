@@ -37,5 +37,6 @@ module.exports = {
     ]
   },
   Vote: 12 * 60 * 60 * 1000,
+  List: 5 * 60 * 1000,
   // Add more as needed
 };

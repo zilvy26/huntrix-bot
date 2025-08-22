@@ -7,6 +7,7 @@ const emojiMap = {
   Pull: '<:e_pull:1393002254499581982>',
   Pull10: '<:e_pull_ten:1393008116295012403>',
   Rehearsal: '<:e_rehearsal:1393011624788627456>',
+  List: '<:e_list:1408254811698237610>',
   Battle: '<:e_battle:1393020277671329822>',
   Daily: '<:e_daily:1393021981808656424>',
   Perform: '<:e_perform:1393015619162472459>',
@@ -14,7 +15,7 @@ const emojiMap = {
 };
 
 const categories = {
-  Cards: ['Pull', 'Pull10', 'Rehearsal'],
+  Cards: ['Pull', 'Pull10', 'Rehearsal', 'List'],
   Games: ['Battle'],
   Economy: ['Daily', 'Perform', 'Vote']
 };

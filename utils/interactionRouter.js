@@ -383,4 +383,140 @@ module.exports = async function interactionRouter(interaction) {
       files: page.attachment ? [page.attachment] : []
     });
   }
+
+ // LIST BUTTONS 
+
+  if (interaction.isButton() && interaction.customId?.startsWith('listclaim:')) {
+  // ACK the button quickly
+  if (!interaction.deferred && !interaction.replied) {
+    try { await interaction.deferUpdate(); } catch {}
+  }
+
+  const [, setId, idxStr] = interaction.customId.split(':');
+  const idx = parseInt(idxStr, 10);
+  const userId = interaction.user.id;
+  const now = new Date();
+
+  // Atomically claim: set exists, not expired, slot idx unclaimed, user hasn't claimed another
+  const set = await ListSet.findOneAndUpdate(
+    {
+      _id: setId,
+      expiresAt: { $gt: now },
+      'slots.idx': idx,
+      'slots.claimedBy': null,
+      claimers: { $ne: userId }
+    },
+    {
+      $set: { 'slots.$.claimedBy': userId, 'slots.$.claimedAt': now },
+      $addToSet: { claimers: userId }
+    },
+    { new: true }
+  );
+
+  if (!set) {
+    // Either already claimed, expired, or you already claimed one
+    try {
+      await interaction.followUp({
+        content: 'That slot is unavailable or you’ve already claimed one in this list.',
+        ephemeral: !!interaction.guildId // ephemerals don't exist in pure DMs
+      });
+    } catch {}
+    return;
+  }
+
+  const slot = set.slots.find(s => s.idx === idx);
+  if (!slot) {
+    try {
+      await interaction.followUp({ content: '❌ Could not locate that slot.', ephemeral: !!interaction.guildId });
+    } catch {}
+    return;
+  }
+
+  const card = await Card.findById(slot.cardId);
+  if (!card) {
+    try {
+      await interaction.followUp({ content: '❌ The card for that slot no longer exists.', ephemeral: !!interaction.guildId });
+    } catch {}
+    return;
+  }
+  // Grant inventory (same as /pull)
+  let inv = await UserInventory.findOne({ userId });
+  if (!inv) inv = await UserInventory.create({ userId, cards: [] });
+
+  const existing = inv.cards.find(c => c.cardCode === card.cardCode);
+  let copies = 1;
+  if (existing) { existing.quantity += 1; copies = existing.quantity; }
+  else { inv.cards.push({ cardCode: card.cardCode, quantity: 1 }); }
+  await inv.save();
+
+  await UserRecord.create({
+    userId,
+    type: 'listclaim',
+    detail: `Claimed ${card.name} (${card.cardCode}) [${card.rarity}] from list ${setId} slot ${idx}`
+  });
+
+  // Reveal to claimer (ephemeral in guilds, normal in DMs)
+  const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji || '<:fullstar:1387609456824680528>' });
+  const imageSource = card.localImagePath
+    ? `attachment://${card._id}.png`
+    : (card.discordPermalinkImage || card.imgurImageLink);
+  const files = card.localImagePath ? [new AttachmentBuilder(card.localImagePath, { name: `${card._id}.png` })] : [];
+
+  try {
+    await interaction.followUp({
+      ephemeral: !!interaction.guildId, // DM-safe: false in DMs
+      embeds: [
+        new EmbedBuilder()
+          .setTitle(stars)
+          .setColor('#57F287')
+          .setDescription([
+            `**You claimed slot:** ${idx}`,
+            '',
+            `**Group:** ${card.group}`,
+            `**Name:** ${card.name}`,
+            ...(card.category?.toLowerCase() === 'kpop' ? [`**Era:** ${card.era}`] : []),
+            `**Code:** \`${card.cardCode}\``,
+            `**Copies:** ${copies}`
+          ].join('\n'))
+          .setImage(imageSource)
+          .setFooter({ text: `Claimed by ${interaction.user.username}` })
+      ],
+      files
+    });
+  } catch {}
+
+  // Update the original message: disable this button; if all claimed, mark closed
+  try {
+    const msg = interaction.message?.id
+      ? interaction.message
+      : await (await interaction.client.channels.fetch(set.channelId)).messages.fetch(set.messageId);
+
+    const rows = msg.components.map(row => {
+      const newRow = new ActionRowBuilder();
+      for (const comp of row.components) {
+        if (comp.customId?.startsWith('listclaim:')) {
+          const parts = comp.customId.split(':');
+          const compIdx = parseInt(parts[2], 10);
+          const b = ButtonBuilder.from(comp);
+          if (compIdx === idx) {
+            b.setStyle(ButtonStyle.Secondary).setDisabled(true).setLabel(`${compIdx} • Claimed`);
+          }
+          newRow.addComponents(b);
+        } else {
+          newRow.addComponents(comp);
+        }
+      }
+      return newRow;
+    });
+
+    const allClaimed = set.slots.every(s => !!s.claimedBy);
+    const embed0 = msg.embeds?.[0];
+    const newTitle = allClaimed ? 'Mystery List — all claimed' : (embed0?.title || 'Mystery Cards List');
+    const updatedEmbed = embed0 ? EmbedBuilder.from(embed0).setTitle(newTitle) : new EmbedBuilder().setTitle(newTitle);
+
+    await msg.edit({ embeds: [updatedEmbed], components: rows });
+  } catch (e) {
+    console.warn('listclaim: failed to update message:', e.message);
+  }
+}
 };
