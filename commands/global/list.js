@@ -80,10 +80,10 @@ module.exports = {
       .setTitle('Mystery Card List')
       .setColor('#2f3136')
       .setDescription([
-        `Click **one** number to claim a hidden card in ${where}.`,
-        `You won’t know which card until after you click.`,
+        `Click Buttons <:en_one:1392340101547430039> - <:en_five:1392340185982828629>`,
+        ``,
         '',
-        `Expires in **${minutes} minutes** or when all are claimed.`
+        ``
       ].join('\n'))
       .setFooter({ text: `Created by ${interaction.user.username}` });
 

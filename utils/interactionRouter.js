@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { AttachmentBuilder, ComponentType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const safeReply = require('../utils/safeReply');
 const autoDefer = require('../utils/autoDefer'); // your helper that does deferUpdate/Reply based on mode
+const ListSet = require('../models/ListSet');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
