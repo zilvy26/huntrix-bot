@@ -1,13 +1,11 @@
 const User = require('../models/User');
 const Question = require('../models/Question');
 const mongoose = require('mongoose');
-const { AttachmentBuilder, ComponentType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { AttachmentBuilder, ComponentType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const safeReply = require('../utils/safeReply');
 const autoDefer = require('../utils/autoDefer'); // your helper that does deferUpdate/Reply based on mode
 const ListSet = require('../models/ListSet');
 const Card = require('../models/Card');
-const UserInventory = require('../models/UserInventory');
-const UserRecord = require('../models/UserRecord');
 const generateStars = require('../utils/starGenerator');
 
 function getRandomInt(min, max) {

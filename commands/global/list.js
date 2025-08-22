@@ -12,11 +12,13 @@ const pickRarity = require('../../utils/rarityPicker');                    // sa
 const getRandomCardByRarity = require('../../utils/randomCardFromRarity'); // same as /pull
 const ListSet = require('../../models/ListSet');
 
-// 🔥 your existing cooldown utils (same as /pull & /pull10)
+// your cooldown utils (same as /pull & /pull10)
 const cooldowns = require('../../utils/cooldownManager');
 const cooldownConfig = require('../../utils/cooldownConfig'); // if you have per‑command config
 
-// If you prefer hard‑coding: set this to 45 and delete the process.env part
+// ⬇️ this is the same helper you used earlier for reminders on pulls
+const handlerReminders = require('../../utils/handlerReminders'); // <- make sure this path matches your project
+
 const DEFAULT_MINUTES = 15;
 const COMMAND_NAME = 'List';
 
@@ -24,22 +26,33 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('list')
     .setDescription('Create 5 mystery claim buttons for random cards')
+    .addBooleanOption(o =>
+      o.setName('reminder')
+       .setDescription('Remind you when /list cooldown is over')
+    )
+    .addBooleanOption(o =>
+      o.setName('remindinchannel')
+       .setDescription('Send the reminder in this channel instead of DM')
+    )
     .setDMPermission(true),
 
   async execute(interaction) {
     const userId = interaction.user.id;
 
-    // 0) Cooldown check (handler already ACK’d the interaction)
+    // 0) Cooldown check
     const cooldownMs = typeof cooldownConfig?.[COMMAND_NAME] === 'number'
       ? cooldownConfig[COMMAND_NAME]
       : 60_000 * 2; // fallback: 2 minutes
+
     if (await cooldowns.isOnCooldown(userId, COMMAND_NAME)) {
       const ts = await cooldowns.getCooldownTimestamp(userId, COMMAND_NAME);
       return safeReply(interaction, { content: `You must wait **${ts}** before using /list again.` });
     }
 
-    const minutes = DEFAULT_MINUTES; // ← fixed duration; users cannot change it
+    // Fixed duration for the buttons (no user control)
+    const minutes = DEFAULT_MINUTES;
     const expiresAt = new Date(Date.now() + minutes * 60 * 1000);
+
     // 1) Build 5 hidden slots (same rarity as /pull)
     const slots = [];
     for (let idx = 1; idx <= 5; idx++) {
@@ -49,8 +62,20 @@ module.exports = {
       slots.push({ idx, cardId: card._id });
     }
 
-    // 2) Start cooldown now that we know we can proceed
+    // 2) Start cooldown
     await cooldowns.setCooldown(userId, COMMAND_NAME, cooldownMs);
+    // 2b) Schedule cooldown reminder like /pull & /pull10
+    const wantReminder = interaction.options.getBoolean('reminder') ?? false;
+    const remindInChannel = interaction.options.getBoolean('remindinchannel') ?? false;
+    if (wantReminder && typeof handlerReminders === 'function') {
+      // signature you used before: (interaction, commandName, cooldownMs, { inChannel })
+      // the helper should handle DM vs channel; in DMs, inChannel is naturally the DM itself
+      try {
+        await handlerReminders(interaction, COMMAND_NAME, cooldownMs, { inChannel: remindInChannel });
+      } catch (e) {
+        console.warn('list: handlerReminders failed:', e?.message || e);
+      }
+    }
 
     // 3) Create the ListSet (messageId filled after send)
     const set = await ListSet.create({
@@ -75,15 +100,15 @@ module.exports = {
         })
       );
 
-    const where = interaction.guildId ? 'this channel' : 'this DM';
+    const where = interaction.inGuild() ? 'this channel' : 'this DM';
     const embed = new EmbedBuilder()
-      .setTitle('# Mystery Card List')
+      .setTitle('Mystery Card List')
       .setColor('#2f3136')
       .setDescription([
-        ``,
-        ``,
+        `Click **one** number to claim a hidden card in ${where}.`,
+        `You won’t know which card until after you click.`,
         '',
-        ``
+        `Expires in **${minutes} minutes** or when all are claimed.`
       ].join('\n'))
       .setFooter({ text: `Created by ${interaction.user.username}` });
 
@@ -98,7 +123,6 @@ module.exports = {
 
       setTimeout(async () => {
         try {
-          // Best effort: skip if message/channel gone
           const channel = await interaction.client.channels.fetch(set.channelId);
           const liveMsg = await channel.messages.fetch(set.messageId);
 
@@ -107,7 +131,7 @@ module.exports = {
             ? EmbedBuilder.from(liveMsg.embeds[0])
             : new EmbedBuilder().setColor('#2f3136');
 
-          expiredEmbed.setTitle(allClaimed ? 'Mystery List, all claimed ' : 'Mystery List, expired');
+          expiredEmbed.setTitle(allClaimed ? 'Mystery Card List all claimed' : 'Mystery Card List expired');
 
           await liveMsg.edit({
             embeds: [expiredEmbed],
