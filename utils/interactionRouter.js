@@ -158,7 +158,7 @@ module.exports = async function interactionRouter(interaction) {
       if (customId === 'stall_last') currentPage = totalPages;
 
       const previousFilters = stallPreviewFilters.get(msg.id) || {};
-      return await stallPreview(interaction, { ...previousFilters, page: currentPage });
+      return await stallPreview(interaction, { ...previousFilters, page: currentPage, delivery: 'update' });
     } catch (err) {
       console.error('❌ Failed to navigate stall:', err);
       return interaction.editReply({ content: '⚠️ Could not update stall preview.', components: [] });
