@@ -575,14 +575,5 @@ if (interaction.isButton() && interaction.customId?.startsWith('listclaim:')) {
 
   return;
 }
-try {
-      await interaction.followUp({
-        content: 'This button is no longer active.',
-        ephemeral: interaction.inGuild()
-      });
-    } catch (err) {
-      console.warn('fallback reply failed:', err.message);
-    }
-    return;
   }
 };
