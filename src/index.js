@@ -64,6 +64,11 @@ client.on('interactionCreate', async (interaction) => {
       const ok = await safeDefer(interaction); // ACK first
       const pre = t0 - tEnter;               // time before calling defer
       const d   = Date.now() - t0;           // time inside defer
+      // in your interactionCreate slash branch after defer:
+      const warnMs = 2000;
+      if (d > warnMs) {
+        console.warn(`[ACK-SLOW] ${interaction.commandName} defer=${d}ms ping=${interaction.client.ws.ping}`);
+        }
       console.log(`[ACK] ${interaction.commandName} pre=${pre}ms defer=${d}ms ping=${interaction.client.ws.ping} ok:${ok}`);
       if (!ok) return;
 
