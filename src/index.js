@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, ActivityType, Partials } = require('discord.js');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
@@ -12,7 +12,8 @@ const Reminder = require('../models/Reminder');
 const sendReminder = require('../utils/sendReminder');
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages],
+  partials: [Partials.Channel, Partials.Message]
 });
 let isBotReady = false;
 
@@ -56,7 +57,10 @@ client.on('interactionCreate', async interaction => {
   // 💬 Slash Commands
   if (interaction.isChatInputCommand()) {
     try {
-      await safeDefer(interaction);     // ✅ ACK first — now we own a 15‑min window
+   const t0 = Date.now();
+   const ok = await safeDefer(interaction);
+  console.log('[ACK]', interaction.commandName, Date.now() - t0, 'ms | ping', interaction.client.ws.ping, '| ok:', !!ok);
+    if (!ok) return;
 
       // Maintenance check
       const maintenance = await Maintenance.findOne();

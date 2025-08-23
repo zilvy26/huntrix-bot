@@ -21,15 +21,17 @@ async function safeDefer(interaction, options = {}) {
     }
     return false;
   } catch (err) {
-    // If another place already replied/deferred, just swallow
-    const code = err?.code || err?.rawError?.code;
-    if (code === 40060 /* Interaction has already been acknowledged. */
-     || code === 'InteractionAlreadyReplied') {
-      return true;
-    }
-    console.warn('safeDefer: failed to defer:', err?.message || err);
-    return false;
+  const code = err?.code || err?.rawError?.code;
+  if (
+    code === 10062 /* Unknown interaction */ ||
+    code === 40060 /* Interaction already acknowledged */ ||
+    code === 'InteractionAlreadyReplied'
+  ) {
+    return true;
   }
+  console.warn('safeDefer: failed to defer:', err?.message || err);
+  return false;
+}
 }
 
 /** Auto reply/editReply/followUp with fallbacks */
