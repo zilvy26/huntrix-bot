@@ -382,7 +382,7 @@ if (handledRefund) return;
     const showcasePages = interaction.client.cache?.showcase?.[userId];
 
     if (!showcasePages?.length) {
-      return interaction.update({
+      return interaction.editReply({
         content: 'Showcase session expired or not found.',
         embeds: [],
         components: []
@@ -403,7 +403,7 @@ if (handledRefund) return;
 
     const page = showcasePages[current];
 
-    return interaction.update({
+    return interaction.editReply({
       embeds: [page.embed],
       components: [interaction.message.components[0]],
       files: page.attachment ? [page.attachment] : []
