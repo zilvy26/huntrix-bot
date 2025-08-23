@@ -9,6 +9,8 @@ const Card = require('../models/Card');
 const UserInventory = require('../models/UserInventory');
 const UserRecord = require('../models/UserRecord');
 const generateStars = require('../utils/starGenerator');
+const { handleRefundButtons } = require('../utils/refundSession');
+const { REFUND_VALUES } = require('../commands/global/refund');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -31,6 +33,21 @@ function isOwnerOfMessage(interaction) {
 /* ---------------------------------------- */
 
 module.exports = async function interactionRouter(interaction) {
+
+  // --- ACK ALL COMPONENTS HERE (one time) ---
+  if (interaction.isButton?.() || interaction.isStringSelectMenu?.()) {
+    if (!interaction.deferred && !interaction.replied) {
+      try {
+        await interaction.deferUpdate();           // tells Discord "we got it"
+      } catch (err) {
+        // swallow harmless cases so logs stay clean
+        const code = err?.code || err?.rawError?.code;
+        if (code !== 10062 && code !== 40060 && code !== 'InteractionAlreadyReplied') {
+          console.warn('router deferUpdate failed:', err?.message || err);
+        }
+      }
+    }
+
   const { customId, user } = interaction;
 
   /* 🎯 Battle Answer Buttons */
@@ -113,6 +130,10 @@ module.exports = async function interactionRouter(interaction) {
       return safeReply(interaction, { content: 'An error occurred processing your answer.' });
     }
   }
+
+  // --- Let /refund session claim the generic IDs for its own message ---
+const handledRefund = await handleRefundButtons(interaction, { Card, User, UserInventory, REFUND_VALUES });
+if (handledRefund) return;
 
   /* Universal simple pager (kept as-is) */
   const navPattern = /^(first|prev|next|last)$/;
@@ -554,4 +575,14 @@ if (interaction.isButton() && interaction.customId?.startsWith('listclaim:')) {
 
   return;
 }
+try {
+      await interaction.followUp({
+        content: 'This button is no longer active.',
+        ephemeral: interaction.inGuild()
+      });
+    } catch (err) {
+      console.warn('fallback reply failed:', err.message);
+    }
+    return;
+  }
 };

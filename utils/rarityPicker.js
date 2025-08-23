@@ -4,9 +4,9 @@ const parseRarity = require('./parseRarity'); // we'll use the parser too
 const rawRarities = {
   '1S': 37,
   '2S': 29.75,
-  '3S': 21.65,
+  '3S': 21.5,
   '4S': 10,
-  '5S': 1.6,
+  '5S': 1.75,
 };
 
 /**
