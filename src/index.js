@@ -36,43 +36,54 @@ for (const folder of commandFolders) {
 
 // inside your existing setup file, replace the whole client.on('interactionCreate', ...) block
 
-const { safeReply, safeDefer } = require('../utils/safeReply');
+const { safeReply, safeDefer, withAckGuard } = require('../utils/safeReply');
 
-client.on('interactionCreate', async interaction => {
+client.on('interactionCreate', async (interaction) => {
+  const tEnter = Date.now(); // <-- used to compute "pre" accurately
+
   if (!isBotReady) {
     return safeReply(interaction, { content: 'Bot is still starting up. Try again in a moment.', ephemeral: true });
   }
 
-  // 🧩 Buttons & Menus
+  // --- Buttons & Menus: pre‑ACK once, then route
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
     try {
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferUpdate().catch(() => {}); // swallow 10062/40060
+      }
       await interactionRouter(interaction);
     } catch (err) {
-      console.error('Router error:', err);
-      await safeReply(interaction, { content: '❌ Error handling interaction.', ephemeral: true }, { preferFollowUp: true });
+      console.error('Router error (component):', err);
+      await safeReply(
+        interaction,
+        { content: '❌ Error handling interaction.', ephemeral: true },
+        { preferFollowUp: true }
+      );
     }
     return;
   }
 
-  // 💬 Slash Commands
+  // --- Slash Commands
   if (interaction.isChatInputCommand()) {
+    const guard = withAckGuard(interaction, { timeoutMs: 450 }); // watchdog ON
     try {
-   const t0 = Date.now();
-   const ok = await safeDefer(interaction);
-  console.log('[ACK]', interaction.commandName, Date.now() - t0, 'ms | ping', interaction.client.ws.ping, '| ok:', !!ok);
-    if (!ok) return;
+      const t0 = Date.now();                 // moment we attempt to defer
+      const ok = await safeDefer(interaction); // ACK first
+      const pre = t0 - tEnter;               // time before calling defer
+      const d   = Date.now() - t0;           // time inside defer
+      console.log(`[ACK] ${interaction.commandName} pre=${pre}ms defer=${d}ms ping=${interaction.client.ws.ping} ok:${ok}`);
+      if (!ok) return;
 
-      // Maintenance check
+      // --- Maintenance (AFTER ACK)
       const maintenance = await Maintenance.findOne();
       const bypassRoleId = process.env.MAIN_BYPASS_ID;
       const isBypassed = interaction.inGuild() && interaction.member?.roles?.cache?.has(bypassRoleId);
       const isDev = interaction.user.id === interaction.client.application?.owner?.id;
-
       if (maintenance?.active && !isBypassed && !isDev) {
         return safeReply(interaction, { content: 'The bot is currently under maintenance. Please try again later.' });
       }
 
-      // Registration check
+      // --- Registration (AFTER ACK)
       if (interaction.commandName !== 'register') {
         const userExists = await User.exists({ userId: interaction.user.id });
         if (!userExists) {
@@ -80,7 +91,7 @@ client.on('interactionCreate', async interaction => {
         }
       }
 
-      // Blacklist check
+      // --- Blacklist (AFTER ACK)
       const Blacklist = require('../models/Blacklist');
       const blacklisted = await Blacklist.findOne({ userId: interaction.user.id });
       if (blacklisted) {
@@ -89,7 +100,7 @@ client.on('interactionCreate', async interaction => {
         });
       }
 
-      // Load / create user profile
+      // --- Load/create user profile (AFTER ACK)
       try {
         interaction.userData = await getOrCreateUser(interaction);
       } catch (err) {
@@ -97,14 +108,18 @@ client.on('interactionCreate', async interaction => {
         return safeReply(interaction, { content: 'Failed to load your profile. Please try again later.' });
       }
 
-      // Execute the command
+      // --- Execute command
       const command = client.commands.get(interaction.commandName);
       if (!command) return safeReply(interaction, { content: 'Unknown command.' });
       await command.execute(interaction);
+
     } catch (err) {
-      console.error(`Error in command "${interaction.commandName}":`, err);
-      await safeReply(interaction, { content: '❌ There was an error executing the command.' });
+      console.error(`Error in "${interaction.commandName}":`, err);
+      await safeReply(interaction, { content: '❌ There was an error executing the command.' }, { preferFollowUp: true });
+    } finally {
+      guard.end(); // stop the watchdog
     }
+    return;
   }
 });
 
