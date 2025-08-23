@@ -135,6 +135,58 @@ module.exports = async function interactionRouter(interaction) {
 const handledRefund = await handleRefundButtons(interaction, { Card, User, UserInventory, REFUND_VALUES });
 if (handledRefund) return;
 
+// utils/interactionRouter.js (inside: if (interaction.isButton() || interaction.isStringSelectMenu()) { ... })
+
+// ACK once at the top of the block (you already do this):
+// if (!interaction.deferred && !interaction.replied) { await interaction.deferUpdate().catch(()=>{}); }
+
+const id = interaction.customId ?? '';
+const msgId = interaction.message?.id;
+
+// ---- HELP PAGES (message-scoped) ----
+interaction.client.cache ??= {};
+interaction.client.cache.help ??= {};
+const helpSession = interaction.client.cache.help[msgId];
+
+if (helpSession && id.startsWith('help:')) {
+  // (Optional) only allow the invoker to flip pages:
+  if (helpSession.ownerId && helpSession.ownerId !== interaction.user.id) {
+    await interaction.followUp({ content: 'Only the command invoker can change these pages.', ephemeral: interaction.inGuild() });
+    return;
+  }
+
+  const total = helpSession.pages.length;
+  let page = helpSession.page;
+
+  if (id === 'help:first') page = 0;
+  else if (id === 'help:prev') page = Math.max(0, page - 1);
+  else if (id === 'help:next') page = Math.min(total - 1, page + 1);
+  else if (id === 'help:last') page = total - 1;
+
+  helpSession.page = page;
+
+  const makeRow = (pageIdx) => new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('help:first').setStyle(ButtonStyle.Secondary)
+      .setDisabled(pageIdx === 0)
+      .setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+    new ButtonBuilder().setCustomId('help:prev').setStyle(ButtonStyle.Primary)
+      .setDisabled(pageIdx === 0)
+      .setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+    new ButtonBuilder().setCustomId('help:next').setStyle(ButtonStyle.Primary)
+      .setDisabled(pageIdx >= total - 1)
+      .setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
+    new ButtonBuilder().setCustomId('help:last').setStyle(ButtonStyle.Secondary)
+      .setDisabled(pageIdx >= total - 1)
+      .setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+  );
+
+  const embed = EmbedBuilder.from(helpSession.pages[page])
+    .setFooter({ text: `Page ${page + 1} of ${total}` });
+
+  await interaction.editReply({ embeds: [embed], components: [makeRow(page)] });
+  return;
+}
+
   /* Universal simple pager (kept as-is) */
   const navPattern = /^(first|prev|next|last)$/;
   if (navPattern.test(customId || '')) {
@@ -310,7 +362,6 @@ if (handledRefund) return;
   const m = /^index:(first|prev|next|last|copy)$/.exec(customId || '');
   if (m) {
     const action = m[1];
-    const msgId = interaction.message?.id;
     const session = interaction.client.cache.indexSessions[msgId];
 
     if (!session) {
