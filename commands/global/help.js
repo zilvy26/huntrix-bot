@@ -21,10 +21,9 @@ module.exports = {
         .setTitle('Huntrix — About')
         .setColor(0x2f3136)
         .setDescription([
-          'Welcome to **Huntrix**!',
           '• Pull cards, trade, battle, earn currency & more.',
           '• Slash commands are available in servers and DMs.',
-          '',
+          '• Discord Support Server - discord.gg/huntrixbot',
           '_Use the buttons below to navigate pages._'
         ].join('\n')),
 
@@ -32,25 +31,25 @@ module.exports = {
         .setTitle('Getting Started')
         .setColor(0x2f3136)
         .addFields(
-          { name: 'Register', value: '`/register` to create your profile.' },
+          { name: 'Register', value: '`/register` to create your user data.' },
           { name: 'Command Cooldowns', value: '`/cooldowns` to view your command timers.' },
           { name: 'Profile', value: '`/profile` & `/editprofile` to view or customize.' },
-        )
-        .setFooter({ text: 'Join our Discord Support Server : discord.gg/huntrixbot' }),
+        ),
 
       new EmbedBuilder()
         .setTitle('Core Commands')
         .setColor(0x2f3136)
         .setDescription([
-          '`/pull`, `/pull10`, `/rehearsal`, `/list` — pull cards',
-          '`/tradecard`, `/trademulti` — trade with others',
+          '`/pull` & `/pull10` — pull cards',
+          '`/rehearsal` & `/list` — select & claim cards',
+          '`/tradecard` & `/trademulti` — trade with others',
           '`/pay` — give another user currency',
           '`/balance` — see your currency balance',
         ].join('\n')),
 
       new EmbedBuilder()
         .setTitle('Utilities Commands')
-        .setColor(0xA61E4D)
+        .setColor(0x2f3136)
         .setDescription([
           '`/index` — view your card inventory & card catalog',
           '`/records` — view yours or another user’s activity logs',
