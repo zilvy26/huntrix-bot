@@ -44,11 +44,11 @@ module.exports = {
     // Convert to sorted array
     const sortedGroups = Object.entries(groupCounts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 25);
+      .slice(0, 10);
 
     // Embed formatting
     const embed = new EmbedBuilder()
-      .setTitle('Top 25 Hoarded Groups')
+      .setTitle('Top 10 Hoarded Groups')
       .setColor('#ffaa00')
       .setDescription(
         sortedGroups.map(([group, count], i) => `**${i + 1}.** \`${group}\` — ${count} cards`).join('\n')

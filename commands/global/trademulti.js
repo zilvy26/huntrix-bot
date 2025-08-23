@@ -221,7 +221,7 @@ await safeReply(interaction, {
 });
 
 // 2. Immediately send the ping in a separate message to trigger Mentions tab
-await safeReply(interaction, {
+await interaction.followUp({
   content: `Multitrade sent to <@${target.id}>!`,
   allowedMentions: { users: [target.id] }
 });
