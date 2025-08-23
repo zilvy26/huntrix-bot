@@ -48,17 +48,10 @@ client.on('interactionCreate', async (interaction) => {
   // --- Buttons & Menus: pre‑ACK once, then route
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
     try {
-      if (!interaction.deferred && !interaction.replied) {
-        await interaction.deferUpdate().catch(() => {}); // swallow 10062/40060
-      }
       await interactionRouter(interaction);
     } catch (err) {
-      console.error('Router error (component):', err);
-      await safeReply(
-        interaction,
-        { content: '❌ Error handling interaction.', ephemeral: true },
-        { preferFollowUp: true }
-      );
+      console.error('Router error:', err);
+      await safeReply(interaction, { content: '❌ Error handling interaction.', ephemeral: true }, { preferFollowUp: true });
     }
     return;
   }
