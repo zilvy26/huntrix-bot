@@ -87,7 +87,7 @@ module.exports = {
       const pullable = opts.getBoolean('pullable') ?? true;
 
       // Designers — store as array of IDs (exactly like /editcards)
-      const d1 = opts.getUser('designer');
+      const d1 = opts.getUser('designer') || interaction.user;
       const d2 = opts.getUser('designer2');
       const d3 = opts.getUser('designer3');
       const designerIds = [d1, d2, d3].filter(Boolean).map(u => u.id);
