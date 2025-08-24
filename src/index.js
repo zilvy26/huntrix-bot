@@ -11,9 +11,28 @@ const interactionRouter = require('../utils/interactionRouter');
 const Reminder = require('../models/Reminder');
 const sendReminder = require('../utils/sendReminder');
 
+// ⬇️ add this after the other requires (top of file)
+const { monitorEventLoopDelay } = require('perf_hooks');
+const el = monitorEventLoopDelay({ resolution: 5 });
+el.enable();
+setInterval(() => {
+  const p95 = Math.round(el.percentile(95) / 1e6); // ns → ms
+  if (p95 > 100) console.warn(`[ELOOP] 95th=${p95}ms (event-loop blocking)`);
+  el.reset();
+}, 10_000).unref();
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages],
   partials: [Partials.Channel, Partials.Message]
+});
+// ⬇️ REST rate-limit visibility (helps explain long defers)
+client.rest.on('rateLimited', (info) => {
+  if (info.route?.includes('/interactions/')) {
+    console.warn(
+      `[RL] interactions route limited | route=${info.route} ` +
+      `timeout=${info.timeout}ms global=${info.global} limit=${info.limit}`
+    );
+  }
 });
 let isBotReady = false;
 
