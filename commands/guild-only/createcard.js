@@ -81,10 +81,7 @@ module.exports = {
       const designer2 = opts.getUser('designer2');
       const designer3 = opts.getUser('designer3');
 
-      const designerIds = [designer1, designer2, designer3]
-  .filter(Boolean)
-  .map(id => `<@${id}>`)
-  .join(', ');
+      const designerIds = [designer1, designer2, designer3].filter(Boolean).map(d => d.id).join(', ');
       const pullable = opts.getBoolean('pullable') ?? true;
       const group = opts.getString('group');
       const era = opts.getString('era');
@@ -114,7 +111,7 @@ module.exports = {
           { name: 'Category', value: category, inline: true },
           { name: 'Group', value: group || '-', inline: true },
           { name: 'Era', value: era || '-', inline: true },
-          { name: 'Designer(s)', value: designerIds, inline: true }
+          { name: 'Designer(s)', value: (designerIds).map(id => `<@${id}>`).join(', ') || 'None', inline: true }
         );
 
       const row = new ActionRowBuilder().addComponents(
@@ -132,14 +129,6 @@ module.exports = {
 
       if (!btn) {
         return interaction.editReply({ content: 'No response — cancelled.', components: [] });
-      }
-
-      if (!btn.deferred && !btn.replied) {
-        try {
-          await btn.deferUpdate();
-        } catch (err) {
-          console.warn('Failed to defer update:', err);
-        }
       }
 
       if (btn.customId === 'confirm') {
