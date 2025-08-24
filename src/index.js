@@ -1,3 +1,5 @@
+// Force Node to prefer IPv4 over IPv6 for DNS lookups
+require('dns').setDefaultResultOrder?.('ipv4first');
 require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, ActivityType, Partials } = require('discord.js');
 const mongoose = require('mongoose');
