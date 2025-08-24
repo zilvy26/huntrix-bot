@@ -29,12 +29,10 @@ const client = new Client({
 });
 // ⬇️ REST rate-limit visibility (helps explain long defers)
 client.rest.on('rateLimited', (info) => {
-  if (info.route?.includes('/interactions/')) {
-    console.warn(
-      `[RL] interactions route limited | route=${info.route} ` +
-      `timeout=${info.timeout}ms global=${info.global} limit=${info.limit}`
-    );
-  }
+  console.warn(
+    `[REST-RL] timeout=${info.timeout}ms global=${info.global} ` +
+    `route=${info.route} limit=${info.limit} method=${info.method} bucket=${info.bucket}`
+  );
 });
 let isBotReady = false;
 
@@ -86,10 +84,14 @@ client.on('interactionCreate', async (interaction) => {
       const pre = t0 - tEnter;               // time before calling defer
       const d   = Date.now() - t0;           // time inside defer
       // in your interactionCreate slash branch after defer:
-      const warnMs = 2000;
-      if (d > warnMs) {
-        console.warn(`[ACK-SLOW] ${interaction.commandName} defer=${d}ms ping=${interaction.client.ws.ping}`);
-        }
+      const WARN_MS = Number(process.env.ACK_WARN_MS ?? 2500);
+if (d > WARN_MS) {
+  const q = client.rest.globalRemaining ?? '?';
+  console.warn(
+    `[ACK-SLOW] ${interaction.commandName} ` +
+    `defer=${d}ms pre=${pre}ms ping=${client.ws.ping} globalRemaining=${q}`
+  );
+}
       console.log(`[ACK] ${interaction.commandName} pre=${pre}ms defer=${d}ms ping=${interaction.client.ws.ping} ok:${ok}`);
       if (!ok) return;
 
