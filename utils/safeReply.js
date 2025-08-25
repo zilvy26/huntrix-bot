@@ -4,28 +4,35 @@ function isComponent(i) {
 }
 
 const TRANSIENT = new Set([
-  10062,                   // Unknown interaction (expired or already used)
-  40060,                   // Interaction already acknowledged
-  10015,                   // Unknown webhook (fetchReply on component / deleted original)
+  10062, // Unknown interaction (expired or already used)
+  40060, // Interaction already acknowledged
+  10015, // Unknown webhook
   'InteractionAlreadyReplied'
 ]);
+
+const EPH_FLAG = 1 << 6; // ephemeral flag for interaction responses
 
 function codeOf(err){ return err?.code || err?.rawError?.code || err?.status; }
 
 /** Defer safely: slash/modal => deferReply; components => deferUpdate */
-async function safeDefer(interaction, options = {}) {
+async function safeDefer(interaction, { ephemeral = false } = {}) {
+  const flags = ephemeral ? EPH_FLAG : undefined;
   try {
     if (interaction.deferred || interaction.replied) return true;
+
     if (interaction.isChatInputCommand?.() || interaction.isModalSubmit?.()) {
-      await interaction.deferReply(options);
+      // Use flags instead of ephemeral to avoid the deprecation warning
+      await interaction.deferReply({ flags });
       return true;
     }
+
     if (isComponent(interaction)) {
       await interaction.deferUpdate();
       return true;
     }
+
     if (interaction.isRepliable?.()) {
-      await interaction.deferReply(options);
+      await interaction.deferReply({ flags });
       return true;
     }
     return false;
@@ -40,48 +47,48 @@ async function safeDefer(interaction, options = {}) {
 async function safeReply(interaction, payload, opts = {}) {
   const data = typeof payload === 'string' ? { content: payload } : (payload || {});
   const preferFollowUp = !!opts.preferFollowUp;
-  const isComp = isComponent(interaction);
+
+  // map `ephemeral: true` to `flags` for all reply/edit/followUp calls
+  if ('ephemeral' in data) {
+    const eph = !!data.ephemeral;
+    delete data.ephemeral;
+    data.flags = eph ? EPH_FLAG : data.flags;
+  }
 
   try {
-    // First response if nothing was sent yet and we don't prefer followUp
     if (!interaction.deferred && !interaction.replied && !preferFollowUp) {
       return await interaction.reply(data);
     }
-
-    // Components (after deferUpdate) cannot edit original reply; use followUp
-    if (isComp) {
+    if (isComponent(interaction)) {
       return await interaction.followUp(data);
     }
-
-    // Slash/modal after deferReply -> edit; fallback to followUp
     if (interaction.deferred && !preferFollowUp) {
       try { return await interaction.editReply(data); }
       catch { return await interaction.followUp(data); }
     }
-
     return await interaction.followUp(data);
   } catch (err) {
     const code = codeOf(err);
 
-    // One silent retry to followUp unless token is clearly dead
     if (code !== 10062 && code !== 10015) {
       try { return await interaction.followUp(data); } catch {}
     }
 
-    // (Optional) last resort to channel (non-ephemeral). Comment out if undesired.
     try {
       if (interaction.channel?.send) {
         const { content, embeds, files, components, allowedMentions } = data;
-        return await interaction.channel.send({ content: content ?? ' ', embeds, files, components, allowedMentions });
+        return await interaction.channel.send({
+          content: content ?? ' ',
+          embeds, files, components, allowedMentions
+        });
       }
     } catch {}
-
     console.warn(`safeReply failed (${code ?? 'no-code'}):`, err?.message || err);
     return null;
   }
 }
 
-/** Watchdog: auto-defer after ~450ms if your code stalls before calling safeDefer */
+/** Watchdog: auto‑defer after ~450ms if your handler is still busy */
 function withAckGuard(interaction, { timeoutMs = 450, options = {} } = {}) {
   let timer = setTimeout(async () => {
     try {
@@ -94,28 +101,24 @@ function withAckGuard(interaction, { timeoutMs = 450, options = {} } = {}) {
   return { end() { if (timer) { clearTimeout(timer); timer = null; } } };
 }
 
-// --- add below withAckGuard ---
-
 function isTransientErr(err) {
   const code = codeOf(err);
-  return code === 10062 /* Unknown interaction */ ||
-         code === 40060 /* Already acknowledged */ ||
-         code === 'InteractionAlreadyReplied' ||
-         code === 10015 /* Unknown webhook */;
+  return code === 10062 || code === 40060 || code === 'InteractionAlreadyReplied' || code === 10015;
 }
 
 /**
- * Race-based ACK for slash/modals:
- * - tries deferReply() immediately
- * - also tries a tiny reply() 120ms later
- * whichever succeeds first "wins" the ACK
+ * Fast ACK for slash/modals:
+ * - try deferReply(flags) immediately
+ * - also try a tiny reply(flags) 120ms later
+ * whichever wins first is your ACK
  *
- * Returns: { ok:boolean, mode:'defer'|'reply'|'already'|'fail', ms:number }
- *
- * NOTE: default ephemeral=false so your public commands stay public.
- * If a command MUST be ephemeral, you can pass { ephemeral:true } from the caller.
+ * Returns: { ok, mode:'defer'|'reply'|'already'|'fail', ms }
  */
-async function ackFast(interaction, { ephemeral = false, bannerText = 'Working…' } = {}) {
+async function ackFast(interaction, {
+  ephemeral = false,
+  bannerText = '\u200b' // zero-width if you don't want a visible "Working…"
+} = {}) {
+  const flags = ephemeral ? EPH_FLAG : undefined;
   const start = Date.now();
   if (interaction.deferred || interaction.replied) {
     return { ok: true, mode: 'already', ms: 0 };
@@ -123,21 +126,19 @@ async function ackFast(interaction, { ephemeral = false, bannerText = 'Working�
 
   let settled = false;
   let mode = 'fail';
-
   const settle = (m) => { if (!settled) { settled = true; mode = m; } };
 
-  // Path A: defer (preferred)
-  const pDefer = interaction.deferReply({ ephemeral })
+  // A) prefer defer
+  const pDefer = interaction.deferReply({ flags })
     .then(() => settle('defer'))
     .catch((e) => { if (!isTransientErr(e)) console.warn('ackFast defer error:', e?.message || e); });
 
-  // Path B: tiny reply after a short stagger (to avoid same-tick bucket contention)
+  // B) small delayed reply (less likely to collide with same‑tick buckets)
   const pReply = new Promise((r) => setTimeout(r, 120))
-    .then(() => interaction.reply({ ephemeral, content: bannerText }))
+    .then(() => interaction.reply({ flags, content: bannerText }))
     .then(() => settle('reply'))
     .catch((e) => { if (!isTransientErr(e)) console.warn('ackFast reply error:', e?.message || e); });
 
-  // Wait briefly for either to win
   await Promise.race([
     Promise.allSettled([pDefer, pReply]),
     new Promise(res => setTimeout(res, 800))
@@ -145,7 +146,6 @@ async function ackFast(interaction, { ephemeral = false, bannerText = 'Working�
 
   if (settled) return { ok: true, mode, ms: Date.now() - start };
 
-  // Neither finished quickly; wait a bit more to see if one eventually resolves
   try {
     await Promise.any([pDefer, pReply]);
     return { ok: true, mode, ms: Date.now() - start };

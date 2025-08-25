@@ -18,7 +18,7 @@ const { monitorEventLoopDelay } = require('perf_hooks');
 const el = monitorEventLoopDelay({ resolution: 5 });
 el.enable();
 setInterval(() => {
-  const p95 = Math.round(el.percentile(95) / 1e6); // ns → ms
+  const p95 = Math.round(el.percentile(95) / 1e6);
   if (p95 > 100) console.warn(`[ELOOP] 95th=${p95}ms (event-loop blocking)`);
   el.reset();
 }, 10_000).unref();
@@ -27,76 +27,68 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages],
   partials: [Partials.Channel, Partials.Message]
 });
-// ⬇️ REST rate-limit visibility (helps explain long defers)
+
 client.rest.on('rateLimited', (info) => {
   console.warn(
     `[REST-RL] timeout=${info.timeout}ms global=${info.global} ` +
     `route=${info.route} limit=${info.limit} method=${info.method} bucket=${info.bucket}`
   );
 });
+
 let isBotReady = false;
 
-// Load slash commands
+// Commands loader
 client.commands = new Collection();
 const commandsDir = path.join(__dirname, '../commands');
-const commandFolders = ['global', 'guild-only'];
-
-for (const folder of commandFolders) {
+for (const folder of ['global', 'guild-only']) {
   const folderPath = path.join(commandsDir, folder);
   if (!fs.existsSync(folderPath)) continue;
-
-  const commandFiles = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
-
-  for (const file of commandFiles) {
+  for (const file of fs.readdirSync(folderPath).filter(f => f.endsWith('.js'))) {
     const command = require(path.join(folderPath, file));
     client.commands.set(command.data.name, command);
   }
 }
 
-// inside your existing setup file, replace the whole client.on('interactionCreate', ...) block
-
 const { safeReply, withAckGuard, ackFast } = require('../utils/safeReply');
 
 client.on('interactionCreate', async (interaction) => {
-  const tEnter = Date.now(); // <-- used to compute "pre" accurately
+  const tEnter = Date.now();
 
   if (!isBotReady) {
+    // flags: 1<<6 == ephemeral
     return safeReply(interaction, { content: 'Bot is still starting up. Try again in a moment.', flags: 1 << 6 });
   }
 
-  // --- Buttons & Menus: pre‑ACK once, then route
+  // Buttons & Menus
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
+    // Acknowledge instantly for components:
     try {
-      await interactionRouter(interaction);
+      await interaction.deferUpdate();       // ALWAYS defer components
+      await interactionRouter(interaction);  // then do your work and followUp as needed
     } catch (err) {
       console.error('Router error:', err);
       await safeReply(interaction, { content: '❌ Error handling interaction.', flags: 1 << 6 }, { preferFollowUp: true });
     }
     return;
   }
-
-  // --- Slash Commands
+  // Slash commands
   if (interaction.isChatInputCommand()) {
-    const guard = withAckGuard(interaction, { timeoutMs: 450 }); // watchdog ON
+    const guard = withAckGuard(interaction, { timeoutMs: 450 });
     try {
-      const t0 = Date.now(); // moment we attempt ACK
+      const t0 = Date.now();
       const ack = await ackFast(interaction, { ephemeral: false, bannerText: '\u200b' });
-// If you prefer a less noisy banner, use bannerText: '\u200b' (zero-width)
       const pre = t0 - tEnter;
       const d   = ack.ms;
 
       const WARN_MS = Number(process.env.ACK_WARN_MS ?? 2500);
       if (d > WARN_MS) {
         const q = client.rest.globalRemaining ?? '?';
-        console.warn(
-    `[ACK-SLOW] ${interaction.commandName} ` +
-    `ack=${d}ms pre=${pre}ms ping=${client.ws.ping} mode=${ack.mode} globalRemaining=${q}`
-        );
+        console.warn(`[ACK-SLOW] ${interaction.commandName} ack=${d}ms pre=${pre}ms ping=${client.ws.ping} mode=${ack.mode} globalRemaining=${q}`);
       }
       console.log(`[ACK] ${interaction.commandName} pre=${pre}ms ack=${d}ms mode=${ack.mode} ok:${ack.ok}`);
-      if (!ack.ok) return;
+      if (!ack.ok) return; // Nothing we can do if ACK failed
 
-      // --- Maintenance (AFTER ACK)
+      // ---- AFTER ACK: long/DB work is safe ----
       const maintenance = await Maintenance.findOne();
       const bypassRoleId = process.env.MAIN_BYPASS_ID;
       const isBypassed = interaction.inGuild() && interaction.member?.roles?.cache?.has(bypassRoleId);
@@ -105,7 +97,6 @@ client.on('interactionCreate', async (interaction) => {
         return safeReply(interaction, { content: 'The bot is currently under maintenance. Please try again later.' });
       }
 
-      // --- Registration (AFTER ACK)
       if (interaction.commandName !== 'register') {
         const userExists = await User.exists({ userId: interaction.user.id });
         if (!userExists) {
@@ -113,7 +104,6 @@ client.on('interactionCreate', async (interaction) => {
         }
       }
 
-      // --- Blacklist (AFTER ACK)
       const Blacklist = require('../models/Blacklist');
       const blacklisted = await Blacklist.findOne({ userId: interaction.user.id });
       if (blacklisted) {
@@ -122,7 +112,6 @@ client.on('interactionCreate', async (interaction) => {
         });
       }
 
-      // --- Load/create user profile (AFTER ACK)
       try {
         interaction.userData = await getOrCreateUser(interaction);
       } catch (err) {
@@ -130,7 +119,6 @@ client.on('interactionCreate', async (interaction) => {
         return safeReply(interaction, { content: 'Failed to load your profile. Please try again later.' });
       }
 
-      // --- Execute command
       const command = client.commands.get(interaction.commandName);
       if (!command) return safeReply(interaction, { content: 'Unknown command.' });
       await command.execute(interaction);
@@ -139,9 +127,8 @@ client.on('interactionCreate', async (interaction) => {
       console.error(`Error in "${interaction.commandName}":`, err);
       await safeReply(interaction, { content: '❌ There was an error executing the command.' }, { preferFollowUp: true });
     } finally {
-      guard.end(); // stop the watchdog
+      guard.end();
     }
-    return;
   }
 });
 
