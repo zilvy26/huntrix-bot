@@ -127,7 +127,7 @@ async function ackFast(interaction, { ephemeral = false, bannerText = 'Workingâ€
   const settle = (m) => { if (!settled) { settled = true; mode = m; } };
 
   // Path A: defer (preferred)
-  const pDefer = interaction.deferReply()
+  const pDefer = interaction.deferReply({ ephemeral })
     .then(() => settle('defer'))
     .catch((e) => { if (!isTransientErr(e)) console.warn('ackFast defer error:', e?.message || e); });
 
@@ -140,7 +140,7 @@ async function ackFast(interaction, { ephemeral = false, bannerText = 'Workingâ€
   // Wait briefly for either to win
   await Promise.race([
     Promise.allSettled([pDefer, pReply]),
-    new Promise(res => setTimeout(res, 2500))
+    new Promise(res => setTimeout(res, 800))
   ]);
 
   if (settled) return { ok: true, mode, ms: Date.now() - start };

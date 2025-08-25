@@ -61,7 +61,7 @@ client.on('interactionCreate', async (interaction) => {
   const tEnter = Date.now(); // <-- used to compute "pre" accurately
 
   if (!isBotReady) {
-    return safeReply(interaction, { content: 'Bot is still starting up. Try again in a moment.', ephemeral: true });
+    return safeReply(interaction, { content: 'Bot is still starting up. Try again in a moment.', flags: 1 << 6 });
   }
 
   // --- Buttons & Menus: pre‑ACK once, then route
@@ -70,7 +70,7 @@ client.on('interactionCreate', async (interaction) => {
       await interactionRouter(interaction);
     } catch (err) {
       console.error('Router error:', err);
-      await safeReply(interaction, { content: '❌ Error handling interaction.', ephemeral: true }, { preferFollowUp: true });
+      await safeReply(interaction, { content: '❌ Error handling interaction.', flags: 1 << 6 }, { preferFollowUp: true });
     }
     return;
   }
