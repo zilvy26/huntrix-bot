@@ -55,7 +55,7 @@ for (const folder of commandFolders) {
 
 // inside your existing setup file, replace the whole client.on('interactionCreate', ...) block
 
-const { safeReply, safeDefer, withAckGuard } = require('../utils/safeReply');
+const { safeReply, withAckGuard, ackFast } = require('../utils/safeReply');
 
 client.on('interactionCreate', async (interaction) => {
   const tEnter = Date.now(); // <-- used to compute "pre" accurately
@@ -79,21 +79,22 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isChatInputCommand()) {
     const guard = withAckGuard(interaction, { timeoutMs: 450 }); // watchdog ON
     try {
-      const t0 = Date.now();                 // moment we attempt to defer
-      const ok = await safeDefer(interaction); // ACK first
-      const pre = t0 - tEnter;               // time before calling defer
-      const d   = Date.now() - t0;           // time inside defer
-      // in your interactionCreate slash branch after defer:
+      const t0 = Date.now(); // moment we attempt ACK
+      const ack = await ackFast(interaction, { ephemeral: false, bannerText: 'Working…' });
+// If you prefer a less noisy banner, use bannerText: '\u200b' (zero-width)
+      const pre = t0 - tEnter;
+      const d   = ack.ms;
+
       const WARN_MS = Number(process.env.ACK_WARN_MS ?? 2500);
-if (d > WARN_MS) {
-  const q = client.rest.globalRemaining ?? '?';
-  console.warn(
+      if (d > WARN_MS) {
+        const q = client.rest.globalRemaining ?? '?';
+        console.warn(
     `[ACK-SLOW] ${interaction.commandName} ` +
-    `defer=${d}ms pre=${pre}ms ping=${client.ws.ping} globalRemaining=${q}`
-  );
-}
-      console.log(`[ACK] ${interaction.commandName} pre=${pre}ms defer=${d}ms ping=${interaction.client.ws.ping} ok:${ok}`);
-      if (!ok) return;
+    `ack=${d}ms pre=${pre}ms ping=${client.ws.ping} mode=${ack.mode} globalRemaining=${q}`
+        );
+      }
+      console.log(`[ACK] ${interaction.commandName} pre=${pre}ms ack=${d}ms mode=${ack.mode} ok:${ack.ok}`);
+      if (!ack.ok) return;
 
       // --- Maintenance (AFTER ACK)
       const maintenance = await Maintenance.findOne();
