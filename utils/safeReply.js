@@ -13,7 +13,7 @@ const TRANSIENT = new Set([
   'InteractionAlreadyReplied'
 ]);
 
-// Map opts.ephemeral -> flags (new API); keep both supported
+// Map opts.ephemeral -> flags (new API for initial response)
 function flagsFrom(opts = {}) {
   return opts.ephemeral ? MessageFlags.Ephemeral : (opts.flags ?? undefined);
 }
@@ -38,7 +38,7 @@ async function safeDefer(interaction, options = {}) {
     }
     return false;
   } catch (err) {
-    if ( TRANSIENT.has(codeOf(err)) ) return true;
+    if (TRANSIENT.has(codeOf(err))) return true;
     console.warn('safeDefer: failed to defer:', err?.message || err);
     return false;
   }
@@ -56,16 +56,16 @@ async function safeReply(interaction, payload, opts = {}) {
   const isComp = isComponent(interaction);
 
   try {
-    // 1) Components – edit the clicked message first (in-place pagination)
+    // 1) Components – EDIT IN PLACE first
     if (isComp && !preferFollowUp) {
       try {
         if (interaction.message?.editable ?? true) {
           return await interaction.message.edit(data);
         }
-      } catch { /* try original reply below */ }
+      } catch { /* fall through to editReply */ }
 
-      try { return await interaction.editReply(data); }  // edits the original slash reply
-      catch { return await interaction.followUp(data); } // last resort for components
+      try { return await interaction.editReply(data); }  // edits original slash reply
+      catch { return await interaction.followUp(data); } // last resort
     }
     // 2) First response for slash/modals if nothing sent yet
     if (!interaction.deferred && !interaction.replied && !preferFollowUp) {
@@ -92,7 +92,7 @@ async function safeReply(interaction, payload, opts = {}) {
       try { return await interaction.followUp(data); } catch {}
     }
 
-    // Optional last resort to channel (non-ephemeral)
+    // Optional last resort to channel (non‑ephemeral)
     try {
       if (interaction.channel?.send) {
         const { content, embeds, files, components, allowedMentions } = data;
@@ -108,7 +108,7 @@ async function safeReply(interaction, payload, opts = {}) {
 }
 
 // ---------- WATCHDOG ----------
-/** Auto-defer after ~450ms if your code stalls pre-ACK */
+/** Auto‑defer after ~450ms if your code stalls pre‑ACK */
 function withAckGuard(interaction, { timeoutMs = 450, options = {} } = {}) {
   let timer = setTimeout(async () => {
     try {
@@ -120,19 +120,12 @@ function withAckGuard(interaction, { timeoutMs = 450, options = {} } = {}) {
   return { end() { if (timer) { clearTimeout(timer); timer = null; } } };
 }
 
-// ---------- RACE-ACK ----------
-function isTransientErr(err) {
-  const c = codeOf(err);
-  return c === 10062 || c === 40060 || c === 10015 || c === 'InteractionAlreadyReplied';
-}
-
+// ---------- RACE‑ACK ----------
 /**
- * Race-based ACK for slash/modals:
- * - tries deferReply({flags}) immediately
- * - also tries a tiny reply({flags}) 80ms later
- * whichever succeeds first "wins" the ACK
- *
- * Returns: { ok:boolean, mode:'defer'|'reply'|'already'|'fail', ms:number }
+ * Race‑based ACK for slash/modals:
+ * tries deferReply({flags}) immediately and a tiny reply({flags}) 80ms later.
+ * Whichever wins first is the ACK.
+ * Returns { ok:boolean, mode:'defer'|'reply'|'already'|'fail', ms:number }
  */
 async function ackFast(
   interaction,
@@ -152,12 +145,12 @@ async function ackFast(
   const pDefer = interaction.deferReply({ flags })
     .catch((e) => { lastDeferErr = e; });
 
-  // Path B: small stagger then minimal reply (invisible placeholder)
+  // Path B: small stagger, then minimal reply (invisible placeholder)
   const pReply = new Promise(r => setTimeout(r, 80))
     .then(() => interaction.reply({ content: bannerText, flags }))
     .catch((e) => { lastReplyErr = e; });
 
-  // Tag which wins inside the race window
+  // See who settles inside race window
   const tag = (p, name) => p.then(() => name).catch(() => null);
   let mode = await Promise.race([
     tag(pDefer, 'defer'),
@@ -165,18 +158,15 @@ async function ackFast(
     new Promise(r => setTimeout(() => r(null), raceMs))
   ]);
 
-  // If neither finished during the window, wait to see if one eventually resolves
+  // If neither settled in time, wait to see if one eventually resolved
   if (!mode) {
-    try {
-      await Promise.any([pDefer, pReply]);
-    } catch { /* both rejected */ }
+    try { await Promise.any([pDefer, pReply]); } catch {}
     mode = interaction.deferred ? 'defer' : (interaction.replied ? 'reply' : 'fail');
   }
 
   const ok = interaction.deferred || interaction.replied;
   const ms = Date.now() - start;
 
-  // Optional: log hard failures
   if (!ok) {
     const dCode = codeOf(lastDeferErr);
     const rCode = codeOf(lastReplyErr);
