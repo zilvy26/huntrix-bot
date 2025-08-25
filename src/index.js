@@ -80,7 +80,7 @@ client.on('interactionCreate', async (interaction) => {
     const guard = withAckGuard(interaction, { timeoutMs: 450 }); // watchdog ON
     try {
       const t0 = Date.now(); // moment we attempt ACK
-      const ack = await ackFast(interaction, { ephemeral: false, bannerText: 'Working…' });
+      const ack = await ackFast(interaction, { ephemeral: false, bannerText: '\u200b' });
 // If you prefer a less noisy banner, use bannerText: '\u200b' (zero-width)
       const pre = t0 - tEnter;
       const d   = ack.ms;
