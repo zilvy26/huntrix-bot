@@ -37,6 +37,8 @@ async function safeDefer(interaction, options = {}) {
 }
 
 /** Reply/Edit/FollowUp safely. For components, prefer followUp after deferUpdate. */
+// src/utils/safeReply.js  (replace the middle of safeReply)
+
 async function safeReply(interaction, payload, opts = {}) {
   const data = typeof payload === 'string' ? { content: payload } : (payload || {});
   const preferFollowUp = !!opts.preferFollowUp;
@@ -53,14 +55,19 @@ async function safeReply(interaction, payload, opts = {}) {
       return await interaction.followUp(data);
     }
 
-    // Slash/modal after deferReply -> edit; fallback to followUp
-    if (interaction.deferred && !preferFollowUp) {
+    // ⬇️ NEW: for slash/modal, if we've already ACKed (deferred OR replied),
+    // prefer editing the original response.
+    if ((interaction.isChatInputCommand?.() || interaction.isModalSubmit?.())
+        && (interaction.deferred || interaction.replied)
+        && !preferFollowUp) {
       try { return await interaction.editReply(data); }
       catch { return await interaction.followUp(data); }
     }
 
+    // Fallback
     return await interaction.followUp(data);
   } catch (err) {
+    // ... keep your existing catch body ...
     const code = codeOf(err);
 
     // One silent retry to followUp unless token is clearly dead
