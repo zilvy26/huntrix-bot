@@ -77,21 +77,20 @@ client.on('interactionCreate', async (interaction) => {
 
   // --- Slash Commands
   if (interaction.isChatInputCommand()) {
-    const guard = withAckGuard(interaction, { timeoutMs: 450 });
+    const guard = withAckGuard(interaction, { timeoutMs: 450 }); // watchdog ON
     try {
-      const tEnter = Date.now();
-      const t0 = Date.now();
-
-      // Race‑ACK with invisible placeholder
-      const ack = await ackFast(interaction, { bannerText: '\u200b', raceMs: 2500 });
+      const t0 = Date.now(); // moment we attempt ACK
+      const ack = await ackFast(interaction, { ephemeral: false, bannerText: '\u200b' });
+// If you prefer a less noisy banner, use bannerText: '\u200b' (zero-width)
       const pre = t0 - tEnter;
       const d   = ack.ms;
 
       const WARN_MS = Number(process.env.ACK_WARN_MS ?? 2500);
       if (d > WARN_MS) {
-        const q = interaction.client.rest.globalRemaining ?? '?';
+        const q = client.rest.globalRemaining ?? '?';
         console.warn(
-          `[ACK-SLOW] ${interaction.commandName} ack=${d}ms pre=${pre}ms ping=${interaction.client.ws.ping} mode=${ack.mode} globalRemaining=${q}`
+    `[ACK-SLOW] ${interaction.commandName} ` +
+    `ack=${d}ms pre=${pre}ms ping=${client.ws.ping} mode=${ack.mode} globalRemaining=${q}`
         );
       }
       console.log(`[ACK] ${interaction.commandName} pre=${pre}ms ack=${d}ms mode=${ack.mode} ok:${ack.ok}`);
@@ -132,16 +131,17 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       // --- Execute command
-      const cmd = interaction.client.commands.get(interaction.commandName);
-      if (!cmd) return safeReply(interaction, 'Unknown command.');
-      await cmd.execute(interaction);
+      const command = client.commands.get(interaction.commandName);
+      if (!command) return safeReply(interaction, { content: 'Unknown command.' });
+      await command.execute(interaction);
 
     } catch (err) {
       console.error(`Error in "${interaction.commandName}":`, err);
-      await safeReply(interaction, { content: 'There was an error executing the command.' }, { preferFollowUp: true });
+      await safeReply(interaction, { content: '❌ There was an error executing the command.' }, { preferFollowUp: true });
     } finally {
-      guard.end();
+      guard.end(); // stop the watchdog
     }
+    return;
   }
 });
 
