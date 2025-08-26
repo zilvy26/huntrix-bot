@@ -188,23 +188,35 @@ if (helpSession && id.startsWith('help:')) {
 }
 
   /* Universal simple pager (kept as-is) */
-  const navPattern = /^(first|prev|next|last)$/;
-  if (navPattern.test(customId || '')) {
-    const pageData = interaction.message.embeds?.[0]?.footer?.text?.match(/Page (\d+)\/(\d+)/);
-    if (!pageData) return;
+  /* Universal simple pager — EDIT IN PLACE */
+const navPattern = /^(first|prev|next|last)$/;
+if (navPattern.test(customId || '')) {
+  const footer = interaction.message?.embeds?.[0]?.footer?.text || '';
+  const m = /Page\s+(\d+)\s*\/\s*(\d+)/i.exec(footer);
+  if (!m) return;
 
-    let [, currentPage, totalPages] = pageData.map(Number);
-    if (customId === 'first') currentPage = 1;
-    if (customId === 'prev') currentPage = Math.max(1, currentPage - 1);
-    if (customId === 'next') currentPage = Math.min(totalPages, currentPage + 1);
-    if (customId === 'last') currentPage = totalPages;
+  let currentPage = Number(m[1]);
+  const totalPages = Number(m[2]);
 
-    const updatedEmbed = JSON.parse(JSON.stringify(interaction.message.embeds[0]));
-    updatedEmbed.footer.text = `Page ${currentPage}/${totalPages}`;
-    updatedEmbed.description = `This is page ${currentPage}.`;
+  if (customId === 'first') currentPage = 1;
+  if (customId === 'prev')  currentPage = Math.max(1, currentPage - 1);
+  if (customId === 'next')  currentPage = Math.min(totalPages, currentPage + 1);
+  if (customId === 'last')  currentPage = totalPages;
 
-    return interaction.editReply({ embeds: [updatedEmbed] });
-  }
+  // clone existing embed and update footer/description (or rebuild as needed)
+  const base = interaction.message.embeds[0];
+  const updatedEmbed = JSON.parse(JSON.stringify(base));
+  updatedEmbed.footer = { text: `Page ${currentPage}/${totalPages}` };
+  updatedEmbed.description = `This is page ${currentPage}.`;
+
+  // keep the same buttons OR rebuild them if you disable/enable edges
+  const components = interaction.message.components?.length
+    ? interaction.message.components
+    : [];
+
+  // 🔒 Use update() so the SAME message is edited (no new posts)
+  return interaction.update({ embeds: [updatedEmbed], components });
+}
 
   /* 🛒 Stall Section (FIXED: null-safe owner check + proper component ack) */
   const { stallPreviewFilters } = require('../utils/cache');
