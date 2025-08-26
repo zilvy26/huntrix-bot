@@ -51,7 +51,7 @@ for (const folder of ['global', 'guild-only']) {
   }
 }
 
-const { safeReply, withAckGuard, ackFast } = require('../utils/safeReply');
+const { safeReply, safeDefer } = require('../utils/safeReply');
 
 client.on('interactionCreate', async (interaction) => {
   const tEnter = Date.now();
@@ -75,71 +75,59 @@ client.on('interactionCreate', async (interaction) => {
   }
   // Slash commands
   if (interaction.isChatInputCommand()) {
-    const guard = withAckGuard(interaction, { timeoutMs: 450 });
-    try {
-      const t0 = Date.now();
-      const ack = await ackFast(interaction, {replyFallback: false});
-      const pre = t0 - tEnter;
-      const d   = ack.ms;
+  try {
+    // 1) ACK immediately (no watchdog, no double-messages)
+    await safeDefer(interaction); // same as await interaction.deferReply();
 
-      const WARN_MS = Number(process.env.ACK_WARN_MS ?? 2500);
-      if (d > WARN_MS) {
-        const q = client.rest.globalRemaining ?? '?';
-        console.warn(`[ACK-SLOW] ${interaction.commandName} ack=${d}ms pre=${pre}ms ping=${client.ws.ping} mode=${ack.mode} globalRemaining=${q}`);
-      }
-      console.log(`[ACK] ${interaction.commandName} pre=${pre}ms ack=${d}ms mode=${ack.mode} ok:${ack.ok}`);
-      if (!ack.ok) return; // Nothing we can do if ACK failed
-
-      // ---- AFTER ACK: long/DB work is safe ----
-      const maintenance = await Maintenance.findOne();
-      const bypassRoleId = process.env.MAIN_BYPASS_ID;
-      const isBypassed = interaction.inGuild() && interaction.member?.roles?.cache?.has(bypassRoleId);
-      const isDev = interaction.user.id === interaction.client.application?.owner?.id;
-      if (maintenance?.active && !isBypassed && !isDev) {
-        return safeReply(interaction, { content: 'The bot is currently under maintenance. Please try again later.' });
-      }
-
-      if (interaction.commandName !== 'register') {
-        const userExists = await User.exists({ userId: interaction.user.id });
-        if (!userExists) {
-          return safeReply(interaction, { content: 'You must register first using `/register` to use this command.' });
-        }
-      }
-
-      const Blacklist = require('../models/Blacklist');
-      const blacklisted = await Blacklist.findOne({ userId: interaction.user.id });
-      if (blacklisted) {
-        return safeReply(interaction, {
-          content: `You are blacklisted from using this bot.\n**Blacklist Reason:** ${blacklisted.reason || 'No reason specified.'}`
-        });
-      }
-
-      try {
-        interaction.userData = await getOrCreateUser(interaction);
-      } catch (err) {
-        console.error('Failed to get user data:', err);
-        return safeReply(interaction, { content: 'Failed to load your profile. Please try again later.' });
-      }
-
-      const command = client.commands.get(interaction.commandName);
-if (!command) return safeReply(interaction, { content: 'Unknown command.' });
-
-// 🚚 Queue everything by default; only run locally if explicitly allowed
-if (!RUN_LOCAL.has(interaction.commandName)) {
-  await enqueueInteraction(interaction);                     // hand off to worker
-  return safeReply(interaction, { content: '\u200b' }); // instant ack message
-}
-
-// (optional) local execution for commands you whitelisted above
-await command.execute(interaction);
-
-    } catch (err) {
-      console.error(`Error in "${interaction.commandName}":`, err);
-      await safeReply(interaction, { content: '❌ There was an error executing the command.' }, { preferFollowUp: true });
-    } finally {
-      guard.end();
+    // 2) Maintenance / auth gates (now safe after defer)
+    const maintenance = await Maintenance.findOne();
+    const bypassRoleId = process.env.MAIN_BYPASS_ID;
+    const isBypassed = interaction.inGuild() && interaction.member?.roles?.cache?.has(bypassRoleId);
+    const isDev = interaction.user.id === interaction.client.application?.owner?.id;
+    if (maintenance?.active && !isBypassed && !isDev) {
+      return safeReply(interaction, { content: 'The bot is currently under maintenance. Please try again later.' });
     }
+
+    if (interaction.commandName !== 'register') {
+      const userExists = await User.exists({ userId: interaction.user.id });
+      if (!userExists) {
+        return safeReply(interaction, { content: 'You must register first using `/register` to use this command.' });
+      }
+    }
+
+    const Blacklist = require('../models/Blacklist');
+    const blacklisted = await Blacklist.findOne({ userId: interaction.user.id });
+    if (blacklisted) {
+      return safeReply(interaction, {
+        content: `You are blacklisted from using this bot.\n**Blacklist Reason:** ${blacklisted.reason || 'No reason specified.'}`
+      });
+    }
+
+    try {
+      interaction.userData = await getOrCreateUser(interaction);
+    } catch (err) {
+      console.error('Failed to get user data:', err);
+      return safeReply(interaction, { content: 'Failed to load your profile. Please try again later.' });
+    }
+
+    // 3) Find command and route
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return safeReply(interaction, { content: 'Unknown command.' });
+
+    // Queue heavy commands; run small ones locally
+    if (!RUN_LOCAL.has(interaction.commandName)) {
+      await enqueueInteraction(interaction);         // worker will send the ONLY visible message
+      return;                                        // do NOT send any local message
+    }
+
+    // Local execution for allow-listed commands
+    await command.execute(interaction);
+
+  } catch (err) {
+    console.error(`Error in "${interaction.commandName}":`, err);
+    await safeReply(interaction, { content: '❌ There was an error executing the command.' }, { preferFollowUp: true });
   }
+}
 });
 
 // Array of statuses

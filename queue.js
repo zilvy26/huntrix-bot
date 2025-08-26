@@ -1,4 +1,4 @@
-// queue.js  (project root)
+// queue.js
 const { Queue } = require('bullmq');
 
 const connection = {
@@ -48,6 +48,12 @@ async function enqueueInteraction(interaction, extra = {}) {
     appId: interaction.applicationId,
     token: interaction.token,
     userId: interaction.user.id,
+    user: {
+      id: interaction.user.id,
+      username: interaction.user.username ?? null,
+      globalName: interaction.user.globalName ?? null,
+      discriminator: interaction.user.discriminator ?? null
+    },
     channelId: interaction.channelId,
     guildId: interaction.guildId ?? null,
     command: interaction.commandName,

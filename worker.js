@@ -1,4 +1,4 @@
-// worker.js (final)
+// worker.js
 require('dotenv').config();
 
 const path = require('path');
@@ -19,7 +19,6 @@ function preloadModels() {
 }
 preloadModels();
 
-// ---- connect Mongo once ----
 (async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
@@ -33,7 +32,6 @@ preloadModels();
   }
 })();
 
-// ---- bullmq/redis connection ----
 const connection = {
   host: process.env.REDIS_HOST || '127.0.0.1',
   port: Number(process.env.REDIS_PORT || 6379),
@@ -41,13 +39,11 @@ const connection = {
   tls: process.env.REDIS_TLS === '1' ? {} : undefined,
 };
 
-// ---- load commands from your folders ----
 const commands = new Collection();
 function loadCommands() {
   const patterns = [
     path.join(__dirname, 'commands/global/**/*.js'),
     path.join(__dirname, 'commands/guild-only/**/*.js'),
-    // future-proof:
     path.join(__dirname, 'src/commands/global/**/*.js'),
     path.join(__dirname, 'src/commands/guild-only/**/*.js'),
   ];
@@ -79,7 +75,6 @@ function loadCommands() {
 }
 loadCommands();
 
-// ---- job handler ----
 new Worker(
   'huntrix-jobs',
   async (job) => {
@@ -93,10 +88,11 @@ new Worker(
         channelId: d.channelId,
         guildId: d.guildId,
         optionsSnap: d.optionsSnap,
+        userSnap: d.user, // ✅ pass user to fix “Requested by undefined”
       }),
       {
         commandName: d.command,
-        user: { id: d.userId },
+        user: d.user || { id: d.userId },
         guildId: d.guildId,
         isChatInputCommand: () => true,
       }
