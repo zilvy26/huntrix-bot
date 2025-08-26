@@ -12,8 +12,6 @@ const Maintenance = require('../models/Maintenance');
 const User = require('../models/User');
 const getOrCreateUser = require('../utils/getOrCreateUser');
 const interactionRouter = require('../utils/interactionRouter');
-const Reminder = require('../models/Reminder');
-const sendReminder = require('../utils/sendReminder');
 
 // ⬇️ add this after the other requires (top of file)
 const { monitorEventLoopDelay } = require('perf_hooks');
@@ -68,8 +66,7 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.deferUpdate();       // ALWAYS defer components
       await interactionRouter(interaction);  // then do your work and followUp as needed
     } catch (err) {
-      console.error('Router error:', err);
-      await safeReply(interaction, { content: '❌ Error handling interaction.', flags: 1 << 6 });
+      console.error('[btn] handler error:', err);
     }
     return;
   }
