@@ -7,6 +7,7 @@ const { Collection } = require('discord.js');
 const { Worker } = require('bullmq');
 const mongoose = require('mongoose');
 const { createRemoteInteraction } = require('./utils/remoteInteraction');
+const { hydrateWorkerInteraction } = require('./utils/hydrateWorkerInteraction');
 
 function preloadModels() {
   const files = glob.sync(path.join(__dirname, 'models/**/*.js'), { nodir: true });
@@ -106,6 +107,7 @@ new Worker(
     }
 
     try {
+      await hydrateWorkerInteraction(interaction);
       await cmd.execute(interaction);
     } catch (err) {
       console.error(`[worker] error in /${d.command}:`, err);
