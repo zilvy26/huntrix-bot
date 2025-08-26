@@ -7,7 +7,7 @@ const generateStars = require('../../utils/starGenerator');
 const cooldowns = require('../../utils/cooldownManager');
 const handleReminders = require('../../utils/reminderHandler');
 const UserRecord = require('../../models/UserRecord');
-const safeReply = require('../../utils/safeReply'); // compat export
+const { safeReply } = require('../../utils/safeReply'); // compat export
 
 module.exports = {
   data: new SlashCommandBuilder()
