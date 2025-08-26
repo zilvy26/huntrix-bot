@@ -1,4 +1,4 @@
-// src/utils/safeReply.js
+// utils/safeReply.js
 function isComponent(i) {
   return i?.isButton?.() || i?.isStringSelectMenu?.() || false;
 }
@@ -21,7 +21,6 @@ async function safeDefer(interaction, { ephemeral = false } = {}) {
     if (interaction.deferred || interaction.replied) return true;
 
     if (interaction.isChatInputCommand?.() || interaction.isModalSubmit?.()) {
-      // Use flags instead of ephemeral to avoid the deprecation warning
       await interaction.deferReply({ flags });
       return true;
     }
@@ -56,24 +55,32 @@ async function safeReply(interaction, payload, opts = {}) {
   }
 
   try {
+    // If nothing was sent yet and caller didn't force followUp, use reply
     if (!interaction.deferred && !interaction.replied && !preferFollowUp) {
       return await interaction.reply(data);
     }
+
+    // Components are always followUp after deferUpdate
     if (isComponent(interaction)) {
       return await interaction.followUp(data);
     }
+
+    // If we previously deferred, first output should be an edit of the original
     if (interaction.deferred && !preferFollowUp) {
       try { return await interaction.editReply(data); }
-      catch { return await interaction.followUp(data); }
+      catch { return await interaction.followUp(data); } // fallback if edit fails
     }
+
+    // Otherwise follow up
     return await interaction.followUp(data);
   } catch (err) {
     const code = codeOf(err);
-
+    // Try one more followUp unless it’s an “interaction gone” kind of error
     if (code !== 10062 && code !== 10015) {
       try { return await interaction.followUp(data); } catch {}
     }
 
+    // Last resort: send to channel (avoids total silence)
     try {
       if (interaction.channel?.send) {
         const { content, embeds, files, components, allowedMentions } = data;
@@ -83,13 +90,21 @@ async function safeReply(interaction, payload, opts = {}) {
         });
       }
     } catch {}
+
     console.warn(`safeReply failed (${code ?? 'no-code'}):`, err?.message || err);
     return null;
   }
 }
 
-/** Watchdog: auto‑defer after ~450ms if your handler is still busy */
-function withAckGuard(interaction, { timeoutMs = 450, options = {} } = {}) {
+/**
+ * Watchdog: auto-defer after ~timeoutMs if your handler is still busy.
+ * Set timeoutMs = 0 or null to disable globally (no-op).
+ */
+function withAckGuard(interaction, { timeoutMs = 0, options = {} } = {}) {
+  if (!timeoutMs) {
+    // disabled by default to prevent stray placeholders
+    return { end(){} };
+  }
   let timer = setTimeout(async () => {
     try {
       if (!interaction.deferred && !interaction.replied) {
@@ -107,16 +122,18 @@ function isTransientErr(err) {
 }
 
 /**
- * Fast ACK for slash/modals:
+ * Fast ACK for slash/modals (defer-only by default):
  * - try deferReply(flags) immediately
- * - also try a tiny reply(flags) 120ms later
- * whichever wins first is your ACK
+ * - optional: also try a tiny reply(flags) later if `replyFallback: true`
  *
  * Returns: { ok, mode:'defer'|'reply'|'already'|'fail', ms }
  */
 async function ackFast(interaction, {
   ephemeral = false,
-  bannerText = '\u200b' // zero-width if you don't want a visible "Working…"
+  bannerText = '\u200b',     // only used if replyFallback:true
+  replyFallback = false,     // 🚫 default: do NOT create a visible placeholder
+  replyDelayMs = 120,
+  raceTimeoutMs = 800
 } = {}) {
   const flags = ephemeral ? EPH_FLAG : undefined;
   const start = Date.now();
@@ -128,20 +145,22 @@ async function ackFast(interaction, {
   let mode = 'fail';
   const settle = (m) => { if (!settled) { settled = true; mode = m; } };
 
-  // A) prefer defer
+  // A) prefer defer (invisible ack)
   const pDefer = interaction.deferReply({ flags })
     .then(() => settle('defer'))
     .catch((e) => { if (!isTransientErr(e)) console.warn('ackFast defer error:', e?.message || e); });
 
-  // B) small delayed reply (less likely to collide with same‑tick buckets)
-  const pReply = new Promise((r) => setTimeout(r, 120))
-    .then(() => interaction.reply({ flags, content: bannerText }))
-    .then(() => settle('reply'))
-    .catch((e) => { if (!isTransientErr(e)) console.warn('ackFast reply error:', e?.message || e); });
+  // B) optional visible reply branch (disabled unless replyFallback:true)
+  const pReply = replyFallback
+    ? new Promise((r) => setTimeout(r, replyDelayMs))
+        .then(() => interaction.reply({ flags, content: bannerText }))
+        .then(() => settle('reply'))
+        .catch((e) => { if (!isTransientErr(e)) console.warn('ackFast reply error:', e?.message || e); })
+    : Promise.resolve();
 
   await Promise.race([
     Promise.allSettled([pDefer, pReply]),
-    new Promise(res => setTimeout(res, 800))
+    new Promise(res => setTimeout(res, raceTimeoutMs))
   ]);
 
   if (settled) return { ok: true, mode, ms: Date.now() - start };

@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const { enqueueInteraction } = require('../queue'); // if index.js is inside src/
-const RUN_LOCAL = new Set(['ping','help','about']); // tiny/fast ones only
+const RUN_LOCAL = new Set(['ping','help','about', 'index', 'tradecard', 'trademulti', 'grantrandom', 'grantpay', 'grantcard']); // tiny/fast ones only
 
 const Maintenance = require('../models/Maintenance');
 const User = require('../models/User');
@@ -78,7 +78,7 @@ client.on('interactionCreate', async (interaction) => {
     const guard = withAckGuard(interaction, { timeoutMs: 450 });
     try {
       const t0 = Date.now();
-      const ack = await ackFast(interaction, { ephemeral: false, bannerText: '\u200b' });
+      const ack = await ackFast(interaction, {replyFallback: false});
       const pre = t0 - tEnter;
       const d   = ack.ms;
 
