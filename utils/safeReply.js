@@ -1,94 +1,122 @@
-// utils/safeReply.js — strict one-message helpers
+// utils/safeReply.js
+/**
+ * Safe reply helpers for discord.js v14.
+ * - Works for slash commands, buttons, select menus, and modals.
+ * - Chooses reply()/editReply()/followUp() automatically based on state.
+ * - Includes safeDefer() and an ack guard to avoid the 3s timeout.
+ */
 
-const EPH_FLAG = 1 << 6;
-const TRANSIENT = new Set([10062, 40060, 10015, 'InteractionAlreadyReplied']);
-const isComponent = (i) => i?.isButton?.() || i?.isStringSelectMenu?.() || false;
-const codeOf = (e) => e?.code || e?.rawError?.code || e?.status;
+function isComponent(interaction) {
+  return interaction?.isButton?.() || interaction?.isStringSelectMenu?.() || false;
+}
 
-/** Call this yourself to ACK (slash/modal => deferReply; components => deferUpdate). */
-async function safeDefer(interaction, { ephemeral = false } = {}) {
-  const flags = ephemeral ? EPH_FLAG : undefined;
+async function safeDefer(interaction, options = {}) {
   try {
     if (interaction.deferred || interaction.replied) return true;
 
     if (interaction.isChatInputCommand?.() || interaction.isModalSubmit?.()) {
-      await interaction.deferReply({ flags });
+      await interaction.deferReply(options); // { ephemeral?: boolean }
       return true;
     }
+
     if (isComponent(interaction)) {
-      await interaction.deferUpdate();
+      await interaction.deferUpdate(); // loading state on original message
       return true;
     }
+
     if (interaction.isRepliable?.()) {
-      await interaction.deferReply({ flags });
+      await interaction.deferReply(options);
       return true;
     }
     return false;
   } catch (err) {
-    if (TRANSIENT.has(codeOf(err))) return true;
-    console.warn('safeDefer failed:', err?.message || err);
+    console.warn('safeDefer: failed to defer:', err?.message || err);
     return false;
   }
 }
 
-/** Send once: edit if deferred, otherwise reply, otherwise followUp. Never sends empty payload. */
-async function safeReply(interaction, payload) {
+/**
+ * Safely send content back (auto reply/editReply/followUp).
+ * @param {Interaction} interaction
+ * @param {object|string} payload
+ * @param {{ preferFollowUp?: boolean }} opts
+ */
+async function safeReply(interaction, payload, opts = {}) {
   const data = typeof payload === 'string' ? { content: payload } : (payload || {});
-
-  // map ephemeral -> flags for all methods
-  if ('ephemeral' in data) {
-    const eph = !!data.ephemeral;
-    delete data.ephemeral;
-    data.flags = eph ? EPH_FLAG : data.flags;
-  }
-
-  // prevent 50006 (cannot send empty message)
-  const hasBody =
-    !!data.content ||
-    (Array.isArray(data.embeds) && data.embeds.length) ||
-    (Array.isArray(data.files) && data.files.length) ||
-    (Array.isArray(data.components) && data.components.length);
-  if (!hasBody) {
-    console.warn('safeReply: skipped empty payload');
-    return null;
-  }
+  const preferFollowUp = !!opts.preferFollowUp;
+  const isComp = isComponent(interaction);
 
   try {
-    // Components use followUp after deferUpdate()
-    if (isComponent(interaction)) {
-      return await interaction.followUp(data);
-    }
-
-    // If we deferred, first output should be editReply
-    if (interaction.deferred && !interaction.replied) {
-      try { return await interaction.editReply(data); }
-      catch { return await interaction.followUp(data); }
-    }
-
-    // If not deferred/replied yet, reply now (counts as the ack)
+    // Fresh interaction
     if (!interaction.deferred && !interaction.replied) {
       return await interaction.reply(data);
     }
 
-    // Otherwise, normal followUp
+    // Already acknowledged
+    if (isComp) {
+      // After deferUpdate() there is no original reply; use followUp
+      return await interaction.followUp(data);
+    }
+
+    if (interaction.deferred && !preferFollowUp) {
+      try {
+        return await interaction.editReply(data);
+      } catch (e) {
+        // If edit fails (e.g. original deleted), try followUp
+        return await interaction.followUp(data);
+      }
+    }
+
     return await interaction.followUp(data);
   } catch (err) {
-    const code = codeOf(err);
-    // one retry with followUp unless interaction is gone
-    if (code !== 10062 && code !== 10015) {
-      try { return await interaction.followUp(data); } catch {}
+    const code = err?.code || err?.rawError?.code || err?.status;
+    const retryable = code === 503 || code === 'ECONNRESET' || code === 'ETIMEDOUT';
+    const unknownInteraction = code === 10062; // token dead, don’t retry
+
+    if (retryable && !unknownInteraction) {
+      try {
+        return await interaction.followUp(data);
+      } catch (e2) {
+        // swallow, try channel fallback below
+      }
     }
-    console.warn(`safeReply final fail (${code ?? 'no-code'}):`, err?.message || err);
+
+    // Last resort (non-ephemeral)
+    try {
+      if (interaction?.channel?.send) {
+        const { content, embeds, files, components, allowedMentions } = data;
+        return await interaction.channel.send({
+          content: content ?? ' ',
+          embeds,
+          files,
+          components,
+          allowedMentions
+        });
+      }
+    } catch {}
+
+    console.warn(`safeReply failed (${code ?? 'no-code'}):`, err?.message || err);
     return null;
   }
 }
 
-// Legacy stubs so old calls don’t do anything noisy
-async function ackFast() { return { ok: true, mode: 'skip', ms: 0 }; }
-function withAckGuard() { return { end() {} }; }
+/**
+ * Ack guard: if nothing replied within timeoutMs, auto-defer.
+ */
+function withAckGuard(interaction, { timeoutMs = 450, ephemeral = false } = {}) {
+  let timer = setTimeout(async () => {
+    if (!interaction.deferred && !interaction.replied) {
+      await safeDefer(interaction, { ephemeral });
+    }
+  }, timeoutMs);
 
-module.exports = safeReply;
-module.exports.safeReply = safeReply;
-module.exports.safeDefer = safeDefer;
-module.exports.ackFast = ackFast;
-module.exports.withAckGuard = withAckGuard;
+  return {
+    end: () => clearTimeout(timer),
+  };
+}
+
+module.exports = {
+  safeReply,
+  safeDefer,
+  withAckGuard,
+};
