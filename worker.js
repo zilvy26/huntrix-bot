@@ -8,6 +8,17 @@ const { Worker } = require('bullmq');
 const mongoose = require('mongoose');
 const { createRemoteInteraction } = require('./utils/remoteInteraction');
 
+function preloadModels() {
+  const files = glob.sync(path.join(__dirname, 'models/**/*.js'), { nodir: true });
+  let ok = 0;
+  for (const f of files) {
+    try { require(f); ok++; }
+    catch (e) { console.warn(`[worker] model load failed ${path.relative(__dirname, f)}: ${e.message}`); }
+  }
+  console.log(`[worker] preloaded ${ok}/${files.length} model files`);
+}
+preloadModels();
+
 // ---- connect Mongo once ----
 (async () => {
   try {
