@@ -19,30 +19,56 @@ async function safeDefer(interaction, { ephemeral = false } = {}) {
   }
 }
 
-async function safeReply(interaction, payload, { preferFollowUp = false } = {}) {
+async function safeReply(interaction, payload, { preferFollowUp = false, componentFollowUp = false } = {}) {
   const data = typeof payload === 'string' ? { content: payload } : (payload || {});
-  const hasBody = !!data.content
-    || (Array.isArray(data.embeds)&&data.embeds.length)
-    || (Array.isArray(data.files)&&data.files.length)
-    || (Array.isArray(data.components)&&data.components.length);
+  const hasBody =
+    !!data.content ||
+    (Array.isArray(data.embeds) && data.embeds.length) ||
+    (Array.isArray(data.files) && data.files.length) ||
+    (Array.isArray(data.components) && data.components.length);
   if (!hasBody) { console.warn('safeReply: skipped empty payload'); return null; }
 
-  if ('ephemeral' in data) { const eph = !!data.ephemeral; delete data.ephemeral; data.flags = eph ? EPH_FLAG : data.flags; }
+  if ('ephemeral' in data) {
+    const eph = !!data.ephemeral;
+    delete data.ephemeral;
+    data.flags = eph ? EPH_FLAG : data.flags;
+  }
 
   try {
-    if (isComponent(interaction)) return await interaction.followUp(data);
-    if (interaction.deferred && !interaction.replied && !preferFollowUp) {
-      try { return await interaction.editReply(data); } catch { return await interaction.followUp(data); }
+    // Components: EDIT the original by default (better for pagers)
+    if (isComponent(interaction)) {
+      if (componentFollowUp) {
+        return await interaction.followUp(data);      // opt-in to new message
+      }
+      try {
+        // d.js: after deferUpdate(), editReply edits the message the button is on
+        return await interaction.editReply(data);
+      } catch {
+        return await interaction.followUp(data);      // safe fallback
+      }
     }
-    if (!interaction.deferred && !interaction.replied && !preferFollowUp) return await interaction.reply(data);
+
+    // First response after a defer -> edit
+    if (interaction.deferred && !interaction.replied && !preferFollowUp) {
+      try { return await interaction.editReply(data); }
+      catch { return await interaction.followUp(data); }
+    }
+
+    // Fresh interaction -> reply
+    if (!interaction.deferred && !interaction.replied && !preferFollowUp) {
+      return await interaction.reply(data);
+    }
+
+    // Otherwise -> follow up
     return await interaction.followUp(data);
   } catch (err) {
     const code = codeOf(err);
-    if (code !== 10062 && code !== 10015) { try { return await interaction.followUp(data); } catch {} }
+    if (code !== 10062 && code !== 10015) {
+      try { return await interaction.followUp(data); } catch {}
+    }
     console.warn(`safeReply final fail (${code ?? 'no-code'}):`, err?.message || err);
     return null;
   }
 }
 
-// exports (so `const { safeReply } = require(...)` works)
 module.exports = { safeReply, safeDefer };

@@ -13,7 +13,7 @@ module.exports = async function handleReminders(interaction, commandName, durati
     interaction.options.getBoolean('remindinchannel') ??
     user?.reminderPreferences?.remindInChannel ?? true;
 
-  // Save new prefs if changed
+  // Save prefs if changed
   if (
     user?.reminderPreferences?.reminder !== remind ||
     user?.reminderPreferences?.remindInChannel !== remindInChannel
@@ -26,13 +26,19 @@ module.exports = async function handleReminders(interaction, commandName, durati
 
   const expiresAt = new Date(Date.now() + duration);
 
-  // Store reminder; worker poller will deliver on time
+  // ✅ Prefer interaction.channelId (always present for guild invocations in our shim)
+  // Only store a channel when we're actually in a guild text/thread. If the command
+  // was run in DMs, channelId should be null so we fall back to DM later.
+  const isGuild = !!interaction.guildId || interaction.inGuild?.();
+  const chanId =
+    remindInChannel && isGuild
+      ? (interaction.channel?.id || interaction.channelId || null)
+      : null;
+
   await Reminder.create({
     userId: interaction.user.id,
-    channelId: remindInChannel && interaction.channel?.id ? interaction.channel.id : null,
+    channelId: chanId,       // <-- now correctly set
     command: commandName,
     expiresAt
   });
-
-  // No setTimeout here — reliability comes from the worker poller.
 };
