@@ -252,7 +252,7 @@ for (let i = 0; i < amount; i++) {
                       new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
                     );
                 
-                    await safeReply(interaction, { embeds: [await renderEmbed(current)], components: [renderRow()] });
+                    await interaction.update({ embeds: [await renderEmbed(current)], components: [renderRow()] });
                 
                     while (true) {
                       const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
@@ -263,7 +263,7 @@ for (let i = 0; i < amount; i++) {
                       if (btn.customId === 'next') current = Math.min(totalPages - 1, current + 1);
                       if (btn.customId === 'last') current = totalPages - 1;
                 
-                      await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
+                      await interaction.update({ embeds: [renderEmbed(current)], components: [renderRow()] });
                     }
                 
                     // Final cleanup
