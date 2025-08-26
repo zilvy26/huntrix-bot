@@ -9,7 +9,7 @@ const {
 const Card = require('../../models/Card');
 const UserInventory = require('../../models/UserInventory');
 const generateStars = require('../../utils/starGenerator');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

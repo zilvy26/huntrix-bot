@@ -6,7 +6,7 @@ const {
   ButtonBuilder,
   ButtonStyle
 } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

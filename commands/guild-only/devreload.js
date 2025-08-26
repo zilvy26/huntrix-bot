@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 const fs = require('fs');
 const path = require('path');
 

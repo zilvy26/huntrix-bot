@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 const User = require('../../models/User');
 const UserRecord = require('../../models/UserRecord');
 

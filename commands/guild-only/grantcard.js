@@ -14,7 +14,7 @@ const UserInventory = require('../../models/UserInventory');
 const UserRecord = require('../../models/UserRecord');
 const generateStars = require('../../utils/starGenerator');
 const awaitUserButton = require('../../utils/awaitUserButton');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 
 const GRANTING_ROLE_ID = process.env.GRANTING_ROLE_ID;
 

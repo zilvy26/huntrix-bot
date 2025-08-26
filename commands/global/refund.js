@@ -3,7 +3,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const User = require('../../models/User');
 const Card = require('../../models/Card');
 const UserInventory = require('../../models/UserInventory');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 const { registerRefundSession } = require('../../utils/refundSession');
 
 const REFUND_VALUES = { 1: 75, 2: 125, 3: 200, 4: 300, 5: 2000 };

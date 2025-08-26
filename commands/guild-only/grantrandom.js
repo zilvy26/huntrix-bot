@@ -6,7 +6,7 @@ const {
   ButtonStyle
 } = require('discord.js');
 const Card = require('../../models/Card');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 const UserInventory = require('../../models/UserInventory');
 const UserRecord = require('../../models/UserRecord');
 const generateStars = require('../../utils/starGenerator');

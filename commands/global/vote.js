@@ -1,4 +1,4 @@
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const cooldowns = require('../../utils/cooldownManager');
 const cooldownConfig = require('../../utils/cooldownConfig');

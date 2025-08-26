@@ -4,7 +4,7 @@ const handleSell = require('./subcommands/stallsell');
 const handleBuy = require('./subcommands/stallbuy');
 const handleRemove = require('./subcommands/stallremove');
 const handleDelete = require('./subcommands/stalldelete');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

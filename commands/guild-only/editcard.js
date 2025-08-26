@@ -10,7 +10,7 @@ const {
 } = require('discord.js');
 
 const Card = require('../../models/Card');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 const generateStars = require('../../utils/starGenerator');
 const awaitUserButton = require('../../utils/awaitUserButton');
 const parseRarity = require('../../utils/parseRarity');

@@ -14,7 +14,7 @@ const path = require('path');
 const axios = require('axios');
 
 const Card = require('../../models/Card');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 const generateStars = require('../../utils/starGenerator');
 const parseRarity = require('../../utils/parseRarity');
 // If you prefer to reuse the same uploader the edit command uses, uncomment the next line

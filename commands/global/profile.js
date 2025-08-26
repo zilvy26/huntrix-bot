@@ -4,7 +4,7 @@ const UserInventory = require('../../models/UserInventory');
 const Card = require('../../models/Card');
 const User = require('../../models/User');
 const drawProfile = require('../../utils/drawProfile');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()

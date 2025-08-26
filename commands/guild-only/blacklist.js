@@ -1,7 +1,7 @@
 // commands/guild-only/blacklist.js
 require('dotenv').config();
 const { SlashCommandBuilder } = require('discord.js');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 const Blacklist = require('../../models/Blacklist');
 const GRANTING_ROLE_ID = process.env.GRANTING_ROLE_ID;
 

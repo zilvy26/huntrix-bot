@@ -7,7 +7,7 @@ const {
   ButtonStyle
 } = require('discord.js');
 
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 const pickRarity = require('../../utils/rarityPicker');                    // same as /pull
 const getRandomCardByRarity = require('../../utils/randomCardFromRarity'); // same as /pull
 const ListSet = require('../../models/ListSet');

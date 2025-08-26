@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const cooldownManager = require('../../utils/cooldownManager');
 const cooldownConfig = require('../../utils/cooldownConfig');
-const safeReply = require('../../utils/safeReply');
+const { safeReply} = require('../../utils/safeReply');
 
 const emojiMap = {
   Pull: '<:e_pull:1393002254499581982>',

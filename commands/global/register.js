@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const getOrCreateUser = require('../../utils/getOrCreateUser');
 const UserInventory = require('../../models/UserInventory');
 const User = require('../../models/User');
-const safeReply = require('../../utils/safeReply');
+const {safeReply} = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()
