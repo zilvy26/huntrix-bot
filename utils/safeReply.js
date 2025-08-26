@@ -1,20 +1,11 @@
-// utils/safeReply.js
-function isComponent(i) {
-  return i?.isButton?.() || i?.isStringSelectMenu?.() || false;
-}
+// utils/safeReply.js (STRICT, single-message only)
 
-const TRANSIENT = new Set([
-  10062, // Unknown interaction (expired or already used)
-  40060, // Interaction already acknowledged
-  10015, // Unknown webhook
-  'InteractionAlreadyReplied'
-]);
+const EPH_FLAG = 1 << 6;
+const TRANSIENT = new Set([10062, 40060, 10015, 'InteractionAlreadyReplied']);
 
-const EPH_FLAG = 1 << 6; // ephemeral flag for interaction responses
+const isComponent = (i) => i?.isButton?.() || i?.isStringSelectMenu?.() || false;
+const codeOf = (e) => e?.code || e?.rawError?.code || e?.status;
 
-function codeOf(err){ return err?.code || err?.rawError?.code || err?.status; }
-
-/** Defer safely: slash/modal => deferReply; components => deferUpdate */
 async function safeDefer(interaction, { ephemeral = false } = {}) {
   const flags = ephemeral ? EPH_FLAG : undefined;
   try {
@@ -24,12 +15,10 @@ async function safeDefer(interaction, { ephemeral = false } = {}) {
       await interaction.deferReply({ flags });
       return true;
     }
-
     if (isComponent(interaction)) {
       await interaction.deferUpdate();
       return true;
     }
-
     if (interaction.isRepliable?.()) {
       await interaction.deferReply({ flags });
       return true;
@@ -37,17 +26,28 @@ async function safeDefer(interaction, { ephemeral = false } = {}) {
     return false;
   } catch (err) {
     if (TRANSIENT.has(codeOf(err))) return true;
-    console.warn('safeDefer: failed to defer:', err?.message || err);
+    console.warn('safeDefer failed:', err?.message || err);
     return false;
   }
 }
 
-/** Reply/Edit/FollowUp safely. For components, prefer followUp after deferUpdate. */
 async function safeReply(interaction, payload, opts = {}) {
   const data = typeof payload === 'string' ? { content: payload } : (payload || {});
   const preferFollowUp = !!opts.preferFollowUp;
 
-  // map `ephemeral: true` to `flags` for all reply/edit/followUp calls
+  // Prevent “empty message”
+  const hasBody =
+    !!data.content ||
+    (Array.isArray(data.embeds) && data.embeds.length) ||
+    (Array.isArray(data.files) && data.files.length) ||
+    (Array.isArray(data.components) && data.components.length);
+  if (!hasBody) {
+    // map ephemeral then bail with a warning, but DO NOT send anything
+    if ('ephemeral' in data) delete data.ephemeral;
+    console.warn('safeReply: skipped empty payload to avoid extra blank message');
+    return null;
+  }
+  // map ephemeral -> flags
   if ('ephemeral' in data) {
     const eph = !!data.ephemeral;
     delete data.ephemeral;
@@ -55,83 +55,38 @@ async function safeReply(interaction, payload, opts = {}) {
   }
 
   try {
-    // If nothing was sent yet and caller didn't force followUp, use reply
-    if (!interaction.deferred && !interaction.replied && !preferFollowUp) {
+    if (!interaction.deferred && !interaction.replied && !preferFollowUp && !isComponent(interaction)) {
       return await interaction.reply(data);
     }
 
-    // Components are always followUp after deferUpdate
     if (isComponent(interaction)) {
-      return await interaction.followUp(data);
+      return await interaction.followUp(data); // after deferUpdate()
     }
 
-    // If we previously deferred, first output should be an edit of the original
     if (interaction.deferred && !preferFollowUp) {
       try { return await interaction.editReply(data); }
-      catch { return await interaction.followUp(data); } // fallback if edit fails
+      catch { return await interaction.followUp(data); }
     }
 
-    // Otherwise follow up
     return await interaction.followUp(data);
   } catch (err) {
     const code = codeOf(err);
-    // Try one more followUp unless it’s an “interaction gone” kind of error
+    // one last attempt with followUp unless interaction is gone
     if (code !== 10062 && code !== 10015) {
       try { return await interaction.followUp(data); } catch {}
     }
-
-    // Last resort: send to channel (avoids total silence)
-    try {
-      if (interaction.channel?.send) {
-        const { content, embeds, files, components, allowedMentions } = data;
-        return await interaction.channel.send({
-          content: content ?? ' ',
-          embeds, files, components, allowedMentions
-        });
-      }
-    } catch {}
-
-    console.warn(`safeReply failed (${code ?? 'no-code'}):`, err?.message || err);
-    return null;
+    console.warn(`safeReply final fail (${code ?? 'no-code'}):`, err?.message || err);
+    return null; // 🚫 no channel.send fallback = no second message
   }
 }
 
-/**
- * Watchdog: auto-defer after ~timeoutMs if your handler is still busy.
- * Set timeoutMs = 0 or null to disable globally (no-op).
- */
-function withAckGuard(interaction, { timeoutMs = 0, options = {} } = {}) {
-  if (!timeoutMs) {
-    // disabled by default to prevent stray placeholders
-    return { end(){} };
-  }
-  let timer = setTimeout(async () => {
-    try {
-      if (!interaction.deferred && !interaction.replied) {
-        await safeDefer(interaction, options);
-      }
-    } catch {}
-  }, timeoutMs);
-
-  return { end() { if (timer) { clearTimeout(timer); timer = null; } } };
+function withAckGuard(_interaction, { timeoutMs = 0 } = {}) {
+  return { end() {} }; // disabled by default (prevents accidental placeholders)
 }
 
-function isTransientErr(err) {
-  const code = codeOf(err);
-  return code === 10062 || code === 40060 || code === 'InteractionAlreadyReplied' || code === 10015;
-}
-
-/**
- * Fast ACK for slash/modals (defer-only by default):
- * - try deferReply(flags) immediately
- * - optional: also try a tiny reply(flags) later if `replyFallback: true`
- *
- * Returns: { ok, mode:'defer'|'reply'|'already'|'fail', ms }
- */
 async function ackFast(interaction, {
   ephemeral = false,
-  bannerText = '\u200b',     // only used if replyFallback:true
-  replyFallback = false,     // 🚫 default: do NOT create a visible placeholder
+  replyFallback = false,     // default off => defer-only
   replyDelayMs = 120,
   raceTimeoutMs = 800
 } = {}) {
@@ -145,17 +100,15 @@ async function ackFast(interaction, {
   let mode = 'fail';
   const settle = (m) => { if (!settled) { settled = true; mode = m; } };
 
-  // A) prefer defer (invisible ack)
   const pDefer = interaction.deferReply({ flags })
     .then(() => settle('defer'))
-    .catch((e) => { if (!isTransientErr(e)) console.warn('ackFast defer error:', e?.message || e); });
+    .catch((e) => { if (!TRANSIENT.has(codeOf(e))) console.warn('ackFast defer error:', e?.message || e); });
 
-  // B) optional visible reply branch (disabled unless replyFallback:true)
   const pReply = replyFallback
     ? new Promise((r) => setTimeout(r, replyDelayMs))
-        .then(() => interaction.reply({ flags, content: bannerText }))
+        .then(() => interaction.reply({ flags, content: '\u200b' }))
         .then(() => settle('reply'))
-        .catch((e) => { if (!isTransientErr(e)) console.warn('ackFast reply error:', e?.message || e); })
+        .catch((e) => { if (!TRANSIENT.has(codeOf(e))) console.warn('ackFast reply error:', e?.message || e); })
     : Promise.resolve();
 
   await Promise.race([
@@ -164,13 +117,8 @@ async function ackFast(interaction, {
   ]);
 
   if (settled) return { ok: true, mode, ms: Date.now() - start };
-
-  try {
-    await Promise.any([pDefer, pReply]);
-    return { ok: true, mode, ms: Date.now() - start };
-  } catch {
-    return { ok: false, mode: 'fail', ms: Date.now() - start };
-  }
+  try { await Promise.any([pDefer, pReply]); return { ok: true, mode, ms: Date.now() - start }; }
+  catch { return { ok: false, mode: 'fail', ms: Date.now() - start }; }
 }
 
 module.exports = safeReply;
