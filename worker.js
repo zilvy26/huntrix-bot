@@ -8,6 +8,7 @@ const { Worker } = require('bullmq');
 const mongoose = require('mongoose');
 const { createRemoteInteraction } = require('./utils/remoteInteraction');
 const { hydrateWorkerInteraction } = require('./utils/hydrateWorkerInteraction');
+const { startReminderPoller } = require('./utils/reminderPoller');
 
 function preloadModels() {
   const files = glob.sync(path.join(__dirname, 'models/**/*.js'), { nodir: true });
@@ -124,3 +125,4 @@ process.on('unhandledRejection', (e) => console.error('UNHANDLED REJECTION:', e)
 process.on('uncaughtException', (e) => console.error('UNCAUGHT EXCEPTION:', e));
 
 console.log('🛠️ Worker online.');
+startReminderPoller();
