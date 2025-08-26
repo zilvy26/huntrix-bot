@@ -69,7 +69,7 @@ client.on('interactionCreate', async (interaction) => {
       await interactionRouter(interaction);  // then do your work and followUp as needed
     } catch (err) {
       console.error('Router error:', err);
-      await safeReply(interaction, { content: '❌ Error handling interaction.', flags: 1 << 6 }, { preferFollowUp: true });
+      await safeReply(interaction, { content: '❌ Error handling interaction.', flags: 1 << 6 });
     }
     return;
   }
