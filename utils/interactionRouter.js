@@ -187,24 +187,40 @@ if (helpSession && id.startsWith('help:')) {
   return;
 }
 
-  /* Universal simple pager (kept as-is) */
-  const navPattern = /^(first|prev|next|last)$/;
-  if (navPattern.test(customId || '')) {
-    const pageData = interaction.message.embeds?.[0]?.footer?.text?.match(/Page (\d+)\/(\d+)/);
-    if (!pageData) return;
+  /* Universal simple pager (component branch) */
+if (interaction.isButton?.()) {
+  const customId = interaction.customId || '';
+  const nav = /^(first|prev|next|last)$/.exec(customId);
+  if (!nav) return;
 
-    let [, currentPage, totalPages] = pageData.map(Number);
-    if (customId === 'first') currentPage = 1;
-    if (customId === 'prev') currentPage = Math.max(1, currentPage - 1);
-    if (customId === 'next') currentPage = Math.min(totalPages, currentPage + 1);
-    if (customId === 'last') currentPage = totalPages;
+  const base = interaction.message?.embeds?.[0];
+  if (!base) return;
 
-    const updatedEmbed = JSON.parse(JSON.stringify(interaction.message.embeds[0]));
-    updatedEmbed.footer.text = `Page ${currentPage}/${totalPages}`;
-    updatedEmbed.description = `This is page ${currentPage}.`;
+  const footer = base.footer?.text || '';
+  const m = /Page\s+(\d+)\s*\/\s*(\d+)/i.exec(footer);
+  if (!m) return;
 
-    return interaction.update({ embeds: [updatedEmbed] });
+  let currentPage = Number(m[1]);
+  const totalPages = Number(m[2]);
+
+  switch (nav[1]) {
+    case 'first': currentPage = 1; break;
+    case 'prev':  currentPage = Math.max(1, currentPage - 1); break;
+    case 'next':  currentPage = Math.min(totalPages, currentPage + 1); break;
+    case 'last':  currentPage = totalPages; break;
   }
+
+  // clone & edit the existing embed
+  const updated = JSON.parse(JSON.stringify(base));
+  updated.footer = { text: `Page ${currentPage}/${totalPages}` };
+  updated.description = `This is page ${currentPage}.`; // or rebuild fields for this page
+
+  // (re)build buttons for this page (disable first/prev on page 1, etc.)
+  const row = makeRow(currentPage, totalPages); // ensure this returns an ActionRow
+
+  // Edit the SAME message the button is on
+  return interaction.update({ embeds: [updated], components: [row] });
+}
 
   /* 🛒 Stall Section (FIXED: null-safe owner check + proper component ack) */
   const { stallPreviewFilters } = require('../utils/cache');
