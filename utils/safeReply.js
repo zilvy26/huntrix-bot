@@ -27,17 +27,31 @@ async function safeReply(interaction, payload, { preferFollowUp = false, compone
     (Array.isArray(data.components) && data.components.length);
   if (!hasBody) { console.warn('safeReply: skipped empty payload'); return null; }
 
-  if ('ephemeral' in data) { const eph = !!data.ephemeral; delete data.ephemeral; data.flags = eph ? EPH_FLAG : data.flags; }
+  if ('ephemeral' in data) {
+    const eph = !!data.ephemeral;
+    delete data.ephemeral;
+    data.flags = eph ? EPH_FLAG : data.flags;
+  }
 
   try {
-    // Components: prefer update() -> editReply() -> followUp()
+    // --- COMPONENTS: edit-only (no implicit followUp) ---
     if (isComponent(interaction)) {
-      if (componentFollowUp) return await interaction.followUp(data); // opt-in to new msg
-      if (typeof interaction.update === 'function') { try { return await interaction.update(data); } catch {} }
+      // allow a new message only if you EXPLICITLY request it
+      if (componentFollowUp) return await interaction.followUp(data);
+
+      // best path for buttons
+      if (typeof interaction.update === 'function') {
+        try { return await interaction.update(data); } catch {}
+      }
+      // fallback edit of original reply
       try { return await interaction.editReply(data); } catch {}
-      return await interaction.followUp(data);
+
+      // final: suppress new message to avoid duplicates
+      console.warn('[safeReply] component edit failed; suppressing followUp to prevent duplicates.');
+      return null;
     }
 
+    // --- SLASH/MODAL ---
     if (interaction.deferred && !interaction.replied && !preferFollowUp) {
       try { return await interaction.editReply(data); } catch { return await interaction.followUp(data); }
     }
@@ -47,7 +61,10 @@ async function safeReply(interaction, payload, { preferFollowUp = false, compone
     return await interaction.followUp(data);
   } catch (err) {
     const code = codeOf(err);
-    if (code !== 10062 && code !== 10015) { try { return await interaction.followUp(data); } catch {} }
+    // For components we already returned above; for slash/modal it’s safe to try followUp once.
+    if (!isComponent(interaction) && code !== 10062 && code !== 10015) {
+      try { return await interaction.followUp(data); } catch {}
+    }
     console.warn(`safeReply final fail (${code ?? 'no-code'}):`, err?.message || err);
     return null;
   }
