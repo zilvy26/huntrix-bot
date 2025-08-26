@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { Collection } = require('discord.js');
 const { Worker } = require('bullmq');
-const { createRemoteInteraction } = require('./src/utils/remoteInteraction');
+const { createRemoteInteraction } = require('./utils/remoteInteraction');
 
 const connection = {
   host: process.env.REDIS_HOST || '127.0.0.1',
