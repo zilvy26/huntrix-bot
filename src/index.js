@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const { enqueueInteraction } = require('../queue'); // if index.js is inside src/
+const RUN_LOCAL = new Set(['ping','help','about']); // tiny/fast ones only
 
 const Maintenance = require('../models/Maintenance');
 const User = require('../models/User');
@@ -123,9 +124,11 @@ client.on('interactionCreate', async (interaction) => {
       const command = client.commands.get(interaction.commandName);
 if (!command) return safeReply(interaction, { content: 'Unknown command.' });
 
-// Queue ALL slash commands
-await enqueueInteraction(interaction);
-return safeReply(interaction, { content: '⏳ Working…' });
+// 🚚 Queue everything by default; only run locally if explicitly allowed
+if (!RUN_LOCAL.has(interaction.commandName)) {
+  await enqueueInteraction(interaction);                     // hand off to worker
+  return safeReply(interaction, { content: '\u200b' }); // instant ack message
+}
 
 // (optional) local execution for commands you whitelisted above
 await command.execute(interaction);
