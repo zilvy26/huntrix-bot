@@ -203,7 +203,7 @@ if (helpSession && id.startsWith('help:')) {
     updatedEmbed.footer.text = `Page ${currentPage}/${totalPages}`;
     updatedEmbed.description = `This is page ${currentPage}.`;
 
-    return interaction.update({ embeds: [updatedEmbed] });
+    return interaction.editReply({ embeds: [updatedEmbed] });
   }
 
   /* 🛒 Stall Section (FIXED: null-safe owner check + proper component ack) */
