@@ -30,6 +30,15 @@ function isOwnerOfMessage(interaction) {
   const ownerId = interaction.message?.interaction?.user?.id;
   return !ownerId || ownerId === interaction.user.id;
 }
+
+function makePagerRow(page, total) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(page <= 1).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+                          new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(page <= 1).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+                          new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(page >= total).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+                          new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(page >= total).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+  );
+}
 /* ---------------------------------------- */
 
 module.exports = async function interactionRouter(interaction) {
@@ -188,23 +197,45 @@ if (helpSession && id.startsWith('help:')) {
 }
 
   /* Universal simple pager (kept as-is) */
-  const navPattern = /^(first|prev|next|last)$/;
-  if (navPattern.test(customId || '')) {
-    const pageData = interaction.message.embeds?.[0]?.footer?.text?.match(/Page (\d+)\/(\d+)/);
-    if (!pageData) return;
+  // === inside your component handler =================================
+if (interaction.isButton?.()) {
+  const id = interaction.customId || '';
 
-    let [, currentPage, totalPages] = pageData.map(Number);
-    if (customId === 'first') currentPage = 1;
-    if (customId === 'prev') currentPage = Math.max(1, currentPage - 1);
-    if (customId === 'next') currentPage = Math.min(totalPages, currentPage + 1);
-    if (customId === 'last') currentPage = totalPages;
+  // Universal simple pager (first/prev/next/last)
+  if (/^(first|prev|next|last)$/.test(id)) {
+    const base = interaction.message?.embeds?.[0];
+    if (!base) return;
 
-    const updatedEmbed = JSON.parse(JSON.stringify(interaction.message.embeds[0]));
-    updatedEmbed.footer.text = `Page ${currentPage}/${totalPages}`;
-    updatedEmbed.description = `This is page ${currentPage}.`;
+    // Accept both "Page X of Y" and "Page X/Y" to be safe
+    const footerText = base.footer?.text || '';
+    const m = /Page\s+(\d+)\s*(?:\/|of)\s*(\d+)/i.exec(footerText);
+    if (!m) return;
 
-    return interaction.update({ embeds: [updatedEmbed] });
+    let page  = Number(m[1]);
+    const total = Number(m[2]);
+
+    // move page
+    switch (id) {
+      case 'first': page = 1; break;
+      case 'prev':  page = Math.max(1, page - 1); break;
+      case 'next':  page = Math.min(total, page + 1); break;
+      case 'last':  page = total; break;
+    }
+
+    // clone & update the embed
+    const updated = JSON.parse(JSON.stringify(base));
+    updated.footer = { text: `Page ${page} of ${total}` };
+    // If you also change fields/description per page, rebuild them here:
+    // updated.description = renderYourPage(page);
+
+    // build row (keeps/updates disabled states)
+    const row = makePagerRow(page, total);
+
+    // EDIT THE SAME MESSAGE (no new posts)
+    await interaction.update({ embeds: [updated], components: [row] });
+    return;
   }
+}
 
   /* 🛒 Stall Section (FIXED: null-safe owner check + proper component ack) */
   const { stallPreviewFilters } = require('../utils/cache');
