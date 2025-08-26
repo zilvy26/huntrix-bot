@@ -188,34 +188,46 @@ if (helpSession && id.startsWith('help:')) {
 }
 
   /* Universal simple pager (kept as-is) */
-  /* Universal simple pager — EDIT IN PLACE */
-const navPattern = /^(first|prev|next|last)$/;
-if (navPattern.test(customId || '')) {
-  const footer = interaction.message?.embeds?.[0]?.footer?.text || '';
-  const m = /Page\s+(\d+)\s*\/\s*(\d+)/i.exec(footer);
+  /* === Universal simple pager (buttons only) === */
+if (interaction.isButton?.()) {
+  const id = interaction.customId || '';
+  if (!/^(first|prev|next|last)$/.test(id)) return; // not our pager
+
+  // 1) Parse current/total from footer "Page X/Y"
+  const base = interaction.message?.embeds?.[0];
+  if (!base) return;
+
+  const footerText = base.footer?.text || '';
+  const m = /Page\s+(\d+)\s*\/\s*(\d+)/i.exec(footerText);
   if (!m) return;
 
   let currentPage = Number(m[1]);
   const totalPages = Number(m[2]);
 
-  if (customId === 'first') currentPage = 1;
-  if (customId === 'prev')  currentPage = Math.max(1, currentPage - 1);
-  if (customId === 'next')  currentPage = Math.min(totalPages, currentPage + 1);
-  if (customId === 'last')  currentPage = totalPages;
+  // 2) Calculate the target page
+  switch (id) {
+    case 'first': currentPage = 1; break;
+    case 'prev':  currentPage = Math.max(1, currentPage - 1); break;
+    case 'next':  currentPage = Math.min(totalPages, currentPage + 1); break;
+    case 'last':  currentPage = totalPages; break;
+  }
 
-  // clone existing embed and update footer/description (or rebuild as needed)
-  const base = interaction.message.embeds[0];
+  // 3) Clone & adjust the embed for the new page
   const updatedEmbed = JSON.parse(JSON.stringify(base));
   updatedEmbed.footer = { text: `Page ${currentPage}/${totalPages}` };
-  updatedEmbed.description = `This is page ${currentPage}.`;
+  // optional: rebuild page content
+  // updatedEmbed.description = `This is page ${currentPage}.`;
 
-  // keep the same buttons OR rebuild them if you disable/enable edges
+  // 4) Keep the same buttons (or rebuild if you disable edges)
   const components = interaction.message.components?.length
     ? interaction.message.components
     : [];
 
-  // 🔒 Use update() so the SAME message is edited (no new posts)
-  return interaction.update({ embeds: [updatedEmbed], components });
+  // 5) EDIT THE SAME MESSAGE (no new posts)
+  return interaction.update({
+    embeds: [updatedEmbed],
+    components,
+  });
 }
 
   /* 🛒 Stall Section (FIXED: null-safe owner check + proper component ack) */
