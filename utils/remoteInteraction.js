@@ -4,11 +4,20 @@ const { buildOptionsProxy } = require('./optionsProxy');
 
 const EPH_FLAG = 1 << 6;
 
-function createRemoteInteraction({ appId, token, channelId, optionsSnap }) {
+function createRemoteInteraction({ appId, token, channelId, guildId, optionsSnap }) {
   const wh = new WebhookClient({ id: appId, token });
 
   const base = {
+    applicationId: appId,
     channelId,
+    guildId: guildId ?? null,
+    guild: guildId ? { id: guildId } : null,
+
+    // ⚡️ Add these shims so cooldownManager works:
+    inGuild() { return !!this.guildId; },
+    inCachedGuild() { return !!this.guildId; },
+
+    // Discord.js marks these as true after an ACK
     replied: true,
     deferred: true,
     isRepliable: () => true,
@@ -18,17 +27,14 @@ function createRemoteInteraction({ appId, token, channelId, optionsSnap }) {
       const flags = ephemeral ? EPH_FLAG : rest.flags;
       return wh.send({ flags, ...rest });
     },
-
     async editReply(data = {}) {
       const { ephemeral, ...rest } = data;
       const flags = ephemeral ? EPH_FLAG : rest.flags;
       return wh.send({ flags, ...rest });
     },
-
     channel: { send: (data) => wh.send(data) },
 
-    // Slash-command option getters
-    options: buildOptionsProxy(optionsSnap || { subcommand: null, subcommandGroup: null, byName: {} })
+    options: buildOptionsProxy(optionsSnap || { subcommand: null, subcommandGroup: null, byName: {} }),
   };
 
   return base;

@@ -91,6 +91,7 @@ new Worker(
         appId: d.appId,
         token: d.token,
         channelId: d.channelId,
+        guildId: d.guildId,
         optionsSnap: d.optionsSnap,
       }),
       {
