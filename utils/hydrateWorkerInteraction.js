@@ -2,7 +2,7 @@
 const { REST, Routes } = require('discord.js');
 const getOrCreateUser = require('./getOrCreateUser'); // your existing util
 
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 // create a d.js-like roles cache with .has()
 function makeRolesCache(roleIds = []) {

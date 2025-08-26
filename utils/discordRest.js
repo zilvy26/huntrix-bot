@@ -1,11 +1,11 @@
 // utils/discordRest.js
 const { REST, Routes } = require('discord.js');
 
-if (!process.env.DISCORD_TOKEN) {
+if (!process.env.TOKEN) {
   console.warn('[discordRest] DISCORD_TOKEN missing — REST calls will fail.');
 }
 
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 // --- Fetchers (if you ever need them) ---
 async function fetchUser(userId) {
