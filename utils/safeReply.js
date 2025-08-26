@@ -1,5 +1,4 @@
-// utils/safeReply.js — strict one-message helpers (no watchdog, no dupes)
-
+// utils/safeReply.js
 const EPH_FLAG = 1 << 6;
 const TRANSIENT = new Set([10062, 40060, 10015, 'InteractionAlreadyReplied']);
 const isComponent = (i) => i?.isButton?.() || i?.isStringSelectMenu?.() || false;
@@ -28,44 +27,27 @@ async function safeReply(interaction, payload, { preferFollowUp = false, compone
     (Array.isArray(data.components) && data.components.length);
   if (!hasBody) { console.warn('safeReply: skipped empty payload'); return null; }
 
-  if ('ephemeral' in data) {
-    const eph = !!data.ephemeral;
-    delete data.ephemeral;
-    data.flags = eph ? EPH_FLAG : data.flags;
-  }
+  if ('ephemeral' in data) { const eph = !!data.ephemeral; delete data.ephemeral; data.flags = eph ? EPH_FLAG : data.flags; }
 
   try {
-    // Components: EDIT the original by default (better for pagers)
+    // Components: prefer update() -> editReply() -> followUp()
     if (isComponent(interaction)) {
-      if (componentFollowUp) {
-        return await interaction.followUp(data);      // opt-in to new message
-      }
-      try {
-        // d.js: after deferUpdate(), editReply edits the message the button is on
-        return await interaction.editReply(data);
-      } catch {
-        return await interaction.followUp(data);      // safe fallback
-      }
+      if (componentFollowUp) return await interaction.followUp(data); // opt-in to new msg
+      if (typeof interaction.update === 'function') { try { return await interaction.update(data); } catch {} }
+      try { return await interaction.editReply(data); } catch {}
+      return await interaction.followUp(data);
     }
 
-    // First response after a defer -> edit
     if (interaction.deferred && !interaction.replied && !preferFollowUp) {
-      try { return await interaction.editReply(data); }
-      catch { return await interaction.followUp(data); }
+      try { return await interaction.editReply(data); } catch { return await interaction.followUp(data); }
     }
-
-    // Fresh interaction -> reply
     if (!interaction.deferred && !interaction.replied && !preferFollowUp) {
       return await interaction.reply(data);
     }
-
-    // Otherwise -> follow up
     return await interaction.followUp(data);
   } catch (err) {
     const code = codeOf(err);
-    if (code !== 10062 && code !== 10015) {
-      try { return await interaction.followUp(data); } catch {}
-    }
+    if (code !== 10062 && code !== 10015) { try { return await interaction.followUp(data); } catch {} }
     console.warn(`safeReply final fail (${code ?? 'no-code'}):`, err?.message || err);
     return null;
   }

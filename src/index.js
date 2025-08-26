@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const { enqueueInteraction } = require('../queue'); // if index.js is inside src/
-const RUN_LOCAL = new Set(['ping','help','about', 'index', 'tradecard', 'trademulti', 'grantrandom', 'grantpay', 'grantcard', 'list', 'balance', 'boutique', 'boutiquecards', 'records']); // tiny/fast ones only
+const RUN_LOCAL = new Set(['ping','help','about', 'index', 'rehearsal', 'tradecard', 'trademulti', 'grantrandom', 'grantpay', 'grantcard', 'list', 'balance', 'boutique', 'boutiquecards', 'records']); // tiny/fast ones only
 
 const Maintenance = require('../models/Maintenance');
 const User = require('../models/User');
@@ -170,20 +170,6 @@ function getRandomDelay() {
 client.once('ready', () => {
   console.log(`🤖 Bot is online as ${client.user.tag}`);
   isBotReady = true;
-  // Reload persistent reminders from database
-  Reminder.find().then(reminders => {
-    const now = Date.now();
-    for (const r of reminders) {
-      const delay = new Date(r.expiresAt).getTime() - now;
-      if (delay > 0) {
-  setTimeout(() => sendReminder(client, r), delay);
-} else {
-  sendReminder(client, r); // <-- this triggers your reminder message AND deletes it
-}
-    }
-  }).catch(err => {
-    console.error('❌ Failed to load reminders:', err);
-  });
   cycleStatus();
 });
 
