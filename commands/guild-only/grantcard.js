@@ -27,7 +27,7 @@ module.exports = {
       opt.setName('user').setDescription('User to receive the cards').setRequired(true))
     .addStringOption(opt =>
       opt.setName('cardcodes')
-        .setDescription('Comma-separated card codes (e.g. CODE1x2, CODE2, CODE3x-2)')
+        .setDescription('Comma-separated card codes (e.g. CODE1+2, CODE2, CODE3x-2)')
         .setRequired(true)
     ),
 

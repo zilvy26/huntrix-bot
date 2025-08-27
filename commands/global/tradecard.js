@@ -23,7 +23,7 @@ module.exports = {
         .setRequired(true))
     .addStringOption(opt =>
       opt.setName('cardcodes')
-        .setDescription('Comma-separated card codes like CODE1x2, CODE2')
+        .setDescription('Comma-separated card codes like CODE1+2, CODE2')
         .setRequired(true)),
 
   async execute(interaction) {
