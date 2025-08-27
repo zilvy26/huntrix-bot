@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const { enqueueInteraction } = require('../queue'); // if index.js is inside src/
-const RUN_LOCAL = new Set(['ping','help','about','vote','index', 'rehearsal','profile', 'tradecard', 'trademulti', 'grantrandom', 'grantpay', 'grantcard', 'list', 'balance', 'boutique', 'boutiquecards', 'records', 'editcards', 'createcard', 'stall', 'stallpreview']); // tiny/fast ones only
+const RUN_LOCAL = new Set(['ping','help','showcase','refund', 'about','vote','index', 'rehearsal','profile', 'tradecard', 'trademulti', 'grantrandom', 'grantpay', 'grantcard', 'list', 'balance', 'boutique', 'boutiquecards', 'records', 'editcards', 'createcard', 'stall', 'stallpreview']); // tiny/fast ones only
 
 const Maintenance = require('../models/Maintenance');
 const User = require('../models/User');
