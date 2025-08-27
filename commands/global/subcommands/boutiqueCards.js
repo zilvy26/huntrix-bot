@@ -12,7 +12,7 @@ const Card = require('../../../models/Card');
 const generateStars = require('../../../utils/starGenerator');
 const awaitUserButton = require('../../../utils/awaitUserButton');
 const BoutiqueCooldown = require('../../../models/BoutiqueCooldown');
-const { safeReply } = require('../../../utils/safeReply');
+const { safeReply, safeDefer } = require('../../../utils/safeReply');
 const rarityWeights = {
   '5': 0.02,
   '4': 0.11,
@@ -22,6 +22,7 @@ const rarityWeights = {
 };
 
 module.exports = async function(interaction) {
+  await safeDefer(interaction);
     const userId = interaction.user.id;
     const shopType = interaction.options.getString('shop');
     const amount = interaction.options.getInteger('amount');
@@ -133,7 +134,7 @@ if (hasOnlyRarity5) {
 
     // zodiac1
     if (shopType === 'zodiac1') {
-      filter = { pullable: true, category: { $in: 'zodiac' } };
+      filter = { pullable: true, category: 'zodiac' };
       const pool = await Card.find(filter);
       if (pool.length === 0) {
   return safeReply(interaction, 'No zodiac cards found for that filter.');
@@ -160,7 +161,7 @@ for (let i = 0; i < amount; i++) {
 
 // event1
     if (shopType === 'event1') {
-      filter = { pullable: true, category: { $in: 'event' } };
+      filter = { pullable: true, category: 'event' };
       const pool = await Card.find(filter);
       if (pool.length === 0) {
   return safeReply(interaction, 'No event cards found for that filter.');
@@ -252,23 +253,12 @@ for (let i = 0; i < amount; i++) {
                       new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
                     );
                 
-                    await safeReply(interaction, { embeds: [await renderEmbed(current)], components: [renderRow()] });
+                    await interaction.editReply({ embeds: [renderEmbed()], components: [renderRow()] });
                 
-                    while (true) {
-                      const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
-                      if (!btn) break;
-                
-                      if (btn.customId === 'first') current = 0;
-                      if (btn.customId === 'prev') current = Math.max(0, current - 1);
-                      if (btn.customId === 'next') current = Math.min(totalPages - 1, current + 1);
-                      if (btn.customId === 'last') current = totalPages - 1;
-                
-                      await interaction.update({ embeds: [renderEmbed(current)], components: [renderRow()] });
-                    }
                 
                     // Final cleanup
                     try {
-                      await safeReply(interaction, { components: [] });
+                      await interaction.editReply({ components: [] });
                     } catch (err) {
                       console.warn('Pagination cleanup failed:', err.message);
                     }

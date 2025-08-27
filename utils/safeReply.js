@@ -30,7 +30,14 @@ async function safeReply(interaction, payload, { preferFollowUp = false } = {}) 
   if ('ephemeral' in data) { const eph = !!data.ephemeral; delete data.ephemeral; data.flags = eph ? EPH_FLAG : data.flags; }
 
   try {
-    if (isComponent(interaction)) return await interaction.followUp(data);
+    if (isComponent(interaction)) {
+    if (typeof interaction.update === 'function') {
+      try { return await interaction.update(data); } catch {}
+    }
+    try { return await interaction.editReply(data); } catch {}
+    console.warn('[safeReply] suppressed followUp for component to avoid dupes.');
+    return null;
+  }
     if (interaction.deferred && !interaction.replied && !preferFollowUp) {
       try { return await interaction.editReply(data); } catch { return await interaction.followUp(data); }
     }
