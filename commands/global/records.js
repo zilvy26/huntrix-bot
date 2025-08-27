@@ -67,8 +67,6 @@ module.exports = {
       embeds: [getPage(current)],
       components: [getRow(current)]
     });
-
-    await safeReply(interaction, { embeds: [getPage(current)], components: [getRow()] });
     
         while (true) {
                   const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
