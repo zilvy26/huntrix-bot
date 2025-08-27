@@ -227,22 +227,27 @@ await interaction.followUp({
 });
     
         while (true) {
-          const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000).catch(() => null);
-          if (!btn) break;
-    
-          if (btn.customId === 'first') current = 0;
-          if (btn.customId === 'prev') current = Math.max(0, current - 1);
-          if (btn.customId === 'next') current = Math.min(pages - 1, current + 1);
-          if (btn.customId === 'last') current = pages - 1;
-    
-          await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
-        }
-    
-        // Final cleanup
-        try {
-          await safeReply(interaction, { components: [] });
-        } catch (err) {
-          console.warn('Pagination cleanup failed:', err.message);
-        }
-      }
-    };
+                  const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
+                  if (!btn) break;
+            
+                  // Ack the component to avoid red "failed" banner
+                  if (!btn.deferred && !btn.replied) {
+                    try { await btn.deferUpdate(); } catch {}
+                  }
+            
+                  if (btn.customId === 'first') current = 0;
+                  if (btn.customId === 'prev') current = Math.max(0, current - 1);
+                  if (btn.customId === 'next') current = Math.min(pages - 1, current + 1);
+                  if (btn.customId === 'last') current = pages - 1;
+            
+                  await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
+                }
+            
+                // Cleanup components when collector ends or timeout
+                try {
+                  await interaction.editReply({ components: [] });
+                } catch (err) {
+                  console.warn('Pagination cleanup failed:', err.message);
+                }
+              }
+            };
