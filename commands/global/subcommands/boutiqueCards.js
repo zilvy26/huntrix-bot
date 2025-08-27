@@ -246,21 +246,39 @@ for (let i = 0; i < amount; i++) {
         )
         .setFooter({ text: `Page ${current + 1} of ${totalPages}` });
     };
+    
     const renderRow = () => new ActionRowBuilder().addComponents(
-                      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-                      new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
-                      new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
-                      new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
-                    );
-                
-                    await interaction.editReply({ embeds: [renderEmbed()], components: [renderRow()] });
-                
-                
-                    // Final cleanup
-                    try {
-                      await interaction.editReply({ components: [] });
-                    } catch (err) {
-                      console.warn('Pagination cleanup failed:', err.message);
-                    }
-                  };
+          new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+          new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+          new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= pages - 1).setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }), // fixed name
+          new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= pages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+        );
+    
+        await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
+    
+        // --- Pagination loop ---
+        while (true) {
+          const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
+          if (!btn) break;
+    
+          // Ack the component to avoid red "failed" banner
+          if (!btn.deferred && !btn.replied) {
+            try { await btn.deferUpdate(); } catch {}
+          }
+    
+          if (btn.customId === 'first') current = 0;
+          if (btn.customId === 'prev') current = Math.max(0, current - 1);
+          if (btn.customId === 'next') current = Math.min(pages - 1, current + 1);
+          if (btn.customId === 'last') current = pages - 1;
+    
+          await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
+        }
+    
+        // Cleanup components when collector ends or timeout
+        try {
+          await interaction.editReply({ components: [] });
+        } catch (err) {
+          console.warn('Pagination cleanup failed:', err.message);
+        }
+      };
                 
