@@ -84,7 +84,7 @@ module.exports = {
                   if (btn.customId === 'next') current = Math.min(totalPages - 1, current + 1);
                   if (btn.customId === 'last') current = totalPages - 1;
             
-                  await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
+                  await interaction.editReply({ embeds: [getPage(current)], components: [getRow()] });
                 }
             
                 // Cleanup components when collector ends or timeout
