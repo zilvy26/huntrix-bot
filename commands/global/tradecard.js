@@ -41,7 +41,7 @@ module.exports = {
 const inputCodes = rawCodes.trim().split(/[\s,]+/); // however you split codes
 
 for (const code of inputCodes) {
-  const match = code.match(/^(.+?)(?:+(\d+))?$/i); // match "CODE" or "CODE+2"
+  const match = code.match(/^(.+?)(?:X(\d+))?$/i); // match "CODE" or "CODEX2"
   if (!match) continue;
 
   const cardCode = match[1].toUpperCase();
