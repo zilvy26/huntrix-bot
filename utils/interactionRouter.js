@@ -90,20 +90,20 @@ module.exports = async function interactionRouter(interaction) {
         let rewardSopop = 0;
         if (selected.difficulty === 'easy') {
           rewardPatterns = getRandomInt(850, 975);
-          if (Math.random() < 0.2) rewardSopop = 1;
+          if (Math.random() < 0.22) rewardSopop = 1;
         } else if (selected.difficulty === 'hard') {
-          rewardPatterns = getRandomInt(975, 1100);
-          if (Math.random() < 0.27) rewardSopop = 1;
+          rewardPatterns = getRandomInt(1000, 1125);
+          if (Math.random() < 0.28) rewardSopop = 1;
         } else if (selected.difficulty === 'impossible') {
-          rewardPatterns = getRandomInt(1100, 1250);
+          rewardPatterns = getRandomInt(1150, 1275);
           if (Math.random() < 0.34) rewardSopop = 1;
         }
 
         let streakBonus = '';
         if (userDoc.correctStreak % 15 === 0) {
-          rewardPatterns += 700;
+          rewardPatterns += 725;
           rewardSopop += 1;
-          streakBonus = '\n**Streak bonus activated!** Extra rewards granted!';
+          streakBonus = '\n**Bonus rewards granted!';
         }
 
         userDoc.patterns += rewardPatterns;
@@ -111,7 +111,7 @@ module.exports = async function interactionRouter(interaction) {
         await userDoc.save();
 
         await interaction.editReply({
-          content: `Correct! You earned <:ehx_patterns:1389584144895315978> **${rewardPatterns} Patterns**${rewardSopop ? ` and <:ehx_sopop:1389584273337618542> **${rewardSopop} Sopop**` : ''}.\nCurrent streak: **${userDoc.correctStreak}**${streakBonus}`,
+          content: `Correct! You earned <:ehx_patterns:1389584144895315978> **${rewardPatterns} Patterns**${rewardSopop ? ` and <:ehx_sopop:1389584273337618542> **${rewardSopop} Sopop**` : ''}.\n${streakBonus}`,
           embeds: [],
           components: [],
           files: []
@@ -308,7 +308,7 @@ if (helpSession && id.startsWith('help:')) {
       return safeReply(interaction, { content: 'Rehearsal session not found or expired.', flags: 1 << 6 });
     }
     const selected = cards[index];
-    const sopop = Math.random() < 0.4 ? (Math.random() < 0.75 ? 1 : 2) : 0;
+    const sopop = Math.random() < 0.42 ? (Math.random() < 0.75 ? 1 : 2) : 0;
     await giveCurrency(userId, { sopop });
 
     let inv = await UserInventory.findOne({ userId });

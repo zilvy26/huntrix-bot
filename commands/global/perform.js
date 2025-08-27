@@ -10,8 +10,8 @@ function getRandomInt(min, max) {
 }
 
 function shouldDropSopop() {
-  // ~40% chance to get sopop
-  return Math.random() < 0.4;
+  // ~39% chance to get sopop
+  return Math.random() < 0.39;
 }
 
 module.exports = {
@@ -42,7 +42,7 @@ if (await cooldowns.isOnCooldown(userId, commandName)) {
 await cooldowns.setCooldown(userId, commandName, cooldownMs);
 
     // Generate randomized rewards
-    const patterns = getRandomInt(1200, 1350);
+    const patterns = getRandomInt(1250, 1375);
     const sopop = shouldDropSopop() ? 1 : 0;
 
     // Give currency
