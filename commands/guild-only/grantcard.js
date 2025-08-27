@@ -41,11 +41,11 @@ module.exports = {
       return safeReply(interaction, { content: '❌ You lack permission to use this.' }); // was editReply
     }
 
-    // --- Parse "CODExN" parts into counts map (case-insensitive) ---
+    // --- Parse "CODE+N" parts into counts map (case-insensitive) ---
     const counts = {};
     const parts = rawCodes.split(',').map(c => c.trim()).filter(Boolean);
     for (const part of parts) {
-      const m = part.match(/^(.+?)(?:x(-?\d+))?$/i);
+      const m = part.match(/^(.+?)(?:\+(-?\d+))?$/i);
       if (!m) continue;
       const codeKey = m[1].toLowerCase();
       const qty = parseInt(m[2] || '1', 10);
