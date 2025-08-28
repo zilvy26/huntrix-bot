@@ -20,7 +20,6 @@ const isSpecialR5 = (card) =>
 const ERA_PRICE_CAPS_RAW = {
   'VIR25': 17000,
   'LEO25': 21000,
-  'PC25': 30000,
   'How It\'s Done': 27000
 };
 
