@@ -4,19 +4,22 @@ const {
   PermissionFlagsBits,
   EmbedBuilder
 } = require('discord.js');
-const mongoose = require('mongoose');
 const UserInventory = require('../../models/UserInventory');
 const User = require('../../models/User');
 const giveCurrency = require('../../utils/giveCurrency');
 const { safeReply } = require('../../utils/safeReply');
 
 /**
- * This version:
- * - Adds all cards from source to target, then clears source's cards (transactional).
- * - Moves currency using the same util you use elsewhere: giveCurrency(userId, { patterns, sopop }).
- *   We add to target, then decrement source with negative values.
- *   If the second step fails, we compensate by subtracting back from target.
+ * Transfer ALL cards + currency from one user to another (merge/add),
+ * then empty the source user's inventory and zero their currency.
+ * No Mongo transactions are used (works on standalone / free-tier Atlas).
+ *
+ * Currency keys moved via giveCurrency: { patterns, sopop }.
+ * - Step 1: add to target
+ * - Step 2: subtract from source (negative inc)
+ * If Step 2 fails, Step 1 is compensated (reversed) to avoid mismatch.
  */
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('transfer')
@@ -30,7 +33,7 @@ module.exports = {
     .addStringOption(opt =>
       opt.setName('note').setDescription('Optional note to include in the result')
     )
-    // Require ManageGuild by default so only admins/mods can run this
+    // Keep restricted; change/remove this line if you want broader access
     .setDefaultMemberPermissions('0'),
 
   async execute(interaction) {
@@ -46,40 +49,29 @@ module.exports = {
       return safeReply(interaction, { content: '`from` and `to` must be different users.' });
     }
 
-    // 1) Read source currency balances (defaults to 0 if missing)
-    const srcUserDoc =
-      (await User.findOne({ userId: fromUser.id }).lean()) || { patterns: 0, sopop: 0 };
+    // --- 1) Read source currency balances (defaults 0 if missing)
+    const srcUserDoc = (await User.findOne({ userId: fromUser.id }).lean()) || {};
     const movePatterns = Number(srcUserDoc.patterns || 0);
     const moveSopop = Number(srcUserDoc.sopop || 0);
 
-    // 2) Start transaction for CARDS
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
+    // --- 2) Move CARDS (sequential saves, no transactions)
     let totalCodesMoved = 0;
     let totalQtyMoved = 0;
 
     try {
-      // Load inventories
       const [fromInv, toInv] = await Promise.all([
-        UserInventory.findOne({ userId: fromUser.id }).session(session),
-        UserInventory.findOne({ userId: toUser.id }).session(session)
+        UserInventory.findOne({ userId: fromUser.id }),
+        UserInventory.findOne({ userId: toUser.id })
       ]);
-
-      if (!fromInv || !Array.isArray(fromInv.cards) || fromInv.cards.length === 0) {
-        // Still move currency even if there are no cards
-        // (don’t early return; we’ll just treat cards part as empty)
-      }
-
-      // Ensure target exists
+      // Build/ensure target doc
       let targetInv = toInv;
       if (!targetInv) {
         targetInv = new UserInventory({ userId: toUser.id, cards: [] });
-        targetInv.$session(session);
       }
 
-      // Merge cards: map target, add quantities from source
+      // Merge cards from source -> target
       const tMap = new Map((targetInv.cards || []).map(c => [c.cardCode, Number(c.quantity) || 0]));
+
       for (const sc of (fromInv?.cards || [])) {
         const code = sc.cardCode;
         const qty = Number(sc.quantity) || 0;
@@ -89,60 +81,51 @@ module.exports = {
         tMap.set(code, (tMap.get(code) || 0) + qty);
       }
 
-      // Persist new target list
+      // Persist target & wipe source cards
       targetInv.cards = Array.from(tMap, ([cardCode, quantity]) => ({ cardCode, quantity }));
-
-      // Wipe source cards
-      if (fromInv) fromInv.cards = [];
-
-      // Save inventories
-      await Promise.all([
-        targetInv.save({ session }),
-        fromInv ? fromInv.save({ session }) : Promise.resolve()
-      ]);
-      // Commit cards transaction
-      await session.commitTransaction();
-      session.endSession();
+      const writes = [targetInv.save()];
+      if (fromInv) {
+        fromInv.cards = [];
+        writes.push(fromInv.save());
+      }
+      await Promise.all(writes);
     } catch (err) {
-      try { await session.abortTransaction(); } catch {}
-      session.endSession();
-      console.error('[transfer] cards transfer failed:', err);
+      console.error('[transfer] card move failed:', err);
       return safeReply(interaction, {
         content: 'Card transfer failed. No changes were made to cards or currency.'
       });
     }
 
-    // 3) Move currency using your giveCurrency util (non-transactional but with compensation)
+    // --- 3) Move CURRENCY via your giveCurrency util (with compensation)
     let currencySummary = [];
     try {
-      // nothing to move? still show success with cards moved
       if (movePatterns > 0 || moveSopop > 0) {
-        // Add to target
+        // Add to target first
         await giveCurrency(toUser.id, {
           patterns: movePatterns,
           sopop: moveSopop
         });
 
         try {
-          // Subtract from source (negative inc to zero it out)
+          // Subtract from source by adding negatives
           await giveCurrency(fromUser.id, {
             patterns: -movePatterns,
             sopop: -moveSopop
           });
         } catch (subErr) {
-          // Compensation: undo the add if subtraction fails
+          // Compensation: undo the add to target if the subtraction fails
           try {
             await giveCurrency(toUser.id, {
               patterns: -movePatterns,
               sopop: -moveSopop
             });
           } catch (compErr) {
-            console.error('[transfer] compensation failed:', compErr);
+            console.error('[transfer] currency compensation failed:', compErr);
           }
           console.error('[transfer] subtracting currency from source failed:', subErr);
           return safeReply(interaction, {
             content:
-              '⚠️ Cards moved, but currency transfer failed and was rolled back. Source balances unchanged.'
+              'Cards moved, but currency transfer failed and was rolled back. Source balances unchanged.'
           });
         }
 
@@ -151,16 +134,14 @@ module.exports = {
       }
     } catch (addErr) {
       console.error('[transfer] adding currency to target failed:', addErr);
-      // Currency add failed—cards already moved, but balances unchanged
       return safeReply(interaction, {
-        content:
-          '⚠️ Cards moved successfully, but currency could not be transferred (target add failed).'
+        content: 'Cards moved successfully, but currency could not be transferred.'
       });
     }
 
-    // 4) Confirmation embed
+    // --- 4) Confirmation embed
     const embed = new EmbedBuilder()
-      .setTitle('✅ Transfer Complete')
+      .setTitle('Transfer Complete')
       .setColor(0x3BA55D)
       .setDescription(
         [
@@ -172,11 +153,7 @@ module.exports = {
       .addFields(
         { name: 'Card codes moved', value: `${totalCodesMoved}`, inline: true },
         { name: 'Total quantity moved', value: `${totalQtyMoved}`, inline: true },
-        {
-          name: 'Currency moved',
-          value: currencySummary.length ? currencySummary.join('\n') : 'None',
-          inline: false
-        }
+        { name: 'Currency moved', value: currencySummary.join('\n') || 'None', inline: false }
       )
       .setTimestamp();
 
