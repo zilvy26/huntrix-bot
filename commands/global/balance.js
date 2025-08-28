@@ -21,18 +21,26 @@ module.exports = {
       userData = await User.create({
         userId,
         patterns: 5000,
-        sopop: 1
+        sopop: 2
       });
     }
 
     const embed = new EmbedBuilder()
-      .setTitle(`Balance for ${targetUser.username}`)
-      .addFields(
-        { name: '__Patterns__', value: `<:ehx_patterns:1389584144895315978> ${userData.patterns}`, inline: true },
-        { name: '__Sopop__', value: `<:ehx_sopop:1389584273337618542> ${userData.sopop}`, inline: true }
-      )
-      .setColor('#FFD700')
-      .setFooter({ text: `Requested by ${interaction.user.username}` });
+  .setTitle(`Balance for ${targetUser.username}`)
+  .addFields(
+    { 
+      name: '__Patterns__', 
+      value: `<:ehx_patterns:1389584144895315978> ${userData.patterns.toLocaleString()}`, 
+      inline: true 
+    },
+    { 
+      name: '__Sopop__', 
+      value: `<:ehx_sopop:1389584273337618542> ${userData.sopop.toLocaleString()}`, 
+      inline: true 
+    }
+  )
+  .setColor('#FFD700')
+  .setFooter({ text: `Requested by ${interaction.user.username}` });
 
     return safeReply(interaction, { embeds: [embed] });
   }
