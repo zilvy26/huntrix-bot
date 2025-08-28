@@ -15,12 +15,19 @@ const isSpecialR5 = (card) =>
   Number(card.rarity) === 5 &&
   ['kpop', 'anime', 'game', 'franchise'].includes(String(card.category || '').toLowerCase());
 
-// Optional era caps (NEW). Keys are compared lowercase to card.era.
-const ERA_PRICE_CAPS = {
+// ---- ERA CAPS CONFIG ----------------------------------------------------
+// Define them normally (any case/spacing, whatever you like)
+const ERA_PRICE_CAPS_RAW = {
   'VIR25': 17000,
   'LEO25': 21000,
-  'PC25': 30000
+  'PC25': 30000,
+  'How It\'s Done': 27000
 };
+
+// Normalize keys to lowercase+trim once at startup
+const ERA_PRICE_CAPS = Object.fromEntries(
+  Object.entries(ERA_PRICE_CAPS_RAW).map(([k, v]) => [String(k).trim().toLowerCase(), Number(v)])
+);
 
 // Max concurrent listings per seller (unchanged)
 const MAX_LISTINGS = 50;
@@ -107,8 +114,9 @@ function parsePrices(rawPrice, batches) {
 // ---- CAPS ---------------------------------------------------------------
 
 function checkPriceCapsForCard(card, price) {
-  const eraKey = String(card.era || '').toLowerCase();
+  const eraKey = String(card.era || '').trim().toLowerCase();
   const eraCap = ERA_PRICE_CAPS[eraKey];
+
   if (typeof eraCap === 'number' && price > eraCap) {
     return `Price cap for era **${card.era}** is **${eraCap}** <:ehx_patterns:1389584144895315978>.`;
   }
@@ -121,10 +129,10 @@ function checkPriceCapsForCard(card, price) {
   }
 
   if (isSpecialR5(card) && price > 5000) {
-    return `5 Star Standard cards are capped at **3000** <:ehx_patterns:1389584144895315978>.`;
+    return `5 Star Standard cards are capped at **5000** <:ehx_patterns:1389584144895315978>.`;
   }
 
-  return null; // OK
+  return null;
 }
 
 // ---- HANDLER ------------------------------------------------------------
