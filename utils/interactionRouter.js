@@ -103,7 +103,7 @@ module.exports = async function interactionRouter(interaction) {
         if (userDoc.correctStreak % 15 === 0) {
           rewardPatterns += 725;
           rewardSopop += 1;
-          streakBonus = '\n**Bonus rewards granted!';
+          streakBonus = '\n**Bonus rewards granted!**';
         }
 
         userDoc.patterns += rewardPatterns;
