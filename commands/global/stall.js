@@ -33,16 +33,21 @@ module.exports = {
           opt.setName('page').setDescription('Page number'))
     )
     // in your stall command registration
-    .addSubcommand(sub => {
-      sub.setName('sell')
-        .setDescription('List one or more of your cards on the market')
-        .addStringOption(opt =>
-          opt.setName('cardcode').setDescription('Card code(s). Supports multi and +qty, e.g. "ABC123, DEF456+2"').setRequired(true)
+    .addSubcommand(sub =>
+  sub
+    .setName('sell')
+    .setDescription('List cards on the market')
+    .addStringOption(opt =>
+      opt.setName('cardcode')
+        .setDescription('Codes to sell (multi, +qty)')
+        .setRequired(true)
     )
-        .addStringOption(opt =>
-          opt.setName('price').setDescription('Single price or list matching codes. e.g. "900" or "700, 800, 900"').setRequired(true)
-    );
-})
+    .addStringOption(opt =>
+      opt.setName('price')
+        .setDescription('Single price or list matching codes')
+        .setRequired(true)
+    )
+)
     .addSubcommand(sub =>
       sub.setName('buy')
         .setDescription('Buy a listed card using its Buy Code')
