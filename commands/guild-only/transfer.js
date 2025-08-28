@@ -108,7 +108,7 @@ module.exports = {
       session.endSession();
       console.error('[transfer] cards transfer failed:', err);
       return safeReply(interaction, {
-        content: '❗ Card transfer failed. No changes were made to cards or currency.'
+        content: 'Card transfer failed. No changes were made to cards or currency.'
       });
     }
 
@@ -164,8 +164,8 @@ module.exports = {
       .setColor(0x3BA55D)
       .setDescription(
         [
-          `From: **${fromUser.tag}**`,
-          `To: **${toUser.tag}**`,
+          `From: **${fromUser.id}**`,
+          `To: **${toUser.id}**`,
           note ? `Note: ${note}` : null
         ].filter(Boolean).join('\n')
       )
