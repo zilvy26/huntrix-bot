@@ -13,7 +13,7 @@ const {
 } = require('discord.js');
 const RecommendSettings   = require('../models/RecommendSettings');
 const RecommendSubmission = require('../models/RecommendSubmission');
-const recommendCommand    = require('../commands/recommend'); // exports .data and .execute
+const recommendCommand    = require('../commands/guild-only/recommend'); // exports .data and .execute
 const { safeReply } = require('../utils/safeReply');
 const autoDefer = require('../utils/autoDefer'); // your helper that does deferUpdate/Reply based on mode
 const ListSet = require('../models/ListSet');
