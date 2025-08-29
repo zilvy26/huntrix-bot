@@ -93,7 +93,6 @@ module.exports = async function interactionRouter(interaction) {
             .addFields(
               { name: 'Name', value: sub.name, inline: true },
               { name: 'Group', value: sub.group, inline: true },
-              { name: 'Requested by', value: `<@${sub.userId}>`, inline: false }
             )
             .setTimestamp();
 
