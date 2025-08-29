@@ -1,3 +1,4 @@
+require('dotenv').config();
 const {
   SlashCommandBuilder,
   ChannelType,
@@ -5,7 +6,8 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  ThreadAutoArchiveDuration
 } = require('discord.js');
 
 const { safeReply } = require('../../utils/safeReply');
@@ -41,9 +43,18 @@ module.exports = {
     .addSubcommand(sub =>
       sub.setName('set')
         .setDescription('Configure destination, logging and behavior')
-        .addChannelOption(o => o.setName('thread')
-          .setDescription('Thread to post approved recommendations to')
-          .addChannelTypes(ChannelType.PublicThread, ChannelType.PrivateThread, ChannelType.AnnouncementThread))
+        .addChannelOption(o =>
+          o.setName('thread')
+            .setDescription('Pick a thread (or a channel to auto-create a thread)')
+            .addChannelTypes(
+              ChannelType.PublicThread,
+              ChannelType.PrivateThread,
+              ChannelType.AnnouncementThread,
+              ChannelType.GuildText,
+              ChannelType.GuildAnnouncement,
+              ChannelType.GuildForum
+            )
+        )
         .addChannelOption(o => o.setName('mod_channel')
           .setDescription('Mod log/approval channel')
           .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement))
@@ -76,14 +87,15 @@ module.exports = {
 
     if (sub === 'submit') return submit(interaction);
     if (sub === 'set') {
+      // your custom auth (kept)
       if (!interaction.member.roles.cache.has(process.env.MAIN_BYPASS_ID)) {
-          return safeReply(interaction, { content: 'You do not have permission to use this command.' });
-          }
+        return safeReply(interaction, { content: 'You do not have permission to use this command.' });
+      }
       return setConfig(interaction);
     }
     if (sub === 'reset') {
-      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-        return safeReply(interaction, { content: 'You need **Manage Server** to use this.', flags: 1 << 6 });
+      if (!interaction.member.roles.cache.has(process.env.MAIN_BYPASS_ID)) {
+        return safeReply(interaction, { content: 'You do not have permission to use this command.' });
       }
       return resetUser(interaction);
     }
@@ -105,7 +117,7 @@ async function submit(interaction) {
     return safeReply(interaction, { content: 'Recommendations are currently **disabled**.', flags: 1 << 6 });
   }
 
-  // ✅ role-gated: if list is non-empty, user must have at least one listed role
+  // role-gated: if list is non-empty, user must have at least one listed role
   if (Array.isArray(settings.allowedRoleIds) && settings.allowedRoleIds.length > 0) {
     const hasRole = interaction.member?.roles?.cache?.some(r => settings.allowedRoleIds.includes(r.id));
     if (!hasRole) {
@@ -116,7 +128,7 @@ async function submit(interaction) {
     }
   }
 
-  // cap: max 3 per user per thread counting pending/approved/posted
+  // cap: max 3 per user per thread (pending/approved/posted)
   const MAX = 3;
   const existing = await RecommendSubmission.countDocuments({
     guildId,
@@ -141,7 +153,7 @@ async function submit(interaction) {
       if (remain > 0) {
         const s = Math.ceil(remain / 1000);
         const msg = s < 60 ? `${s}s` : `${Math.floor(s/60)}m${s%60 ? ' '+(s%60)+'s' : ''}`;
-        return safeReply(interaction, { content: `Slow down ⏳ Try again in **${msg}**.`, flags: 1 << 6 });
+        return safeReply(interaction, { content: `Slow down, try again in **${msg}**.`, flags: 1 << 6 });
       }
     }
   }
@@ -211,10 +223,49 @@ async function setConfig(interaction) {
   const removeRole = interaction.options.getRole('remove_role');
   const clearRoles = interaction.options.getBoolean('clear_roles');
 
-  if (thread) {
-    if (!thread.isThread?.()) return safeReply(interaction, { content: 'Please choose a **thread** for `thread`.', flags: 1 << 6 });
+  // ---- Thread selection / creation (robust) ----
+  if (!thread && interaction.channel?.isThread?.()) {
+    // run inside a thread → use here
+    settings.threadId = interaction.channel.id;
+  } else if (thread?.isThread?.()) {
+    // picked an existing thread
     settings.threadId = thread.id;
+  } else if (thread && (thread.type === ChannelType.GuildText || thread.type === ChannelType.GuildAnnouncement)) {
+    // picked a text/announcement channel → create a public thread there
+    try {
+      const created = await thread.threads.create({
+        name: 'recommendations',
+        autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek, // 7 days
+        reason: 'Recommend destination thread'
+      });
+      settings.threadId = created.id;
+    } catch (e) {
+      return safeReply(interaction, { content: `Failed to create a thread in ${thread}.`, flags: 1 << 6 });
+    }
+  } else if (thread && thread.type === ChannelType.GuildForum) {
+    // picked a forum channel → create a forum post (thread)
+    try {
+      const created = await thread.threads.create({
+        name: 'Recommendations',
+        message: { content: 'Thread created for recommendation submissions.' },
+        reason: 'Recommend destination thread (forum)'
+      });
+      settings.threadId = created.id;
+    } catch (e) {
+      return safeReply(interaction, { content: `Failed to create a forum post in ${thread}.`, flags: 1 << 6 });
+    }
+  } else if (thread) {
+    // some other type
+    return safeReply(interaction, {
+      content: 'Please choose a **thread** or a **channel** where I can create one (Text / Announcement / Forum).',
+      flags: 1 << 6
+    });
+  } else if (!settings.threadId) {
+    // no option, not in a thread, and nothing stored yet
+    return safeReply(interaction, { content: 'Please choose a thread (or run this inside the target thread).', flags: 1 << 6 });
   }
+
+  // ---- Mod channel, reaction, flags, roles (unchanged) ----
   if (modChannel) {
     if (!modChannel.isTextBased?.()) return safeReply(interaction, { content: 'Pick a text/announcement channel for `mod_channel`.', flags: 1 << 6 });
     settings.modChannelId = modChannel.id;
@@ -245,7 +296,7 @@ async function setConfig(interaction) {
   parts.push(`Active: **${settings.active ? 'Yes' : 'No'}**`);
   parts.push(`Require Approval: **${settings.approvalRequired ? 'Yes' : 'No'}**`);
   parts.push(`Cooldown: **${settings.cooldownSeconds}s**`);
-  parts.push(`Reaction: ${settings.reaction || '👍'}`);
+  parts.push(`Reaction: ${settings.reaction || '<:e_heart:1410767827857571961>'}`);
   parts.push(`Allowed roles: ${settings.allowedRoleIds.length ? settings.allowedRoleIds.map(id => `<@&${id}>`).join(', ') : '_none (everyone)_'}`
   );
 
@@ -275,7 +326,7 @@ async function resetUser(interaction) {
 
   if (!subs.length) {
     return safeReply(interaction, { content: `No active submissions found for <@${targetUser.id}> in <#${threadId}>.`, flags: 1 << 6 });
-    }
+  }
 
   let cleared = 0;
   for (const s of subs) {
@@ -324,14 +375,13 @@ async function postToThread(interaction, settings, sub) {
       .addFields(
         { name: 'Name',  value: sub.name,  inline: true },
         { name: 'Group', value: sub.group, inline: true },
-        { name: 'Requested by', value: `<@${sub.userId}>` }
       )
       .setTimestamp();
 
     const sent = await thread.send({ embeds: [embed] });
 
-    const rx = settings.reaction || '👍';
-    try { await sent.react(rx); } catch { try { await sent.react('👍'); } catch {} }
+    const rx = settings.reaction || '<:e_heart:1410767827857571961>';
+    try { await sent.react(rx); } catch { try { await sent.react('<:e_heart:1410767827857571961>'); } catch {} }
 
     return { ok: true, messageId: sent.id, url: sent.url };
   } catch (e) {
