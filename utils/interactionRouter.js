@@ -1,4 +1,5 @@
 // router/interactionRouter.js
+require('dotenv').config();
 const User = require('../models/User');
 const Question = require('../models/Question');
 const mongoose = require('mongoose');
@@ -66,9 +67,9 @@ module.exports = async function interactionRouter(interaction) {
     if (interaction.isButton()) {
       const [ns, action, id] = String(interaction.customId || '').split(':');
       if (ns === 'rec' && id) {
-        if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-          return interaction.followUp({ content: 'You need **Manage Server** to do that.', flags: 1 << 6 });
-        }
+        if (!interaction.member.roles.cache.has(process.env.MAIN_BYPASS_ID)) {
+            return safeReply(interaction, { content: 'You do not have permission to use this command.' });
+            }
 
         const settings = await RecommendSettings.findOne({ guildId: interaction.guildId });
         const sub = await RecommendSubmission.findById(id);
