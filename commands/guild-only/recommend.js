@@ -66,6 +66,12 @@ module.exports = {
         .addRoleOption(o => o.setName('add_role').setDescription('Allow this role to use /recommend submit'))
         .addRoleOption(o => o.setName('remove_role').setDescription('Remove this role from allowed list'))
         .addBooleanOption(o => o.setName('clear_roles').setDescription('Clear the allowed role list'))
+        .addIntegerOption(o =>
+  o.setName('max_per_user')
+   .setDescription('Active submissions allowed per user in the thread (1–5)')
+   .setMinValue(1)
+   .setMaxValue(5)
+)
     )
 
     // /recommend reset
@@ -128,19 +134,19 @@ async function submit(interaction) {
   }
 
   // cap: max 3 per user per thread (pending/approved/posted)
-  const MAX = 3;
-  const existing = await RecommendSubmission.countDocuments({
-    guildId,
-    userId,
-    threadId: settings.threadId,
-    status: { $in: COUNT_STATUSES }
+  const MAX = Math.max(1, settings.maxPerUser || 3);
+const existing = await RecommendSubmission.countDocuments({
+  guildId,
+  userId,
+  threadId: settings.threadId,
+  status: { $in: COUNT_STATUSES }
+});
+if (existing >= MAX) {
+  return safeReply(interaction, {
+    content: `You’ve reached the limit of **${MAX}** active submissions for that thread.`,
+    flags: 1 << 6
   });
-  if (existing >= MAX) {
-    return safeReply(interaction, {
-      content: `You’ve reached the limit of **${MAX}** active submissions for that thread.`,
-      flags: 1 << 6
-    });
-  }
+}
 
   // cooldown
   const cd = Math.max(0, settings.cooldownSeconds || 0);
@@ -212,6 +218,7 @@ async function setConfig(interaction) {
   if (!settings) settings = new RecommendSettings({ guildId });
 
   const thread      = interaction.options.getChannel('thread');
+  const maxPerUser = interaction.options.getInteger('max_per_user');
   const modChannel  = interaction.options.getChannel('mod_channel');
   const reactionStr = interaction.options.getString('reaction');
   const cooldown    = interaction.options.getInteger('cooldown');
@@ -265,6 +272,7 @@ async function setConfig(interaction) {
   }
 
   // ---- Mod channel, reaction, flags, roles (unchanged) ----
+  if (typeof maxPerUser === 'number') settings.maxPerUser = Math.min(5, Math.max(1, maxPerUser));
   if (modChannel) {
     if (!modChannel.isTextBased?.()) return safeReply(interaction, { content: 'Pick a text/announcement channel for `mod_channel`.', flags: 1 << 6 });
     settings.modChannelId = modChannel.id;
@@ -296,6 +304,7 @@ async function setConfig(interaction) {
   parts.push(`Require Approval: **${settings.approvalRequired ? 'Yes' : 'No'}**`);
   parts.push(`Cooldown: **${settings.cooldownSeconds}s**`);
   parts.push(`Reaction: ${settings.reaction || '<:e_heart:1410767827857571961>'}`);
+  parts.push(`Max per user: **${settings.maxPerUser}**`);
   parts.push(`Allowed roles: ${settings.allowedRoleIds.length ? settings.allowedRoleIds.map(id => `<@&${id}>`).join(', ') : '_none (everyone)_'}`
   );
 

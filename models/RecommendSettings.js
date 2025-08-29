@@ -21,6 +21,9 @@ const RecommendSettingsSchema = new mongoose.Schema({
   // if true, submit -> mod approval buttons; otherwise auto-post
   approvalRequired: { type: Boolean, default: true },
 
+  // add this in the schema (with a default of 3)
+  maxPerUser: { type: Number, default: 3, min: 1, max: 10 },
+
   // ✅ NEW: which roles are allowed to use /recommend submit
   // if empty, anyone can submit; if not empty, user must have at least one
   allowedRoleIds: { type: [String], default: [] }
