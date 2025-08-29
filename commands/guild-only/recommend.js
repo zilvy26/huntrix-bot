@@ -8,9 +8,9 @@ const {
   ButtonStyle
 } = require('discord.js');
 
-const { safeReply } = require('../utils/safeReply');
-const RecommendSettings = require('../models/RecommendSettings');
-const RecommendSubmission = require('../models/RecommendSubmission');
+const { safeReply } = require('../../utils/safeReply');
+const RecommendSettings = require('../../models/RecommendSettings');
+const RecommendSubmission = require('../../models/RecommendSubmission');
 
 const COUNT_STATUSES = ['pending', 'approved', 'posted'];
 
