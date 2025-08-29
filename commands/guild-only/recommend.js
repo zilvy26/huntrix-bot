@@ -76,9 +76,9 @@ module.exports = {
 
     if (sub === 'submit') return submit(interaction);
     if (sub === 'set') {
-      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-        return safeReply(interaction, { content: 'You need **Manage Server** to use this.', flags: 1 << 6 });
-      }
+      if (!interaction.member.roles.cache.has(process.env.MAIN_BYPASS_ID)) {
+          return safeReply(interaction, { content: 'You do not have permission to use this command.' });
+          }
       return setConfig(interaction);
     }
     if (sub === 'reset') {
