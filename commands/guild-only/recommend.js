@@ -79,8 +79,7 @@ module.exports = {
           .setDescription('Thread to target (defaults to configured thread)')
           .addChannelTypes(ChannelType.PublicThread, ChannelType.PrivateThread, ChannelType.AnnouncementThread))
         .addBooleanOption(o => o.setName('delete_posted').setDescription('Also delete the posted message?'))
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
+    ),
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
