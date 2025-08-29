@@ -43,7 +43,6 @@ module.exports = {
     .addSubcommand(sub =>
       sub.setName('set')
         .setDescription('Configure destination, logging and behavior')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .addChannelOption(o =>
           o.setName('thread')
             .setDescription('Pick a thread (or a channel to auto-create a thread)')
@@ -73,7 +72,6 @@ module.exports = {
     .addSubcommand(sub =>
       sub.setName('reset')
         .setDescription('Admin: reset 1–3 submissions for a user (per thread)')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .addUserOption(o => o.setName('user').setDescription('User to reset').setRequired(true))
         .addIntegerOption(o => o.setName('amount').setDescription('How many (1–3)').setRequired(true)
           .addChoices({ name: '1', value: 1 }, { name: '2', value: 2 }, { name: '3', value: 3 }))
@@ -81,7 +79,8 @@ module.exports = {
           .setDescription('Thread to target (defaults to configured thread)')
           .addChannelTypes(ChannelType.PublicThread, ChannelType.PrivateThread, ChannelType.AnnouncementThread))
         .addBooleanOption(o => o.setName('delete_posted').setDescription('Also delete the posted message?'))
-    ),
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
