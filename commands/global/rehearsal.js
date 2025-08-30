@@ -42,7 +42,7 @@ module.exports = {
     // Pull 3 cards
     const cards = [];
     for (let i = 0; i < 3; i++) {
-      const rarity = pickRarity();
+      const rarity = await pickRarity();
       const result = await Card.aggregate([
         { $match: { pullable: true, rarity, localImagePath: { $exists: true } } },
         { $sample: { size: 1 } }

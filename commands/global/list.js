@@ -56,7 +56,7 @@ module.exports = {
     // 1) Build 5 hidden slots (same rarity as /pull)
     const slots = [];
     for (let idx = 1; idx <= 5; idx++) {
-      const rarity = pickRarity();
+      const rarity = await pickRarity();
       const card = await getRandomCardByRarity(rarity);
       if (!card) return safeReply(interaction, { content: 'No pullable cards found right now.' });
       slots.push({ idx, cardId: card._id });

@@ -33,19 +33,17 @@ module.exports = {
     await handleReminders(interaction, commandName, cooldownMs);
 
     // 4) Generate 10 pulls (parallel to reduce jitter)
-    const rarities = Array.from({ length: 10 }, () => pickRarity());
-    const pulls = (await Promise.all(
-      rarities.map(rarity =>
-        Card.aggregate([
-          { $match: { pullable: true, rarity, localImagePath: { $exists: true } } },
-          { $sample: { size: 1 } }
-        ]).then(arr => arr[0]).catch(() => null)
-      )
-    )).filter(Boolean);
+    const rarities = await Promise.all(
+  Array.from({ length: 10 }, () => pickRarity())
+);
 
-    if (pulls.length < 10) {
-      return safeReply(interaction, { content: '❌ Not enough cards available to pull 10.' });
-    }
+const pulls = (await Promise.all(
+  rarities.map(async (rarity) => getRandomCardByRarity(rarity))
+)).filter(Boolean);
+
+if (pulls.length < 10) {
+  return safeReply(interaction, { content: 'Not enough cards available to pull 10.' });
+}
 
     // 5) Canvas collage
     const cols = 5, rows = 2, cardW = 160, cardH = 240, padding = 10;

@@ -34,7 +34,7 @@ module.exports = {
     // Now that the interaction is ACKed (by handler), it's safe to start the cooldown
     await cooldowns.setCooldown(userId, commandName, cooldownMs);
 
-    const rarity = pickRarity();
+    const rarity = await pickRarity();
     const card = await getRandomCardByRarity(rarity);
 
     if (!card) {

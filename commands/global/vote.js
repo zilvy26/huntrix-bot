@@ -67,7 +67,7 @@ module.exports = {
     const pulledCards = [];
 
     for (let i = 0; i < 3; i++) {
-      const rarity = pickRarity();
+      const rarity = await pickRarity();
       const card = await getRandomCardByRarity(rarity);
       if (!card) continue;
 
