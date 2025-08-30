@@ -178,11 +178,11 @@ async function openSubmitModal(interaction) {
 
   const catInput = new TextInputBuilder()
     .setCustomId('rec_category')
-    .setLabel('Category | boy group / girl group / game character / anime character / actor / actress')
+    .setLabel('Category')
     .setStyle(TextInputStyle.Short)
     .setRequired(true) // ✅ required
     .setMaxLength(32)
-    .setPlaceholder('boy group');
+    .setPlaceholder('boy group / girl group / game character / anime character / actor / actress');
 
   modal.addComponents(
     new ActionRowBuilder().addComponents(nameInput),
