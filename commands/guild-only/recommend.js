@@ -198,8 +198,8 @@ if (existing >= MAX) {
     const sent = await modCh.send({ embeds: [embed], components: [row] });
     sub.modMessageId = sent.id;
     await sub.save();
-
-    return safeReply(interaction, { content: 'Submitted for **mod approval**. Thanks!', ephemeral: interaction.inGuild() });
+    await interaction.followUp({ content: 'Submitted for **mod approval**. Thanks!', ephemeral: interaction.inGuild() });
+    return;
   }
 
   // auto-post when no approval required
@@ -208,7 +208,8 @@ if (existing >= MAX) {
 
   await RecommendSubmission.updateOne({ _id: sub._id }, { status: 'posted', postedMessageId: post.messageId });
 
-  return safeReply(interaction, { content: `Posted in <#${settings.threadId}>.`, ephemeral: interaction.inGuild() });
+  await interaction.followU({ content: `Posted in <#${settings.threadId}>.`, ephemeral: interaction.inGuild() });
+  return;
 }
 
 // -------- set

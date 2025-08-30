@@ -556,7 +556,7 @@ module.exports = async function interactionRouter(interaction) {
       if (await cooldowns.isOnCooldown(userId, CLAIM_COMMAND)) {
         const ts = await cooldowns.getCooldownTimestamp(userId, CLAIM_COMMAND);
         try {
-          return await interaction.reply({
+          await interaction.followUp({
             content: `You must wait **${ts}** before claiming another list slot.`,
             ephemeral: interaction.inGuild()
           });
