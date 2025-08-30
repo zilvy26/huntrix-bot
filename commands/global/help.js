@@ -22,8 +22,7 @@ module.exports = {
         .setColor(0x2f3136)
         .addFields(
           { name: 'Command Usage', value: '• Pull cards, trade, play games, earn currency & more.\n• Slash commands are available in servers and DMs.' },
-          { name: 'Useful Links', value: '• [Discord Support Server](https://discord.gg/huntrixbot)\n[Huntrix Trading Guide Prices](https://docs.google.com/spreadsheets/d/1ieuBkXXNb-u3yfXtEq5NqLM8uMPWsBZdkgkWW1g7KKk/edit)' },
-          { name: 'Extras', value: '\n\n_Use the buttons below to navigate pages._' },
+          { name: 'Useful Links', value: '• [Discord Support Server](https://discord.gg/huntrixbot)\n• [Huntrix Trading Guide Prices](https://docs.google.com/spreadsheets/d/1ieuBkXXNb-u3yfXtEq5NqLM8uMPWsBZdkgkWW1g7KKk/edit)' },
         ),
 
       new EmbedBuilder()
