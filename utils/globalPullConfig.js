@@ -3,15 +3,15 @@
 // Hardcoded rarity weights
 const RARITY_WEIGHTS = {
   '1S': 35,
-  '2S': 30,
+  '2S': 29,
   '3S': 21,
   '4S': 12,
-  '5S': 2,
+  '5S': 3,
 };
 
 // Hardcoded multipliers for eras (always lowercased keys!)
 const ERA_MULTIPLIERS = {
-  'vir25': 0.62,
+  'vir25': 0.43,
 };
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
