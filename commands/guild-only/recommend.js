@@ -15,6 +15,13 @@ const RecommendSettings = require('../../models/RecommendSettings');
 const RecommendSubmission = require('../../models/RecommendSubmission');
 
 const COUNT_STATUSES = ['pending', 'approved', 'posted'];
+const CATEGORY_CHOICES = [
+  { name: 'Boy Group',  value: 'boy group'  },
+  { name: 'Girl Group',  value: 'girl group' },
+  { name: 'Game Character',   value: 'game character'  },
+  { name: 'Anime Character', value: 'anime character' },
+  { name: 'Actor/Actress', value: 'actor' },
+];
 
 function normalizeEmoji(input) {
   if (!input) return null;
@@ -33,11 +40,17 @@ module.exports = {
 
     // /recommend submit
     .addSubcommand(sub =>
-      sub.setName('submit')
-        .setDescription('Submit a recommendation (name + group)')
-        .addStringOption(o => o.setName('name').setDescription('Name').setRequired(true))
-        .addStringOption(o => o.setName('group').setDescription('Group').setRequired(true))
+  sub.setName('submit')
+    .setDescription('Submit a recommendation (name + group)')
+    .addStringOption(o => o.setName('name').setDescription('Name').setRequired(true))
+    .addStringOption(o => o.setName('group').setDescription('Group').setRequired(true))
+    .addStringOption(o =>
+      o.setName('category')
+       .setDescription('Pick a category')
+       .addChoices(...CATEGORY_CHOICES)         // 👈 choices shown in UI
+       .setRequired(false)
     )
+)
 
     // /recommend set
     .addSubcommand(sub =>
@@ -113,6 +126,7 @@ async function submit(interaction) {
   const userId  = interaction.user.id;
   const name    = interaction.options.getString('name', true);
   const group   = interaction.options.getString('group', true);
+  const category = interaction.options.getString('category') || null;
 
   const settings = await RecommendSettings.findOne({ guildId });
   if (!settings || !settings.threadId) {
@@ -166,7 +180,7 @@ if (existing >= MAX) {
   // create submission
   const needsApproval = !!settings.approvalRequired;
   const sub = await RecommendSubmission.create({
-    guildId, userId, threadId: settings.threadId, name, group,
+    guildId, userId, threadId: settings.threadId, name, group, category,
     status: needsApproval ? 'pending' : 'posted'
   });
 
@@ -180,15 +194,16 @@ if (existing >= MAX) {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('New Recommendation (Pending Approval)')
-      .setColor(0xFEE75C)
-      .addFields(
-        { name: 'Name', value: name, inline: true },
-        { name: 'Group', value: group, inline: true },
-        { name: 'Requested by', value: `<@${userId}>`, inline: false }
-      )
-      .setFooter({ text: `Submission ID: ${sub._id}` })
-      .setTimestamp();
+  .setTitle('New Recommendation (Pending Approval)')
+  .setColor(0xFEE75C)
+  .addFields(
+    { name: 'Name', value: name, inline: true },
+    { name: 'Group', value: group, inline: true },
+    ...(category ? [{ name: 'Category', value: category, inline: true }] : []),
+    { name: 'Requested by', value: `<@${userId}>`, inline: false }
+  )
+  .setFooter({ text: `Submission ID: ${sub._id}` })
+  .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`rec:approve:${sub._id}`).setLabel('Approve').setStyle(ButtonStyle.Success),
@@ -199,7 +214,7 @@ if (existing >= MAX) {
     sub.modMessageId = sent.id;
     await sub.save();
 
-    return interaction.editReply({ content: 'Submitted for **mod approval**. Thanks!', flags: 1 << 6 });
+    return safeReply(interaction, { content: 'Submitted for **mod approval**. Thanks!', ephemeral: true });
   }
 
   // auto-post when no approval required
@@ -208,7 +223,7 @@ if (existing >= MAX) {
 
   await RecommendSubmission.updateOne({ _id: sub._id }, { status: 'posted', postedMessageId: post.messageId });
 
-  return interaction.editReply({ content: `Posted in <#${settings.threadId}>.`, flags: 1 << 6 });
+  return safeReply(interaction, { content: `Posted in <#${settings.threadId}>.`, ephemeral: true });
 }
 
 // -------- set
@@ -378,13 +393,14 @@ async function postToThread(interaction, settings, sub) {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('New Recommendation')
-      .setColor(0x5865F2)
-      .addFields(
-        { name: 'Name',  value: sub.name,  inline: true },
-        { name: 'Group', value: sub.group, inline: true },
-      )
-      .setTimestamp();
+  .setTitle('New Recommendation')
+  .setColor(0x5865F2)
+  .addFields(
+    { name: 'Name',  value: sub.name,  inline: true },
+    { name: 'Group', value: sub.group, inline: true },
+    ...(sub.category ? [{ name: 'Category', value: sub.category, inline: true }] : [])
+  )
+  .setTimestamp();
 
     const sent = await thread.send({ embeds: [embed] });
 

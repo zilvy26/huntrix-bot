@@ -7,6 +7,7 @@ const RecommendSubmissionSchema = new mongoose.Schema({
 
   name:  { type: String, required: true },
   group: { type: String, required: true },
+  category: { type: String, default: null },  // e.g., 'boy groups', 'anime', 'game'
 
   status: {
     type: String,
