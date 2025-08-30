@@ -47,6 +47,11 @@ function isOwnerOfMessage(interaction) {
 
 module.exports = async function interactionRouter(interaction) {
 
+  if (interaction.isModalSubmit?.() && interaction.customId === 'rec:submit') {
+  const recommendCmd = require('../commands/guild-only/recommend'); // adjust path
+  return recommendCmd.onModalSubmit(interaction);
+}
+
   // ─────────────────────────────────────────
   // A) COMPONENTS (Buttons / Menus)
   // ─────────────────────────────────────────
