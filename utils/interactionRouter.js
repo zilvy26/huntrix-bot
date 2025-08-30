@@ -47,22 +47,6 @@ function isOwnerOfMessage(interaction) {
 
 module.exports = async function interactionRouter(interaction) {
 
-  // Modal submits
-if (interaction.isModalSubmit?.()) {
-  try {
-    if (interaction.customId === 'rec:submit') {
-      const recommend = require('../commands/guild-only/recommend'); // <- adjust path
-      return recommend.onModalSubmit(interaction);
-    }
-  } catch (err) {
-    console.error('modal error', err);
-    if (!interaction.deferred && !interaction.replied) {
-      await interaction.reply({ content: 'Oops, something went wrong handling your form.', ephemeral: true });
-    }
-  }
-  return;
-}
-
   // ─────────────────────────────────────────
   // A) COMPONENTS (Buttons / Menus)
   // ─────────────────────────────────────────

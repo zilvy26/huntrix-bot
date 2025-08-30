@@ -74,15 +74,7 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isChatInputCommand()) {
   try {
     // 1) ACK immediately (no watchdog, no double-messages)
-    const cmd = interaction.commandName;
-    const sub = interaction.options.getSubcommand(false);
-
-  // ⛔ DO NOT defer before showing a modal
-  const skipDefer = (cmd === 'recommend' && sub === 'submit');
-
-  if (!skipDefer && !interaction.deferred && !interaction.replied) {
     await safeDefer(interaction); // same as await interaction.deferReply();
-  }
 
     // 2) Maintenance / auth gates (now safe after defer)
     const maintenance = await Maintenance.findOne();
