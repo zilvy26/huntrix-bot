@@ -558,7 +558,7 @@ module.exports = async function interactionRouter(interaction) {
         try {
           return await interaction.reply({
             content: `You must wait **${ts}** before claiming another list slot.`,
-            flags: 1 << 6
+            ephemeral: interaction.inGuild()
           });
         } catch {}
         return;
