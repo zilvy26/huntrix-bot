@@ -18,9 +18,9 @@ const isSpecialR5 = (card) =>
 // ---- ERA CAPS CONFIG ----------------------------------------------------
 // Define them normally (any case/spacing, whatever you like)
 const ERA_PRICE_CAPS_RAW = {
-  'VIR25': 17000,
-  'LEO25': 21000,
-  'How It\'s Done': 32000
+  'VIR25': 15000,
+  'LEO25': 19000,
+  'How It\'s Done': 30000
 };
 
 // Normalize keys to lowercase+trim once at startup
