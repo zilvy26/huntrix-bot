@@ -16,11 +16,13 @@ const RecommendSubmission = require('../../models/RecommendSubmission');
 
 const COUNT_STATUSES = ['pending', 'approved', 'posted'];
 const CATEGORY_CHOICES = [
-  { name: 'Boy Group',  value: 'boy group'  },
-  { name: 'Girl Group',  value: 'girl group' },
-  { name: 'Game Character',   value: 'game character'  },
-  { name: 'Anime Character', value: 'anime character' },
-  { name: 'Actor/Actress', value: 'actor' },
+  { name: 'Boy Group',  value: 'Boy Group'  },
+  { name: 'Girl Group',  value: 'Girl Group' },
+  { name: 'Soloist', value: 'Soloist' },
+  { name: 'Co-ed Group', value: 'Co-ed Group' },
+  { name: 'Game Character',   value: 'Game Character'  },
+  { name: 'Anime Character', value: 'Anime Character' },
+  { name: 'Actor/Actress', value: 'Actor/Actress' },
 ];
 
 function normalizeEmoji(input) {
