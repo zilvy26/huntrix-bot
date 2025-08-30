@@ -20,7 +20,7 @@ const isSpecialR5 = (card) =>
 const ERA_PRICE_CAPS_RAW = {
   'VIR25': 17000,
   'LEO25': 21000,
-  'How It\'s Done': 27000
+  'How It\'s Done': 32000
 };
 
 // Normalize keys to lowercase+trim once at startup
