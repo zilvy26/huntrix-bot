@@ -14,7 +14,7 @@ const UserInventory = require('../../../models/UserInventory');
 const { safeReply } = require('../../../utils/safeReply');
 
 const listingsPerPage = 1;
-const maxDefaultPages = 100;
+const maxDefaultPages = 200;
 
 module.exports = async function (interaction, incomingOptions = {}) {
   const isButton = interaction.isButton?.(); // button = pagination
