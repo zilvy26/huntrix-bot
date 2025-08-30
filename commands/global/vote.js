@@ -37,7 +37,7 @@ module.exports = {
     if (await cooldowns.isOnCooldown(userId, commandName)) {
           const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
           return safeReply(interaction, {
-            content: `You can vote again in **${nextTime}**\n [Vote here](${voteLink})`,
+            content: `You can vote again **${nextTime}**`,
           });
         }
 
