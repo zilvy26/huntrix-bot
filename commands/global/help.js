@@ -22,8 +22,8 @@ module.exports = {
         .setColor(0x2f3136)
         .addFields(
           { name: 'Command Usage', value: '• Pull cards, trade, play games, earn currency & more.\n• Slash commands are available in servers and DMs.' },
-          { name: 'Support Server', value: '• Discord Support Server — [Click to be redirected](https://discord.gg/huntrixbot)' },
-          { name: 'Extras', value: '[Huntrix Trading Guide Prices](https://docs.google.com/spreadsheets/d/1ieuBkXXNb-u3yfXtEq5NqLM8uMPWsBZdkgkWW1g7KKk/edit)\n_Use the buttons below to navigate pages._' },
+          { name: 'Useful Links', value: '• [Discord Support Server](https://discord.gg/huntrixbot)\n[Huntrix Trading Guide Prices](https://docs.google.com/spreadsheets/d/1ieuBkXXNb-u3yfXtEq5NqLM8uMPWsBZdkgkWW1g7KKk/edit)' },
+          { name: 'Extras', value: '\n\n_Use the buttons below to navigate pages._' },
         ),
 
       new EmbedBuilder()
@@ -41,32 +41,18 @@ module.exports = {
         .addFields(
           { name: 'Card Earning', value: '`/pull` & `/pull10` — pull cards\n`/rehearsal` & `/list` — select & claim cards' },
           { name: 'Trading & Balance', value: '`/tradecard` & `/trademulti` — trade with others\n`/balance` — see your currency balance\n`/pay` — give another user currency' },
-          { name: 'Utility', value: '`/index` — view your card inventory & card catalog\n`/records` — view yours or another user’s activity logs\n`/showcase <codes>` — view card(s) information\n`/refund` — refunds card codes, groups and more for currency' },
+          { name: 'Utility', value: '`/index` — view your card inventory & card catalog\n`/records` — view yours or another user’s activity logs\n`/showcase` — view card(s) information\n`/refund` — refunds card codes, groups and more for currency' },
         ),
 
 
       new EmbedBuilder()
-        .setTitle('Economy Commands')
+        .setTitle('Stall, Shop & Economy')
         .setColor(0x2f3136)
-        .setDescription([
-          '`/perform` — earn currency for performing',
-          '`/vote` — voting topgg rewards',
-          '`/daily` — 24 hour rewards',
-          '`/battle` — guessing questions for rewards',
-        ].join('\n')),
-        
-      new EmbedBuilder()
-        .setTitle('Stall & Shop Commands')
-        .setColor(0x2f3136)
-        .setDescription([
-          '`/boutique view` — Huntrix Shop prices & info',
-          '`/boutique cards` — Huntrix Card Shop',
-          '`/boutique template` — Huntrix Profile Template Shop',
-          '`/stall preview` — view Huntrix stall of cards',
-          '`/stall buy` — purchase card(s) from stall',
-          '`/stall sell` — list a card for sale on stall',
-          '`/stall remove` — remove your card listing from stall',
-        ].join('\n')),
+        .addFields(
+          { name: 'Currency Earning', value: '`/perform` — earn currency for performing\n`/vote` — voting topgg rewards\n`/daily` — 24 hour rewards\n`/battle` — guessing questions for rewards' },
+          { name: 'Boutique Shop', value: '`/boutique view` — Huntrix Shop prices & info\n`/boutique cards` — Huntrix Card Shop\n`/boutique template` — Huntrix Profile Template Shop' },
+          { name: 'Huntrix Stall', value: '`/stall preview` — view Huntrix stall of cards\n`/stall buy` — purchase card(s) from stall\n`/stall sell` — list card(s) for sale on stall\n`/stall remove` — remove your card listing from stall' },
+        ),
     ];
 
     // ---- 2) Send first page + buttons (no collectors) ----
