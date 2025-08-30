@@ -214,7 +214,7 @@ module.exports = async function interactionRouter(interaction) {
         } else {
           await User.findOneAndUpdate({ userId: user.id }, { $set: { correctStreak: 0 } });
           await interaction.editReply({
-            content: `Incorrect! The correct answer was **${selected.correct}**.\nYour streak has been reset.`,
+            content: `Incorrect! The correct answer was **${selected.correct}**.`,
             embeds: [],
             components: [],
             files: []

@@ -1,31 +1,20 @@
-const parseRarity = require('./parseRarity'); // we'll use the parser too
+// utils/pickRarity.js
+const { getGlobalPullConfig } = require('./globalPullConfig');
+const parseRarity = require('./parseRarity'); // e.g. "3S" -> 3
 
-// These can stay in "label" form for config, but will be converted
-const rawRarities = {
-  '1S': 37,
-  '2S': 29.75,
-  '3S': 21.5,
-  '4S': 10,
-  '5S': 1.75,
-};
+async function pickRarity() {
+  const cfg = getGlobalPullConfig();
+  const entries = Object.entries(cfg.rarityWeights);
 
-/**
- * Picks a numeric rarity value (1–5) based on weights.
- * @returns {number} Rarity number (e.g. 3)
- */
-function pickRarity() {
-  const total = Object.values(rawRarities).reduce((a, b) => a + b, 0);
+  const total = entries.reduce((s, [, w]) => s + Number(w || 0), 0);
   const roll = Math.random() * total;
-  let sum = 0;
 
-  for (const [rarityLabel, weight] of Object.entries(rawRarities)) {
-    sum += weight;
-    if (roll < sum) {
-      return parseRarity(rarityLabel); // "3S" → 3
-    }
+  let acc = 0;
+  for (const [label, w] of entries) {
+    acc += Number(w || 0);
+    if (roll < acc) return parseRarity(label);
   }
-
-  return 1; // fallback
+  return 1;
 }
 
 module.exports = pickRarity;
