@@ -1,4 +1,4 @@
-require('dotenv').config();
+// commands/global/recommend.js
 const {
   SlashCommandBuilder,
   ChannelType,
@@ -10,52 +10,77 @@ const {
   ThreadAutoArchiveDuration
 } = require('discord.js');
 
-const { safeReply } = require('../../utils/safeReply');
-const RecommendSettings = require('../../models/RecommendSettings');
+const RecommendSettings   = require('../../models/RecommendSettings');
 const RecommendSubmission = require('../../models/RecommendSubmission');
 
+// Active statuses counted toward per-user cap
 const COUNT_STATUSES = ['pending', 'approved', 'posted'];
+
+// Optional preset category choices for submit
 const CATEGORY_CHOICES = [
-  { name: 'Boy Group',  value: 'boy group'  },
-  { name: 'Girl Group',  value: 'girl group' },
-  { name: 'Game Character',   value: 'game character'  },
-  { name: 'Anime Character', value: 'anime character' },
-  { name: 'Actor/Actress', value: 'actor' },
+  { name: 'K-Pop',      value: 'kpop' },
+  { name: 'Anime',      value: 'anime' },
+  { name: 'Game',       value: 'game' },
+  { name: 'Franchise',  value: 'franchise' },
 ];
 
+// ---------- helpers ----------
 function normalizeEmoji(input) {
   if (!input) return null;
   const s = String(input).trim();
-  if (!/[0-9]/.test(s)) return s;                 // unicode
+  if (!/[0-9]/.test(s)) return s;        // unicode
   const m = s.match(/<?a?:?([\w~]+)?:?(\d{5,})>?/);
-  if (m?.[2]) return m[2];                        // id
-  if (/^\d{5,}$/.test(s)) return s;               // raw id
+  if (m?.[2]) return m[2];               // custom emoji id
+  if (/^\d{5,}$/.test(s)) return s;      // raw id
   return null;
 }
+
+function needPermsText(ch, missing) {
+  return `I’m missing these permissions in ${ch}:\n• ` + missing.join('\n• ');
+}
+
+async function ensureThreadable(channel, clientUserId) {
+  const perms = channel.permissionsFor(clientUserId);
+  if (!perms) return { ok: false, error: `I cannot read permissions in ${channel}.` };
+
+  const missing = [];
+  if (!perms.has('ViewChannel')) missing.push('ViewChannel');
+  if (!perms.has('SendMessages')) missing.push('SendMessages');
+  if (!perms.has('CreatePublicThreads')) missing.push('CreatePublicThreads');
+  if (!perms.has('SendMessagesInThreads')) missing.push('SendMessagesInThreads');
+
+  if (channel.type === ChannelType.GuildAnnouncement && !perms.has('ManageThreads')) {
+    missing.push('ManageThreads (announcement threads)');
+  }
+
+  if (missing.length) return { ok: false, error: needPermsText(channel, missing) };
+  return { ok: true };
+}
+// ------------------------------
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('recommend')
     .setDescription('Submit or configure recommendations')
+    .setDMPermission(false)
 
     // /recommend submit
     .addSubcommand(sub =>
-  sub.setName('submit')
-    .setDescription('Submit a recommendation (name + group)')
-    .addStringOption(o => o.setName('name').setDescription('Name').setRequired(true))
-    .addStringOption(o => o.setName('group').setDescription('Group').setRequired(true))
-    .addStringOption(o =>
-      o.setName('category')
-       .setDescription('Pick a category')
-       .addChoices(...CATEGORY_CHOICES)         // 👈 choices shown in UI
-       .setRequired(false)
+      sub.setName('submit')
+        .setDescription('Submit a recommendation (name + group)')
+        .addStringOption(o => o.setName('name').setDescription('Name').setRequired(true))
+        .addStringOption(o => o.setName('group').setDescription('Group').setRequired(true))
+        .addStringOption(o =>
+          o.setName('category')
+            .setDescription('Pick a category')
+            .addChoices(...CATEGORY_CHOICES)
+        )
     )
-)
 
     // /recommend set
     .addSubcommand(sub =>
       sub.setName('set')
-        .setDescription('Configure destination, logging and behavior')
+        .setDescription('[Admin] Configure destination, logging and behavior')
         .addChannelOption(o =>
           o.setName('thread')
             .setDescription('Pick a thread (or a channel to auto-create a thread)')
@@ -79,18 +104,19 @@ module.exports = {
         .addRoleOption(o => o.setName('add_role').setDescription('Allow this role to use /recommend submit'))
         .addRoleOption(o => o.setName('remove_role').setDescription('Remove this role from allowed list'))
         .addBooleanOption(o => o.setName('clear_roles').setDescription('Clear the allowed role list'))
+        // per-user cap
         .addIntegerOption(o =>
-  o.setName('max_per_user')
-   .setDescription('Active submissions allowed per user in the thread (1–5)')
-   .setMinValue(1)
-   .setMaxValue(5)
-)
+          o.setName('max_per_user')
+           .setDescription('Active submissions allowed per user (1–10)')
+           .setMinValue(1)
+           .setMaxValue(10)
+        )
     )
 
     // /recommend reset
     .addSubcommand(sub =>
       sub.setName('reset')
-        .setDescription('Admin: reset 1–3 submissions for a user (per thread)')
+        .setDescription('[Admin] Reset 1–3 submissions for a user (per thread)')
         .addUserOption(o => o.setName('user').setDescription('User to reset').setRequired(true))
         .addIntegerOption(o => o.setName('amount').setDescription('How many (1–3)').setRequired(true)
           .addChoices({ name: '1', value: 1 }, { name: '2', value: 2 }, { name: '3', value: 3 }))
@@ -104,16 +130,24 @@ module.exports = {
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'submit') return submit(interaction);
+
     if (sub === 'set') {
-      // your custom auth (kept)
-      if (!interaction.member.roles.cache.has(process.env.MAIN_BYPASS_ID)) {
-        return safeReply(interaction, { content: 'You do not have permission to use this command.' });
+      // Admin gate (either ManageGuild or your bypass role)
+      const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
+        || (process.env.MAIN_BYPASS_ID && interaction.member?.roles?.cache?.has(process.env.MAIN_BYPASS_ID));
+      if (!isAdmin) {
+        await interaction.deferReply({ ephemeral: true });
+        return interaction.editReply({ content: 'You do not have permission to use this command.' });
       }
       return setConfig(interaction);
     }
+
     if (sub === 'reset') {
-      if (!interaction.member.roles.cache.has(process.env.MAIN_BYPASS_ID)) {
-        return safeReply(interaction, { content: 'You do not have permission to use this command.' });
+      const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)
+        || (process.env.MAIN_BYPASS_ID && interaction.member?.roles?.cache?.has(process.env.MAIN_BYPASS_ID));
+      if (!isAdmin) {
+        await interaction.deferReply({ ephemeral: true });
+        return interaction.editReply({ content: 'You do not have permission to use this command.' });
       }
       return resetUser(interaction);
     }
@@ -122,6 +156,8 @@ module.exports = {
 
 // -------- submit
 async function submit(interaction) {
+  await interaction.deferReply({ ephemeral: true });  // acknowledge + make private
+
   const guildId = interaction.guildId;
   const userId  = interaction.user.id;
   const name    = interaction.options.getString('name', true);
@@ -130,37 +166,31 @@ async function submit(interaction) {
 
   const settings = await RecommendSettings.findOne({ guildId });
   if (!settings || !settings.threadId) {
-    return safeReply(interaction, { content: 'Recommendations not configured. Ask an admin to run `/recommend set`.', flags: 1 << 6 });
+    return interaction.editReply({ content: 'Recommendations not configured. Ask an admin to run `/recommend set`.' });
   }
   if (!settings.active) {
-    return safeReply(interaction, { content: 'Recommendations are currently **disabled**.', flags: 1 << 6 });
+    return interaction.editReply({ content: 'Recommendations are currently **disabled**.' });
   }
 
-  // role-gated: if list is non-empty, user must have at least one listed role
+  // role-gating: if list is non-empty, user must have at least one listed role
   if (Array.isArray(settings.allowedRoleIds) && settings.allowedRoleIds.length > 0) {
     const hasRole = interaction.member?.roles?.cache?.some(r => settings.allowedRoleIds.includes(r.id));
     if (!hasRole) {
-      return safeReply(interaction, {
-        content: 'You do not have permission to submit recommendations.',
-        flags: 1 << 6
-      });
+      return interaction.editReply({ content: 'You do not have permission to submit recommendations.' });
     }
   }
 
-  // cap: max 3 per user per thread (pending/approved/posted)
+  // configurable per-user cap (default 3)
   const MAX = Math.max(1, settings.maxPerUser || 3);
-const existing = await RecommendSubmission.countDocuments({
-  guildId,
-  userId,
-  threadId: settings.threadId,
-  status: { $in: COUNT_STATUSES }
-});
-if (existing >= MAX) {
-  return safeReply(interaction, {
-    content: `You’ve reached the limit of **${MAX}** active submissions for that thread.`,
-    flags: 1 << 6
+  const existing = await RecommendSubmission.countDocuments({
+    guildId,
+    userId,
+    threadId: settings.threadId,
+    status: { $in: COUNT_STATUSES }
   });
-}
+  if (existing >= MAX) {
+    return interaction.editReply({ content: `You’ve reached the limit of **${MAX}** active submissions for that thread.` });
+  }
 
   // cooldown
   const cd = Math.max(0, settings.cooldownSeconds || 0);
@@ -171,8 +201,8 @@ if (existing >= MAX) {
       const remain = cd * 1000 - delta;
       if (remain > 0) {
         const s = Math.ceil(remain / 1000);
-        const msg = s < 60 ? `${s}s` : `${Math.floor(s/60)}m${s%60 ? ' '+(s%60)+'s' : ''}`;
-        return safeReply(interaction, { content: `Slow down, try again in **${msg}**.`, flags: 1 << 6 });
+        const msg = s < 60 ? `${s}s` : `${Math.floor(s/60)}m${s % 60 ? ' ' + (s % 60) + 's' : ''}`;
+        return interaction.editReply({ content: `Slow down ⏳ Try again in **${msg}**.` });
       }
     }
   }
@@ -186,24 +216,24 @@ if (existing >= MAX) {
 
   if (needsApproval) {
     if (!settings.modChannelId) {
-      return safeReply(interaction, { content: 'Approval required but no mod channel set. Ask an admin to run `/recommend set`.', flags: 1 << 6 });
+      return interaction.editReply({ content: 'Approval required but no mod channel set. Ask an admin to run `/recommend set`.' });
     }
     const modCh = await interaction.client.channels.fetch(settings.modChannelId).catch(() => null);
     if (!modCh?.isTextBased()) {
-      return safeReply(interaction, { content: 'Cannot access the configured mod channel.', flags: 1 << 6 });
+      return interaction.editReply({ content: 'Cannot access the configured mod channel.' });
     }
 
     const embed = new EmbedBuilder()
-  .setTitle('New Recommendation (Pending Approval)')
-  .setColor(0xFEE75C)
-  .addFields(
-    { name: 'Name', value: name, inline: true },
-    { name: 'Group', value: group, inline: true },
-    ...(category ? [{ name: 'Category', value: category, inline: true }] : []),
-    { name: 'Requested by', value: `<@${userId}>`, inline: false }
-  )
-  .setFooter({ text: `Submission ID: ${sub._id}` })
-  .setTimestamp();
+      .setTitle('New Recommendation (Pending Approval)')
+      .setColor(0xFEE75C)
+      .addFields(
+        { name: 'Name', value: name, inline: true },
+        { name: 'Group', value: group, inline: true },
+        ...(category ? [{ name: 'Category', value: category, inline: true }] : []),
+        { name: 'Requested by', value: `<@${userId}>`, inline: false }
+      )
+      .setFooter({ text: `Submission ID: ${sub._id}` })
+      .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`rec:approve:${sub._id}`).setLabel('Approve').setStyle(ButtonStyle.Success),
@@ -214,101 +244,101 @@ if (existing >= MAX) {
     sub.modMessageId = sent.id;
     await sub.save();
 
-    return safeReply(interaction, { content: 'Submitted for **mod approval**. Thanks!', ephemeral: true });
+    return interaction.editReply({ content: 'Submitted for **mod approval**. Thanks!' });
   }
 
   // auto-post when no approval required
   const post = await postToThread(interaction, settings, sub);
-  if (!post.ok) return safeReply(interaction, { content: post.error, flags: 1 << 6 });
+  if (!post.ok) return interaction.editReply({ content: post.error });
 
   await RecommendSubmission.updateOne({ _id: sub._id }, { status: 'posted', postedMessageId: post.messageId });
 
-  return safeReply(interaction, { content: `Posted in <#${settings.threadId}>.`, ephemeral: true });
+  return interaction.editReply({ content: `Posted in <#${settings.threadId}>.` });
 }
 
 // -------- set
 async function setConfig(interaction) {
+  await interaction.deferReply({ ephemeral: true }); // ack + private
+
   const guildId = interaction.guildId;
   let settings = await RecommendSettings.findOne({ guildId });
   if (!settings) settings = new RecommendSettings({ guildId });
 
-  const thread      = interaction.options.getChannel('thread');
-  const maxPerUser = interaction.options.getInteger('max_per_user');
+  const picked      = interaction.options.getChannel('thread');
   const modChannel  = interaction.options.getChannel('mod_channel');
   const reactionStr = interaction.options.getString('reaction');
   const cooldown    = interaction.options.getInteger('cooldown');
   const active      = interaction.options.getBoolean('active');
   const requireAppr = interaction.options.getBoolean('require_approval');
+  const maxPerUser  = interaction.options.getInteger('max_per_user');
 
   const addRole    = interaction.options.getRole('add_role');
   const removeRole = interaction.options.getRole('remove_role');
   const clearRoles = interaction.options.getBoolean('clear_roles');
 
-  // ---- Thread selection / creation (robust) ----
-  if (!thread && interaction.channel?.isThread?.()) {
-    // run inside a thread → use here
+  const me = interaction.client.user.id;
+
+  // Thread selection / creation
+  if (!picked && interaction.channel?.isThread?.()) {
     settings.threadId = interaction.channel.id;
-  } else if (thread?.isThread?.()) {
-    // picked an existing thread
-    settings.threadId = thread.id;
-  } else if (thread && (thread.type === ChannelType.GuildText || thread.type === ChannelType.GuildAnnouncement)) {
-    // picked a text/announcement channel → create a public thread there
+  } else if (picked?.isThread?.()) {
+    settings.threadId = picked.id;
+  } else if (picked && (picked.type === ChannelType.GuildText || picked.type === ChannelType.GuildAnnouncement)) {
+    const ok = await ensureThreadable(picked, me);
+    if (!ok.ok) return interaction.editReply({ content: ok.error });
+
     try {
-      const created = await thread.threads.create({
+      const created = await picked.threads.create({
         name: 'recommendations',
-        autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek, // 7 days
+        autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
         reason: 'Recommend destination thread'
       });
       settings.threadId = created.id;
     } catch (e) {
-      return safeReply(interaction, { content: `Failed to create a thread in ${thread}.`, flags: 1 << 6 });
+      console.error('[rec:set] create text/announce thread failed:', e);
+      return interaction.editReply({ content: `Failed to create a thread in ${picked}: ${e.message || e}` });
     }
-  } else if (thread && thread.type === ChannelType.GuildForum) {
-    // picked a forum channel → create a forum post (thread)
+  } else if (picked && picked.type === ChannelType.GuildForum) {
+    const ok = await ensureThreadable(picked, me);
+    if (!ok.ok) return interaction.editReply({ content: ok.error });
+
     try {
-      const created = await thread.threads.create({
+      const created = await picked.threads.create({
         name: 'Recommendations',
         message: { content: 'Thread created for recommendation submissions.' },
         reason: 'Recommend destination thread (forum)'
       });
       settings.threadId = created.id;
     } catch (e) {
-      return safeReply(interaction, { content: `Failed to create a forum post in ${thread}.`, flags: 1 << 6 });
+      console.error('[rec:set] create forum thread failed:', e);
+      return interaction.editReply({ content: `Failed to create a forum thread in ${picked}: ${e.message || e}` });
     }
-  } else if (thread) {
-    // some other type
-    return safeReply(interaction, {
-      content: 'Please choose a **thread** or a **channel** where I can create one (Text / Announcement / Forum).',
-      flags: 1 << 6
+  } else if (picked) {
+    return interaction.editReply({
+      content: `Please choose a **thread** or a **thread-capable channel** (Text / Announcement / Forum). Got unsupported type: **${picked.type}**.`
     });
   } else if (!settings.threadId) {
-    // no option, not in a thread, and nothing stored yet
-    return safeReply(interaction, { content: 'Please choose a thread (or run this inside the target thread).', flags: 1 << 6 });
+    return interaction.editReply({ content: 'Pick a thread (or run this inside the destination thread).' });
   }
 
-  // ---- Mod channel, reaction, flags, roles (unchanged) ----
-  if (typeof maxPerUser === 'number') settings.maxPerUser = Math.min(5, Math.max(1, maxPerUser));
+  // Mod channel / reaction / flags / roles / maxPerUser
   if (modChannel) {
-    if (!modChannel.isTextBased?.()) return safeReply(interaction, { content: 'Pick a text/announcement channel for `mod_channel`.', flags: 1 << 6 });
+    if (!modChannel.isTextBased?.()) return interaction.editReply({ content: 'Pick a text/announcement channel for `mod_channel`.' });
     settings.modChannelId = modChannel.id;
   }
   if (reactionStr) {
     const ok = normalizeEmoji(reactionStr);
-    if (!ok) return safeReply(interaction, { content: 'Invalid reaction. Use unicode emoji or `<:name:id>`.', flags: 1 << 6 });
+    if (!ok) return interaction.editReply({ content: 'Invalid reaction. Use unicode emoji or `<:name:id>`.' });
     settings.reaction = reactionStr;
   }
   if (typeof cooldown === 'number') settings.cooldownSeconds = Math.max(0, cooldown);
   if (typeof active === 'boolean') settings.active = active;
   if (typeof requireAppr === 'boolean') settings.approvalRequired = requireAppr;
+  if (typeof maxPerUser === 'number') settings.maxPerUser = Math.min(10, Math.max(1, maxPerUser));
 
-  // role list management
   if (clearRoles) settings.allowedRoleIds = [];
-  if (addRole) {
-    if (!settings.allowedRoleIds.includes(addRole.id)) settings.allowedRoleIds.push(addRole.id);
-  }
-  if (removeRole) {
-    settings.allowedRoleIds = settings.allowedRoleIds.filter(id => id !== removeRole.id);
-  }
+  if (addRole && !settings.allowedRoleIds.includes(addRole.id)) settings.allowedRoleIds.push(addRole.id);
+  if (removeRole) settings.allowedRoleIds = settings.allowedRoleIds.filter(id => id !== removeRole.id);
 
   await settings.save();
 
@@ -317,17 +347,18 @@ async function setConfig(interaction) {
   if (settings.modChannelId) parts.push(`Mod Channel: <#${settings.modChannelId}>`);
   parts.push(`Active: **${settings.active ? 'Yes' : 'No'}**`);
   parts.push(`Require Approval: **${settings.approvalRequired ? 'Yes' : 'No'}**`);
-  parts.push(`Cooldown: **${settings.cooldownSeconds}s**`);
-  parts.push(`Reaction: ${settings.reaction || '<:e_heart:1410767827857571961>'}`);
-  parts.push(`Max per user: **${settings.maxPerUser}**`);
-  parts.push(`Allowed roles: ${settings.allowedRoleIds.length ? settings.allowedRoleIds.map(id => `<@&${id}>`).join(', ') : '_none (everyone)_'}`
-  );
+  parts.push(`Cooldown: **${settings.cooldownSeconds || 0}s**`);
+  parts.push(`Max per user: **${settings.maxPerUser || 3}**`);
+  parts.push(`Reaction: ${settings.reaction || '👍'}`);
+  parts.push(`Allowed roles: ${settings.allowedRoleIds?.length ? settings.allowedRoleIds.map(id => `<@&${id}>`).join(', ') : '_none (everyone)_'}`);
 
-  return safeReply(interaction, { content: `Settings updated:\n${parts.join('\n')}`, flags: 1 << 6 });
+  return interaction.editReply({ content: `Settings updated:\n${parts.join('\n')}` });
 }
 
-// -------- reset (supports posted + optional delete)
+// -------- reset
 async function resetUser(interaction) {
+  await interaction.deferReply({ ephemeral: true }); // ack + private
+
   const guildId      = interaction.guildId;
   const targetUser   = interaction.options.getUser('user', true);
   const amount       = interaction.options.getInteger('amount', true);
@@ -336,7 +367,7 @@ async function resetUser(interaction) {
 
   const settings = await RecommendSettings.findOne({ guildId });
   if (!settings || !(settings.threadId || threadOpt)) {
-    return safeReply(interaction, { content: 'No thread configured. Use `/recommend set` or pass `thread:`.', flags: 1 << 6 });
+    return interaction.editReply({ content: 'No thread configured. Use `/recommend set` or pass `thread:`.' });
   }
   const threadId = threadOpt?.id || settings.threadId;
 
@@ -348,7 +379,7 @@ async function resetUser(interaction) {
   }).sort({ createdAt: -1 }).limit(amount);
 
   if (!subs.length) {
-    return safeReply(interaction, { content: `No active submissions found for <@${targetUser.id}> in <#${threadId}>.`, flags: 1 << 6 });
+    return interaction.editReply({ content: `No active submissions found for <@${targetUser.id}> in <#${threadId}>.` });
   }
 
   let cleared = 0;
@@ -363,7 +394,7 @@ async function resetUser(interaction) {
         }
       } catch {}
     }
-    // if posted and delete flag set, delete thread message
+    // optionally delete the posted thread message
     if (deletePosted && s.status === 'posted' && s.postedMessageId) {
       try {
         const th = await interaction.client.channels.fetch(threadId).catch(() => null);
@@ -378,13 +409,12 @@ async function resetUser(interaction) {
     cleared++;
   }
 
-  return safeReply(interaction, {
-    content: `Cleared **${cleared}** submission(s) for <@${targetUser.id}> in <#${threadId}>.${deletePosted ? ' (Posted messages deleted.)' : ''}`,
-    flags: 1 << 6
+  return interaction.editReply({
+    content: `Cleared **${cleared}** submission(s) for <@${targetUser.id}> in <#${threadId}>.${deletePosted ? ' (Posted messages deleted.)' : ''}`
   });
 }
 
-// posting helper
+// ---- helper: post to configured thread (public post) ----
 async function postToThread(interaction, settings, sub) {
   try {
     const thread = await interaction.client.channels.fetch(settings.threadId).catch(() => null);
@@ -393,19 +423,18 @@ async function postToThread(interaction, settings, sub) {
     }
 
     const embed = new EmbedBuilder()
-  .setTitle('New Recommendation')
-  .setColor(0x5865F2)
-  .addFields(
-    { name: 'Name',  value: sub.name,  inline: true },
-    { name: 'Group', value: sub.group, inline: true },
-    ...(sub.category ? [{ name: 'Category', value: sub.category, inline: true }] : [])
-  )
-  .setTimestamp();
+      .setTitle('New Recommendation')
+      .setColor(0x5865F2)
+      .addFields(
+        { name: 'Name',  value: sub.name,  inline: true },
+        { name: 'Group', value: sub.group, inline: true },
+        ...(sub.category ? [{ name: 'Category', value: String(sub.category), inline: true }] : []),
+      )
+      .setTimestamp();
 
     const sent = await thread.send({ embeds: [embed] });
-
-    const rx = settings.reaction || '<:e_heart:1410767827857571961>';
-    try { await sent.react(rx); } catch { try { await sent.react('<:e_heart:1410767827857571961>'); } catch {} }
+    const rx = settings.reaction || '👍';
+    try { await sent.react(rx); } catch { try { await sent.react('👍'); } catch {} }
 
     return { ok: true, messageId: sent.id, url: sent.url };
   } catch (e) {

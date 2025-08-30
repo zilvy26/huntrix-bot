@@ -91,8 +91,9 @@ module.exports = async function interactionRouter(interaction) {
             .setTitle('New Recommendation')
             .setColor(0x5865F2)
             .addFields(
-              { name: 'Name', value: sub.name, inline: true },
+              { name: 'Name',  value: sub.name,  inline: true },
               { name: 'Group', value: sub.group, inline: true },
+              ...(sub.category ? [{ name: 'Category', value: sub.category, inline: true }] : [])
             )
             .setTimestamp();
 
