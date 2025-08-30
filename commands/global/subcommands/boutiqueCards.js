@@ -14,8 +14,8 @@ const awaitUserButton = require('../../../utils/awaitUserButton');
 const BoutiqueCooldown = require('../../../models/BoutiqueCooldown');
 const { safeReply, safeDefer } = require('../../../utils/safeReply');
 const rarityWeights = {
-  '5': 0.04,
-  '4': 0.12,
+  '5': 0.035,
+  '4': 0.125,
   '3': 0.20,
   '2': 0.28,
   '1': 0.36
