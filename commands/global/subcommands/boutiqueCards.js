@@ -14,11 +14,11 @@ const awaitUserButton = require('../../../utils/awaitUserButton');
 const BoutiqueCooldown = require('../../../models/BoutiqueCooldown');
 const { safeReply, safeDefer } = require('../../../utils/safeReply');
 const rarityWeights = {
-  '5': 0.03,
+  '5': 0.04,
   '4': 0.12,
-  '3': 0.21,
-  '2': 0.29,
-  '1': 0.35
+  '3': 0.20,
+  '2': 0.28,
+  '1': 0.36
 };
 
 module.exports = async function(interaction) {
