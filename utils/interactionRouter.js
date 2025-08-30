@@ -710,10 +710,19 @@ module.exports = async function interactionRouter(interaction) {
   // ─────────────────────────────────────────
   // C) SLASH COMMANDS
   // ─────────────────────────────────────────
-  if (interaction.isChatInputCommand()) {
-    if (interaction.commandName === 'recommend') {
-      return recommendCommand.execute(interaction);
-    }
+  // in your interaction router, slash-command branch
+if (interaction.isChatInputCommand()) {
+  const cmd  = interaction.commandName;
+  const sub  = interaction.options.getSubcommand(false);
+
+  // 👇 DO NOT defer when showing the recommend modal
+  const needsModal = (cmd === 'recommend' && sub === 'submit');
+
+  if (!needsModal && !interaction.deferred && !interaction.replied) {
+    await interaction.deferReply({ ephemeral: true });
+  }
+
+  // dispatch as you already do...
 
     // your other slash commands (unchanged)…
     return; // important: stop after handling slash commands
