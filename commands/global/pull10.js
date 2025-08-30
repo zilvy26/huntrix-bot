@@ -6,6 +6,7 @@ const handleReminders = require('../../utils/reminderHandler');
 const Card = require('../../models/Card');
 const UserInventory = require('../../models/UserInventory');
 const pickRarity = require('../../utils/rarityPicker');
+const getRandomCardByRarity = require('../../utils/randomCardFromRarity');
 const generateStars = require('../../utils/starGenerator');
 const { safeReply, safeDefer } = require('../../utils/safeReply');
 
