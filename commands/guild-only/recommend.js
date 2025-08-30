@@ -18,8 +18,8 @@ const COUNT_STATUSES = ['pending', 'approved', 'posted'];
 const CATEGORY_CHOICES = [
   { name: 'Boy Group',  value: 'Boy Group'  },
   { name: 'Girl Group',  value: 'Girl Group' },
-  { name: 'Soloist', value: 'Soloist' },
   { name: 'Co-ed Group', value: 'Co-ed Group' },
+  { name: 'Soloist', value: 'Soloist' },
   { name: 'Game Character',   value: 'Game Character'  },
   { name: 'Anime Character', value: 'Anime Character' },
   { name: 'Actor/Actress', value: 'Actor/Actress' },
@@ -43,7 +43,7 @@ module.exports = {
     // /recommend submit
     .addSubcommand(sub =>
   sub.setName('submit')
-    .setDescription('Submit a recommendation (name + group)')
+    .setDescription('Submit a recommendation (name, group + category)')
     .addStringOption(o => o.setName('name').setDescription('Name').setRequired(true))
     .addStringOption(o => o.setName('group').setDescription('Group').setRequired(true))
     .addStringOption(o =>

@@ -20,12 +20,11 @@ module.exports = {
       new EmbedBuilder()
         .setTitle('Huntrix — About')
         .setColor(0x2f3136)
-        .setDescription([
-          '• Pull cards, trade, battle, earn currency & more.',
-          '• Slash commands are available in servers and DMs.',
-          '• Discord Support Server - discord.gg/huntrixbot',
-          '_Use the buttons below to navigate pages._'
-        ].join('\n')),
+        .addFields(
+          { name: 'Command Usage', value: '• Pull cards, trade, play games, earn currency & more.\n• Slash commands are available in servers and DMs.' },
+          { name: 'Support Server', value: '• Discord Support Server — [Click to be redirected](https://discord.gg/huntrixbot)' },
+          { name: 'Extras', value: '[Huntrix Trading Guide Prices](https://docs.google.com/spreadsheets/d/1ieuBkXXNb-u3yfXtEq5NqLM8uMPWsBZdkgkWW1g7KKk/edit)\n_Use the buttons below to navigate pages._' },
+        ),
 
       new EmbedBuilder()
         .setTitle('Getting Started')
@@ -39,23 +38,12 @@ module.exports = {
       new EmbedBuilder()
         .setTitle('Core Commands')
         .setColor(0x2f3136)
-        .setDescription([
-          '`/pull` & `/pull10` — pull cards',
-          '`/rehearsal` & `/list` — select & claim cards',
-          '`/tradecard` & `/trademulti` — trade with others',
-          '`/pay` — give another user currency',
-          '`/balance` — see your currency balance',
-        ].join('\n')),
+        .addFields(
+          { name: 'Card Earning', value: '`/pull` & `/pull10` — pull cards\n`/rehearsal` & `/list` — select & claim cards' },
+          { name: 'Trading & Balance', value: '`/tradecard` & `/trademulti` — trade with others\n`/balance` — see your currency balance\n`/pay` — give another user currency' },
+          { name: 'Utility', value: '`/index` — view your card inventory & card catalog\n`/records` — view yours or another user’s activity logs\n`/showcase <codes>` — view card(s) information\n`/refund` — refunds card codes, groups and more for currency' },
+        ),
 
-      new EmbedBuilder()
-        .setTitle('Utilities Commands')
-        .setColor(0x2f3136)
-        .setDescription([
-          '`/index` — view your card inventory & card catalog',
-          '`/records` — view yours or another user’s activity logs',
-          '`/showcase <codes>` — view card(s) information',
-          '`/refund` — refunds card codes, groups and more for currency',
-        ].join('\n')),
 
       new EmbedBuilder()
         .setTitle('Economy Commands')
