@@ -61,7 +61,7 @@ module.exports = {
       .setTitle('Payment Complete')
       .setColor('#2f3136')
       .setDescription([
-        `You sent ${recipient}:`,
+        `You sent <@${recipient.id}>:`,
         patternsToSend ? `• <:ehx_patterns:1389584144895315978> **${patternsToSend}** Patterns` : null,
         sopopToSend ? `• <:ehx_sopop:1389584273337618542> **${sopopToSend}** Sopop` : null
       ].filter(Boolean).join('\n'))
