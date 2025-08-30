@@ -154,8 +154,10 @@ module.exports = {
 
 /* -------------------- submit (modal) -------------------- */
 
+/* -------------------- submit (modal) -------------------- */
+
+// Opens the modal when /recommend submit is used
 async function openSubmitModal(interaction) {
-  // Just show a modal; nothing public is posted in the channel.
   const modal = new ModalBuilder()
     .setCustomId('rec:submit')
     .setTitle('Submit a Recommendation');
@@ -166,7 +168,7 @@ async function openSubmitModal(interaction) {
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
     .setMaxLength(100)
-    .setPlaceholder('e.g., Soobin');
+    .setPlaceholder('e.g., Kim Minji');
 
   const groupInput = new TextInputBuilder()
     .setCustomId('rec_group')
@@ -174,15 +176,15 @@ async function openSubmitModal(interaction) {
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
     .setMaxLength(100)
-    .setPlaceholder('e.g., TXT');
+    .setPlaceholder('e.g., NewJeans');
 
   const catInput = new TextInputBuilder()
     .setCustomId('rec_category')
-    .setLabel('Category')
+    .setLabel('Category') // keep label short (Discord limit = 45 chars)
     .setStyle(TextInputStyle.Short)
-    .setRequired(true) // ✅ required
+    .setRequired(true)
     .setMaxLength(32)
-    .setPlaceholder('boy group / girl group / game character / anime character / actor / actress');
+    .setPlaceholder(ALLOWED_CATEGORIES.join(' / '));
 
   modal.addComponents(
     new ActionRowBuilder().addComponents(nameInput),
@@ -193,12 +195,16 @@ async function openSubmitModal(interaction) {
   return interaction.showModal(modal);
 }
 
+// Handles the modal submission
 async function onModalSubmit(interaction) {
   if (interaction.customId !== 'rec:submit') return;
 
+  // ✅ Always acknowledge modal submits right away
+  await interaction.deferReply({ ephemeral: true });
+
   const guildId = interaction.guildId;
   if (!guildId) {
-    return safeReply(interaction, { content: 'This command only works in a server.' });
+    return interaction.editReply({ content: 'This command only works in a server.' });
   }
 
   const name      = interaction.fields.getTextInputValue('rec_name')?.trim();
@@ -206,42 +212,41 @@ async function onModalSubmit(interaction) {
   const categoryR = interaction.fields.getTextInputValue('rec_category')?.trim();
 
   if (!name || !group || !categoryR) {
-    return safeReply(interaction, { content: 'Please fill **Name**, **Group**, and **Category**.' });
+    return interaction.editReply({ content: 'Please fill **Name**, **Group**, and **Category**.' });
   }
 
-  // ✅ enforce allowed categories (case-insensitive)
+  // Validate category
   const category = categoryR.toLowerCase();
   if (!ALLOWED_CATEGORIES.includes(category)) {
-    return safeReply(interaction, {
-      content: `Invalid category.\nAllowed: ${ALLOWED_CATEGORIES.join(', ')}`,
-      ephemeral: true
+    return interaction.editReply({
+      content: `Invalid category.\nAllowed: ${ALLOWED_CATEGORIES.join(', ')}`
     });
   }
 
   const userId = interaction.user.id;
   const settings = await RecommendSettings.findOne({ guildId });
   if (!settings || !settings.threadId) {
-    return safeReply(interaction, { content: 'Recommendations not configured. Ask an admin to run `/recommend set`.' });
+    return interaction.editReply({ content: 'Recommendations not configured. Ask an admin to run `/recommend set`.' });
   }
   if (!settings.active) {
-    return safeReply(interaction, { content: 'Recommendations are currently **disabled**.' });
+    return interaction.editReply({ content: 'Recommendations are currently **disabled**.' });
   }
 
   // role-gate (if any roles specified)
   if (Array.isArray(settings.allowedRoleIds) && settings.allowedRoleIds.length > 0) {
     const hasRole = interaction.member?.roles?.cache?.some(r => settings.allowedRoleIds.includes(r.id));
     if (!hasRole) {
-      return safeReply(interaction, { content: 'You do not have permission to submit recommendations.' });
+      return interaction.editReply({ content: 'You do not have permission to submit recommendations.' });
     }
   }
 
-  // per-user cap (default 3)
+  // per-user cap
   const MAX = Math.max(1, settings.maxPerUser || 3);
   const existing = await RecommendSubmission.countDocuments({
     guildId, userId, threadId: settings.threadId, status: { $in: COUNT_STATUSES }
   });
   if (existing >= MAX) {
-    return safeReply(interaction, { content: `You’ve reached the limit of **${MAX}** active submissions for that thread.` });
+    return interaction.editReply({ content: `You’ve reached the limit of **${MAX}** active submissions for that thread.` });
   }
 
   // cooldown
@@ -254,7 +259,7 @@ async function onModalSubmit(interaction) {
       if (remain > 0) {
         const s = Math.ceil(remain / 1000);
         const msg = s < 60 ? `${s}s` : `${Math.floor(s/60)}m${s%60 ? ' '+(s%60)+'s' : ''}`;
-        return safeReply(interaction, { content: `Slow down, try again in **${msg}**.` });
+        return interaction.editReply({ content: `Slow down ⏳ Try again in **${msg}**.` });
       }
     }
   }
@@ -268,11 +273,11 @@ async function onModalSubmit(interaction) {
 
   if (needsApproval) {
     if (!settings.modChannelId) {
-      return safeReply(interaction, { content: 'Approval required but no mod channel set. Ask an admin to run `/recommend set`.' });
+      return interaction.editReply({ content: 'Approval required but no mod channel set. Ask an admin to run `/recommend set`.' });
     }
     const modCh = await interaction.client.channels.fetch(settings.modChannelId).catch(() => null);
     if (!modCh?.isTextBased()) {
-      return safeReply(interaction, { content: 'Cannot access the configured mod channel.' });
+      return interaction.editReply({ content: 'Cannot access the configured mod channel.' });
     }
 
     const embed = new EmbedBuilder()
@@ -296,16 +301,17 @@ async function onModalSubmit(interaction) {
     sub.modMessageId = sent.id;
     await sub.save();
 
-    return safeReply(interaction, { content: 'Submitted for **mod approval**. Thanks!' });
+    return interaction.editReply({ content: 'Submitted for **mod approval**. Thanks!' });
   }
 
   // auto-post when no approval required
   const post = await postToThread(interaction, settings, sub);
-  if (!post.ok) return safeReply(interaction, { content: post.error });
+  if (!post.ok) return interaction.editReply({ content: post.error });
 
   await RecommendSubmission.updateOne({ _id: sub._id }, { status: 'posted', postedMessageId: post.messageId });
-  return safeReply(interaction, { content: `Posted in <#${settings.threadId}>.` });
+  return interaction.editReply({ content: `Posted in <#${settings.threadId}>.` });
 }
+
 
 /* -------------------- set -------------------- */
 
