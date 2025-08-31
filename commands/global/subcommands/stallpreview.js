@@ -50,10 +50,10 @@ async function renderPreview(interaction, options) {
   } = options;
 
   const filter = {};
-  if (group) filter.group = group;
-  if (name) filter.cardName = { $regex: new RegExp(name, 'i') };
+  if (name)  filter.cardName = { $regex: new RegExp(`^${name}$`, 'i') };
+  if (group) filter.group = { $regex: new RegExp(`^${group}$`, 'i') };
+  if (era)   filter.era = { $regex: new RegExp(`^${era}$`, 'i') };
   if (rarity) filter.rarity = rarity;
-  if (era) filter.era = era;
   if (seller) filter.sellerId = seller.id;
 
   if (unowned) {
