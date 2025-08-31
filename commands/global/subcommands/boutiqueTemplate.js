@@ -58,7 +58,7 @@ module.exports = async function boutiqueTemplate(interaction) {
       }
     }
 
-    if (!eligible) return safeReply(interaction, { content: `❌ ${reason}` });
+    if (!eligible) return safeReply(interaction, { content: `${reason}` });
 
     // 4) charge if needed
     if (gates.price != null) {
