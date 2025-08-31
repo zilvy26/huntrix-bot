@@ -7,7 +7,7 @@ const User = require('../../models/User');
 const drawProfile = require('../../utils/drawProfile');
 const { safeReply } = require('../../utils/safeReply');
 const { DEFAULT_TEMPLATE_LABEL } = require('../../config/profile');
-const { ensureDefaultTemplate } = require('../services/templateInventory');
+const { ensureDefaultTemplate } = require('../../services/templateInventory');
 
 
 module.exports = {
