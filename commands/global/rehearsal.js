@@ -92,7 +92,7 @@ module.exports = {
       .setColor('#2f3136');
 
     const row = new ActionRowBuilder().addComponents(
-      cards.map((_, i) =>
+      pulls.map((_, i) =>
         new ButtonBuilder()
           .setCustomId(`rehearsal_${i}`)
           .setLabel(`${i + 1}`)
