@@ -5,8 +5,8 @@ const RARITY_WEIGHTS = {
   '1S': 36,
   '2S': 28,
   '3S': 20,
-  '4S': 12.5,
-  '5S': 3.5,
+  '4S': 12.7,
+  '5S': 3.3,
 };
 
 // Hardcoded multipliers for eras (always lowercased keys!)
