@@ -544,6 +544,65 @@ module.exports = async function interactionRouter(interaction) {
       return;
     }
 
+    /*** ✨ TEMPLATE PREVIEW PAGER (like /showcase) ✨ ***/
+{
+  const tplPattern = /^(tpl_first|tpl_prev|tpl_next|tpl_last)$/;
+  if (tplPattern.test(customId || '')) {
+    const userId = interaction.user.id;
+    const pages = interaction.client.cache?.tplPreview?.[userId];
+
+    if (!pages?.length) {
+      await interaction.editReply({
+        content: 'Template preview session expired or not found.',
+        embeds: [],
+        components: [],
+        files: []
+      }).catch(()=>{});
+      return;
+    }
+
+    // find current slide by comparing title/desc like your showcase handler does
+    const currentEmbed = interaction.message.embeds?.[0];
+    let current = pages.findIndex(p =>
+      p.embed?.data?.title === currentEmbed?.title &&
+      p.embed?.data?.description === currentEmbed?.description
+    );
+    if (current === -1) current = 0;
+
+    if (customId === 'tpl_first') current = 0;
+    else if (customId === 'tpl_prev') current = (current - 1 + pages.length) % pages.length;
+    else if (customId === 'tpl_next') current = (current + 1) % pages.length;
+    else if (customId === 'tpl_last') current = pages.length - 1;
+
+    const page = pages[current];
+
+    // rebuild pager row for enabled/disabled state
+    const makeRow = (pageIdx, total) => new (require('discord.js').ActionRowBuilder)().addComponents(
+      new (require('discord.js').ButtonBuilder)().setCustomId('tpl_first').setStyle(require('discord.js').ButtonStyle.Secondary)
+        .setDisabled(pageIdx === 0)
+        .setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new (require('discord.js').ButtonBuilder)().setCustomId('tpl_prev').setStyle(require('discord.js').ButtonStyle.Primary)
+        .setDisabled(pageIdx === 0)
+        .setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new (require('discord.js').ButtonBuilder)().setCustomId('tpl_next').setStyle(require('discord.js').ButtonStyle.Primary)
+        .setDisabled(pageIdx >= total - 1)
+        .setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
+      new (require('discord.js').ButtonBuilder)().setCustomId('tpl_last').setStyle(require('discord.js').ButtonStyle.Secondary)
+        .setDisabled(pageIdx >= total - 1)
+        .setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+    );
+
+    await interaction.editReply({
+      embeds: [page.embed],
+      components: [makeRow(current, pages.length)],
+      files: page.attachment ? [page.attachment] : []
+    }).catch(()=>{});
+    return;
+  }
+}
+/*** end: TEMPLATE PREVIEW PAGER ***/
+
+
     // 📋 LIST CLAIM BUTTONS (kept)
     if (interaction.isButton() && interaction.customId?.startsWith('listclaim:')) {
       const userId = interaction.user.id;

@@ -1,24 +1,21 @@
-// models/UserProfile.js
-
+// models/UserProfile.js  (augment your existing schema)
 const mongoose = require('mongoose');
+
+const DEFAULT_TEMPLATE_LABEL = process.env.DEFAULT_TEMPLATE_LABEL || 'Base';
 
 const userProfileSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
   aboutMe: { type: String, default: '' },
   favoriteCard: { type: String, default: '' }, // cardCode from UserInventory
+
+  // legacy id-style (keep for compatibility / fallback)
   template: { type: String, default: 'profile_base' },
+
+  // NEW: label-first system
+  templateLabel: { type: String, default: DEFAULT_TEMPLATE_LABEL },
+
   patterns: { type: Number, default: 0 },
   sopop: { type: Number, default: 0 },
-
-  // Placeholder for badges array, which you can expand later
-  badges: [
-    {
-      name: { type: String },
-      iconUrl: { type: String },  // Image link or CDN path for badge icon
-      description: { type: String },
-      earnedAt: { type: Date, default: Date.now }
-    }
-  ]
 });
 
 module.exports = mongoose.model('UserProfile', userProfileSchema);

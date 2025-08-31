@@ -1,91 +1,99 @@
+// utils/drawProfile.js
 const { createCanvas, loadImage } = require('canvas');
 const path = require('path');
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-const templateOptions = require('../data/templateOptions');
-const wrapText = require('./wrapText'); // Ensure this exists
+const fs = require('fs/promises');
 
-module.exports = async function drawProfile(user, userProfile, favoriteCardImageURL) {
+const Template = require('../models/Template'); // { label, filename, active?, acquire? }
+const { TEMPLATES_DIR } = require('../config/storage');
+const {
+  DEFAULT_TEMPLATE_LABEL = 'Base',
+  DEFAULT_TEMPLATE_FILENAME = 'profile_base.png', // ensure this exists in /var/templates
+} = require('../config/profile');
+
+const ALLOWED_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp']);
+
+async function findTemplateByLabelAny(label) {
+  if (!label) return null;
+  return Template.findOne(
+    { label: { $regex: `^${label}$`, $options: 'i' } },
+    { filename: 1, label: 1 }
+  ).lean();
+}
+
+async function assertFileUnderTemplates(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  if (!ALLOWED_EXT.has(ext)) throw new Error(`Unsupported template ext: ${ext}`);
+  const abs = path.resolve(TEMPLATES_DIR, filename);
+  const base = path.resolve(TEMPLATES_DIR);
+  if (!abs.startsWith(base + path.sep) && abs !== base) throw new Error('Path traversal blocked');
+  await fs.access(abs);
+  return abs;
+}
+
+async function resolveTemplateFile(profile) {
+  let tpl = await findTemplateByLabelAny(profile?.templateLabel);
+  if (tpl) {
+    try { return await assertFileUnderTemplates(tpl.filename); } catch {/* continue */}
+  }
+  tpl = await findTemplateByLabelAny(DEFAULT_TEMPLATE_LABEL);
+  if (tpl) {
+    try { return await assertFileUnderTemplates(tpl.filename); } catch {/* continue */}
+  }
+  return await assertFileUnderTemplates(DEFAULT_TEMPLATE_FILENAME);
+}
+
+module.exports = async function drawProfile(user, profile, favoriteCardImageURL = null) {
   const canvas = createCanvas(1557, 1080);
   const ctx = canvas.getContext('2d');
 
-  // === Load Background Template ===
-  const templateId = userProfile.template || 'profile_base';
-  const selectedTemplate = templateOptions.find(t => t.id === templateId);
-  const filename = selectedTemplate?.file || 'profile_base.png';
-  const templatePath = path.join(__dirname, '../assets/templates/', filename);
-  const background = await loadImage(templatePath);
+  // background
+  const bgPath = await resolveTemplateFile(profile);
+  const background = await loadImage(bgPath);
   ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
 
-  // === Draw Avatar ===
-  const avatar = await loadImage(user.displayAvatarURL({ extension: 'png', size: 256 }));
-  const avatarX = 119, avatarY = 218, avatarSize = 122;
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2, true);
-  ctx.closePath();
-  ctx.clip();
-  ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
-  ctx.restore();
-
-  // === Username ===
-  ctx.font = '15px sans-serif';
-  ctx.fillStyle = '#2f1b39';
-  ctx.fillText(`${user.username}#${user.discriminator}`, 400, 225);
-
-  // === Patterns Count ===
-  ctx.font = '20px sans-serif';
-  ctx.fillStyle = '#2f1b39';
-  ctx.fillText(userProfile.patterns?.toLocaleString() || '0', 345, 277);
-
-  // === Sopop Count ===
-  ctx.fillText(userProfile.sopop?.toLocaleString() || '0', 515, 277);
-
-  // === Bio ===
-  ctx.fillStyle = '#2f1b39';
-  const bioX = 120, bioY = 470, maxWidth = 1350;
-  ctx.font = '22x sans-serif';
-  const bioLines = wrapText(ctx, userProfile.aboutMe || 'No bio set.', maxWidth);
-  bioLines.forEach((line, i) => {
-    ctx.fillText(line, bioX, bioY + i * 34);
-  });
-
-  // === Favorite Card ===
-  if (favoriteCardImageURL) {
+  // avatar
   try {
-    let cardImage;
+    const avatarURL = user.displayAvatarURL({ extension: 'png', size: 256 });
+    const avatar = await loadImage(avatarURL);
+    const x = 119, y = 218, size = 122;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(avatar, x, y, size, size);
+    ctx.restore();
+  } catch {}
 
-    if (favoriteCardImageURL.startsWith('http')) {
-      const response = await fetch(favoriteCardImageURL, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; HuntrixBot/1.0; +https://github.com/your-repo)'
-        }
-      });
+  // username + stats
+  ctx.fillStyle = '#2f1b39';
+  ctx.font = '20px "Segoe UI", sans-serif';
+  ctx.fillText(`${user.username}`, 400, 225);
 
-      if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
-      const contentType = response.headers.get('content-type');
-      if (!contentType?.startsWith('image/')) throw new Error(`Unsupported image type: ${contentType}`);
+  ctx.font = '18px "Segoe UI", sans-serif';
+  ctx.fillText(String(profile.patterns ?? 0), 345, 277);
+  ctx.fillText(String(profile.sopop ?? 0),    515, 277);
 
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      cardImage = await loadImage(buffer);
-    } else {
-      cardImage = await loadImage(favoriteCardImageURL); // local path
-    }
-
-    ctx.drawImage(cardImage, 890, 194, 500, 735);
-
-  } catch (err) {
-    console.warn('⚠️ Failed to load favorite card image:', err.message);
+  // bio
+  ctx.font = '22px "Segoe UI", sans-serif';
+  const bio = (profile.aboutMe && profile.aboutMe.trim()) ? profile.aboutMe : 'No bio set.';
+  const maxWidth = 1350, lineHeight = 32;
+  const words = bio.split(/\s+/);
+  let line = '', y = 470;
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxWidth) {
+      ctx.fillText(line, 120, y); y += lineHeight; line = w;
+    } else line = test;
   }
-}
+  if (line) ctx.fillText(line, 120, y);
 
-  const finalBuffer = canvas.toBuffer();
+  // favorite card slot (optional image)
+  if (favoriteCardImageURL) {
+    try {
+      const img = await loadImage(favoriteCardImageURL);
+      ctx.drawImage(img, 890, 194, 500, 735);
+    } catch {}
+  }
 
-// Optional: help GC by clearing large vars
-canvas.width = 0;
-canvas.height = 0;
-
-// Optional cleanup
-
-return finalBuffer;
+  return canvas.toBuffer('image/png');
 };

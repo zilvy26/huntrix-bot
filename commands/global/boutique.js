@@ -1,14 +1,17 @@
+// commands/boutique/index.js
 const { SlashCommandBuilder } = require('discord.js');
 
 // Import subcommand logic modules
 const boutiqueCards = require('./subcommands/boutiqueCards');
 const boutiquePreview = require('./subcommands/boutiquePreview');
-const boutiqueDecors = require('./subcommands/boutiqueDecors');
+const boutiqueTemplate = require('./subcommands/boutiqueTemplate');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('boutique')
     .setDescription('Access the boutique store')
+
+    // Buy cards flow (unchanged)
     .addSubcommand(sub =>
       sub.setName('cards')
         .setDescription('Buy cards from Boutique')
@@ -32,24 +35,42 @@ module.exports = {
         )
         .addStringOption(opt =>
           opt.setName('groups')
-            .setDescription('Comma‑separated groups')
+            .setDescription('Comma-separated groups')
         )
         .addStringOption(opt =>
           opt.setName('names')
-            .setDescription('Comma‑separated names')
+            .setDescription('Comma-separated names')
         )
         .addStringOption(opt =>
           opt.setName('eras')
-            .setDescription('Comma‑separated eras')
+            .setDescription('Comma-separated eras')
         )
     )
+
+    // Preview flow (NOW with a type selector)
     .addSubcommand(sub =>
       sub.setName('preview')
         .setDescription('Preview boutique offerings')
+        .addStringOption(o =>
+          o.setName('type')
+            .setDescription('What to preview')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Cards', value: 'cards' },
+              { name: 'Templates', value: 'templates' },
+            )
+        )
     )
+
+    // Buy/claim a template by label (unchanged)
     .addSubcommand(sub =>
-      sub.setName('decors')
-        .setDescription('Buy profile templates with sopop')
+      sub.setName('template')
+        .setDescription('Buy/claim a template by label')
+        .addStringOption(o =>
+          o.setName('label')
+            .setDescription('Template label (case-insensitive)')
+            .setRequired(true)
+        )
     ),
 
   async execute(interaction) {
@@ -59,8 +80,8 @@ module.exports = {
       return boutiqueCards(interaction);
     } else if (sub === 'preview') {
       return boutiquePreview(interaction);
-    } else if (sub === 'decors') {
-      return boutiqueDecors(interaction);
+    } else if (sub === 'template') {
+      return boutiqueTemplate(interaction);
     }
   }
 };

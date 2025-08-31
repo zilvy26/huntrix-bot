@@ -1,10 +1,12 @@
+// commands/profile.js
 const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
 const UserProfile = require('../../models/UserProfile');
 const UserInventory = require('../../models/UserInventory');
 const Card = require('../../models/Card');
 const User = require('../../models/User');
 const drawProfile = require('../../utils/drawProfile');
-const {safeReply} = require('../../utils/safeReply');
+const { safeReply } = require('../../utils/safeReply');
+const { DEFAULT_TEMPLATE_LABEL } = require('../../config/profile');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -17,51 +19,52 @@ module.exports = {
     ),
 
   async execute(interaction) {
-
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const user = await interaction.client.users.fetch(targetUser.id);
 
-    // Retrieve or initialize profile
+    // Retrieve or initialize profile (mirror your original behavior)
     let profile = await UserProfile.findOne({ userId: user.id });
     if (!profile) {
       profile = await UserProfile.create({
         userId: user.id,
-        bio: '',
+        aboutMe: '',
         favoriteCard: null,
         badges: [],
-        template: 'profile_base'
+        template: 'profile_base',
+        templateLabel: DEFAULT_TEMPLATE_LABEL, // ensure label exists from the start
       });
+    } else if (!profile.templateLabel) {
+      // backfill label so we always have a default
+      profile.templateLabel = DEFAULT_TEMPLATE_LABEL;
+      await profile.save();
     }
 
-    // Currency from User model
+    // Currency from User model (unchanged)
     const userData = await User.findOne({ userId: user.id });
     const patterns = userData?.patterns || 0;
     const sopop = userData?.sopop || 0;
 
-    // Favorite card logic
+    // Favorite card logic (unchanged)
     let favoriteCardImageURL = null;
     if (profile.favoriteCard) {
       const inventoryEntry = await UserInventory.findOne({
         userId: user.id,
         'cards.cardCode': profile.favoriteCard
       });
-
       const card = await Card.findOne({ cardCode: profile.favoriteCard });
-
       if (inventoryEntry && card) {
-  favoriteCardImageURL = card.localImagePath
-    ? card.localImagePath
-    : (card.discordPermalinkImage || card.imgurImageLink || null);
-}
+        favoriteCardImageURL = card.localImagePath
+          ? card.localImagePath
+          : (card.discordPermalinkImage || card.imgurImageLink || null);
+      }
     }
 
     try {
-      const buffer = await drawProfile(user, {
-        ...profile.toObject(),
-        patterns,
-        sopop
-      }, favoriteCardImageURL);
-
+      const buffer = await drawProfile(
+        user,
+        { ...profile.toObject(), patterns, sopop },
+        favoriteCardImageURL
+      );
       const attachment = new AttachmentBuilder(buffer, { name: 'profile.png' });
       await safeReply(interaction, { files: [attachment] });
     } catch (error) {
