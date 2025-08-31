@@ -112,7 +112,7 @@ module.exports = {
     .setDescription('Admin: register a new profile template (upload or reference existing file)')
     .setDefaultMemberPermissions('0')
     .addStringOption(o => o.setName('label').setDescription('Display name').setRequired(true))
-    .addAttachmentOption(o => o.setName('image').setDescription('Upload image (png/jpg/jpeg/webp)'))
+    .addAttachmentOption(o => o.setName('image').setDescription('Upload image (png/jpg/jpeg/webp)').setRequired(true))
     .addStringOption(o => o.setName('filename').setDescription('Existing file in /var/templates'))
     .addBooleanOption(o => o.setName('active').setDescription('Usable/obtainable? default: true'))
     .addBooleanOption(o => o.setName('boutique').setDescription('Show in /boutique? default: true'))

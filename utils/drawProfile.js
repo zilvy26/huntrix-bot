@@ -7,7 +7,7 @@ const Template = require('../models/Template'); // { label, filename, active?, a
 const { TEMPLATES_DIR } = require('../config/storage');
 const {
   DEFAULT_TEMPLATE_LABEL = 'Base',
-  DEFAULT_TEMPLATE_FILENAME = 'profile_base.png', // ensure this exists in /var/templates
+  DEFAULT_TEMPLATE_FILENAME = 'base-bdbdc3.png', // ensure this exists in /var/templates
 } = require('../config/profile');
 
 const ALLOWED_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp']);
