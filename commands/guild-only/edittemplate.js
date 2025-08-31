@@ -96,10 +96,6 @@ module.exports = {
       o.setName('new_label')
        .setDescription('Rename the label (will update everyone’s inventories & selected labels)')
     )
-    .addStringOption(o =>
-      o.setName('filename')
-       .setDescription('Switch to an existing file in /var/templates (e.g., my.png)')
-    )
     .addAttachmentOption(o =>
       o.setName('image')
        .setDescription('Upload a new image file (png/jpg/jpeg/webp) to replace the current file')

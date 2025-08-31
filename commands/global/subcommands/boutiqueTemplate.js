@@ -30,9 +30,6 @@ module.exports = async function boutiqueTemplate(interaction) {
     let eligible = false;
     let reason = 'You do not meet the requirements.';
 
-    // available == free claim
-    if (gates.available) { eligible = true; reason = ''; }
-
     // price
     let user = await User.findOne({ userId });
     let costOK = false;
