@@ -1,9 +1,9 @@
 // commands/boutique/template.js
-const Template = require('../../models/Template');
-const User = require('../../models/User');
-const UserTemplateInventory = require('../../models/UserTemplateInventory');
-const { hasCompleteEra } = require('../../services/eligibility');
-const { safeReply } = require('../../utils/safeReply');
+const Template = require('../../../models/Template');
+const User = require('../../../models/User');
+const UserTemplateInventory = require('../../../models/UserTemplateInventory');
+const { hasCompleteEra } = require('../../../services/eligibility');
+const { safeReply } = require('../../../utils/safeReply');
 
 module.exports = {
 
@@ -27,7 +27,7 @@ module.exports = {
     // 2) check inventory: already owned?
     const inv = await UserTemplateInventory.ensure(userId);
     if (inv.templates.includes(tpl.label)) {
-      return safeReply(interaction, { content: `ℹYou already own **${tpl.label}**.` });
+      return safeReply(interaction, { content: `You already own **${tpl.label}**.` });
     }
 
     // 3) gates (OR logic: pass if ANY qualifies; tweak to ALL if you prefer)
