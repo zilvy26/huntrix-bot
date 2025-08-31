@@ -32,7 +32,7 @@ function formatRoles(interaction, roleIds = []) {
 
 function requirementLines(interaction, acq = {}) {
   const lines = [];
-  if (acq.price != null) lines.push(`**• Price:** <:ehx_sopop:1389584273337618542> ${acq.price.toLocaleString()} Sopop`);
+  if (acq.price != null) lines.push(`**• Price:** <:ehx_sopop:1389584273337618542> ${acq.price.toLocaleString()}`);
   if (Array.isArray(acq.roles) && acq.roles.length) {
     const r = formatRoles(interaction, acq.roles);
     if (r) lines.push(`**• Role(s):** ${r}`);
@@ -133,7 +133,7 @@ module.exports = async function boutiquePreview(interaction) {
   `• **Owned:** ${owned ? 'Yes' : 'No'}`;
 
 const embed = new EmbedBuilder()
-  .setTitle('Profile Templates')
+  .setTitle('## Profile Templates')
   .setColor(owned ? 0x2ecc71 : 0xe67e22)
   .setImage(`attachment://${attachName}`)
   .setDescription(baseDesc)
