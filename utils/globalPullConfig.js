@@ -11,11 +11,12 @@ const RARITY_WEIGHTS = {
 
 // Hardcoded multipliers for eras (always lowercased keys!)
 const ERA_MULTIPLIERS = {
-  'vir25': 0.32,
+  'vir25': 0.26,
 };
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
 const CODE_MULTIPLIERS = {
+    'sb-rmsp02': 10,
 };
 
 const MIN_WEIGHT = 0.01;
