@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs/promises');
 
 const Template = require('../models/Template'); // { label, filename, active?, acquire? }
+const wrapText = require('../utils/wrapText');
 const { TEMPLATES_DIR } = require('../config/storage');
 const {
   DEFAULT_TEMPLATE_LABEL = 'Base',
@@ -75,17 +76,21 @@ module.exports = async function drawProfile(user, profile, favoriteCardImageURL 
 
   // bio
   ctx.font = '22px "Segoe UI", sans-serif';
-  const bio = (profile.aboutMe && profile.aboutMe.trim()) ? profile.aboutMe : 'No bio set.';
-  const maxWidth = 1350, lineHeight = 32;
-  const words = bio.split(/\s+/);
-  let line = '', y = 470;
-  for (const w of words) {
-    const test = line ? line + ' ' + w : w;
-    if (ctx.measureText(test).width > maxWidth) {
-      ctx.fillText(line, 120, y); y += lineHeight; line = w;
-    } else line = test;
-  }
-  if (line) ctx.fillText(line, 120, y);
+ctx.fillStyle = '#2f1b39';
+
+const bio = (profile.aboutMe && profile.aboutMe.trim())
+  ? profile.aboutMe
+  : 'No bio set.';
+
+// Wrap the text into lines
+const lines = wrapText(ctx, bio, 600); // 600 = max width of your “about me” box
+const lineHeight = 30;
+const startX = 120;
+let startY = 470;
+
+for (let i = 0; i < lines.length && i < 50; i++) { // limit to 50 lines max
+  ctx.fillText(lines[i], startX, startY + (i * lineHeight));
+}
 
   // favorite card slot (optional image)
   if (favoriteCardImageURL) {
