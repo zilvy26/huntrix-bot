@@ -32,15 +32,15 @@ function formatRoles(interaction, roleIds = []) {
 
 function requirementLines(interaction, acq = {}) {
   const lines = [];
-  if (acq.price != null) lines.push(`**Price:** ${acq.price.toLocaleString()} Sopop`);
+  if (acq.price != null) lines.push(`**• Price:** <:ehx_sopop:1389584273337618542> ${acq.price.toLocaleString()} Sopop`);
   if (Array.isArray(acq.roles) && acq.roles.length) {
     const r = formatRoles(interaction, acq.roles);
-    if (r) lines.push(`**• Role(s) Required:** ${r}`);
+    if (r) lines.push(`**• Role(s):** ${r}`);
   }
   if (acq.requireEra && acq.requireEraComplete) {
-    lines.push(`**• Requirement:** Complete Era of **${acq.requireEra}**`);
+    lines.push(`**• Complete Era of:** ${acq.requireEra}`);
   } else if (acq.requireEra) {
-    lines.push(`**• Requirement:** Era **${acq.requireEra}**`);
+    lines.push(`**• Era:** ${acq.requireEra}`);
   }
   return lines;
 }
@@ -128,14 +128,20 @@ module.exports = async function boutiquePreview(interaction) {
       const owned = ownedByLabel.has(String(t.label).toLowerCase());
       const req = requirementLines(interaction, t.acquire || {});
 
-      const embed = new EmbedBuilder()
-        .setTitle('Profile Templates')
-        .setDescription(`• **Template Label:** ${t.label}\n • **Owned:** ${owned ? 'Yes' : 'No'}`)
-        .setColor(owned ? 0x2ecc71 : 0xe67e22)
-        .setImage(`attachment://${attachName}`)
-        .setFooter({ text: 'Boutique Template Preview • 1/1' }); // real page count set on send
+      const baseDesc =
+  `• **Template Label:** ${t.label}\n` +
+  `• **Owned:** ${owned ? 'Yes' : 'No'}`;
 
-      if (req.length) embed.setDescription(req.join('\n'));
+const embed = new EmbedBuilder()
+  .setTitle('Profile Templates')
+  .setColor(owned ? 0x2ecc71 : 0xe67e22)
+  .setImage(`attachment://${attachName}`)
+  .setDescription(baseDesc)
+  .setFooter({ text: 'Boutique Template Preview • 1/1' });
+
+if (req.length) {
+  embed.addFields({ name: 'Requirements', value: req.join('\n'), inline: false });
+}
 
       slides.push({
         embed,
