@@ -133,7 +133,7 @@ module.exports = {
 
       // find (case-insensitive)
       const tpl = await Template.findOne({ label: { $regex: `^${label}$`, $options: 'i' } });
-      if (!tpl) return interaction.reply({ ephemeral: true, content: `No template with label **${label}**.` });
+      if (!tpl) return interaction.editReply({ ephemeral: true, content: `No template with label **${label}**.` });
 
       const prevLabel = tpl.label;
 
@@ -163,7 +163,7 @@ module.exports = {
 
       // 2) image/filename replacement
       if (image && filenameOpt) {
-        return interaction.reply({ ephemeral: true, content: '❌ Choose either an image OR a filename, not both.' });
+        return interaction.editReply({ ephemeral: true, content: '❌ Choose either an image OR a filename, not both.' });
       }
       if (image) {
         const saved = await saveAttachmentToTemplates(image, (newLabel || prevLabel).replace(/\s+/g, '-').toLowerCase());
@@ -175,7 +175,7 @@ module.exports = {
         const abs = path.resolve(TEMPLATES_DIR, filename);
         const base = path.resolve(TEMPLATES_DIR);
         if (!abs.startsWith(base + path.sep) && abs !== base) {
-          return interaction.reply({ ephemeral: true, content: '❌ Invalid filename path.' });
+          return interaction.editReply({ ephemeral: true, content: '❌ Invalid filename path.' });
         }
         await fs.access(abs).catch(() => { throw new Error('File not found in /var/templates'); });
         tpl.filename = filename;
@@ -244,8 +244,7 @@ module.exports = {
         typeof available === 'boolean' && `available: **${tpl.acquire.available ? 'yes' : 'no'}**`,
       ].filter(Boolean).join('\n• ');
 
-      return interaction.reply({
-        ephemeral: true,
+      return interaction.editReply({
         content:
           `Template updated.\n` +
           (changes ? `• ${changes}\n` : '') +
@@ -255,7 +254,7 @@ module.exports = {
       });
     } catch (err) {
       console.error('edittemplate error:', err);
-      return interaction.reply({ ephemeral: true, content: `❌ ${err.message}` });
+      return interaction.editReply({ ephemeral: true, content: `❌ ${err.message}` });
     }
   }
 };
