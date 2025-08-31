@@ -149,7 +149,6 @@ module.exports = {
       let stored = null;
 
       if (image) {
-        await interaction.deferReply({ ephemeral: true }); // downloading can take a second
         const { buffer, ext, origName } = await downloadAttachment(image);
 
         // name suggestion: label-based + short hash to avoid collisions

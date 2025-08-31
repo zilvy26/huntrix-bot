@@ -100,7 +100,6 @@ module.exports = async function boutiquePreview(interaction) {
 
   /* ----------------------- TEMPLATES PREVIEW ----------------------- */
   if (type === 'templates') {
-    await interaction.deferReply({ ephemeral: true });
 
     // Show all templates marked visible; ignore "active"
     const templates = await Template.find(
