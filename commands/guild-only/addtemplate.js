@@ -1,4 +1,5 @@
 // commands/templates/addtemplate.js
+require('dotenv').config();
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('fs/promises');
 const fssync = require('fs');
@@ -109,7 +110,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('addtemplate')
     .setDescription('Admin: register a new profile template (upload or reference existing file)')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDefaultMemberPermissions('0')
     .addStringOption(o => o.setName('label').setDescription('Display name').setRequired(true))
     .addAttachmentOption(o => o.setName('image').setDescription('Upload image (png/jpg/jpeg/webp)'))
     .addStringOption(o => o.setName('filename').setDescription('Existing file in /var/templates'))
@@ -123,9 +124,9 @@ module.exports = {
   
   async execute(interaction) {
     try {
-      if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-        return interaction.reply({ ephemeral: true, content: '❌ Admin only.' });
-      }
+      if (!interaction.member.roles.cache.has(process.env.MAIN_BYPASS_ID)) {
+          return safeReply(interaction, { content: 'You do not have permission to use this command.' });
+          }
 
       const label = interaction.options.getString('label', true).trim();
       const image = interaction.options.getAttachment('image');   // uploaded file (optional)
