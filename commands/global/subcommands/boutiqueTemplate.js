@@ -5,12 +5,7 @@ const UserTemplateInventory = require('../../../models/UserTemplateInventory');
 const { hasCompleteEra } = require('../../../services/eligibility');
 const { safeReply } = require('../../../utils/safeReply');
 
-module.exports = {
-
-  async execute(interaction) {
-    if (interaction.options.getSubcommand() !== 'template') {
-      return safeReply(interaction, { content: 'Unknown subcommand.' });
-    }
+module.exports = async function boutiqueTemplate(interaction) {
 
     const userId = interaction.user.id;
     const label = interaction.options.getString('label', true).trim();
@@ -82,5 +77,4 @@ module.exports = {
     return safeReply(interaction, {
       content: `You obtained **${tpl.label}**! Use \`/editprofile template_label:${tpl.label}\` to equip it.`
     });
-  }
-};
+  };

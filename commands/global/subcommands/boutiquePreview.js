@@ -133,7 +133,7 @@ module.exports = async function boutiquePreview(interaction) {
   `• **Owned:** ${owned ? 'Yes' : 'No'}`;
 
 const embed = new EmbedBuilder()
-  .setTitle('## Profile Templates')
+  .setTitle('Profile Templates')
   .setColor(owned ? 0x2ecc71 : 0xe67e22)
   .setImage(`attachment://${attachName}`)
   .setDescription(baseDesc)
