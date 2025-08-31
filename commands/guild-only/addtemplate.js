@@ -113,12 +113,14 @@ module.exports = {
     .setDefaultMemberPermissions('0')
     .addStringOption(o => o.setName('label').setDescription('Display name').setRequired(true))
     .addAttachmentOption(o => o.setName('image').setDescription('Upload image (png/jpg/jpeg/webp)').setRequired(true))
+    .addStringOption(o => o.setName('filename').setDescription('Existing file in /var/templates'))
     .addBooleanOption(o => o.setName('active').setDescription('Usable/obtainable? default: true'))
     .addBooleanOption(o => o.setName('boutique').setDescription('Show in /boutique? default: true'))
     .addIntegerOption(o => o.setName('price').setDescription('Price in currency').setMinValue(0))
     .addStringOption(o => o.setName('roles').setDescription('Comma/space-separated Role IDs'))
     .addStringOption(o => o.setName('era').setDescription('Era key required (e.g., S1, Kanto)'))
-    .addBooleanOption(o => o.setName('eracomplete').setDescription('Require ALL cards from that era? default: false')),
+    .addBooleanOption(o => o.setName('eracomplete').setDescription('Require ALL cards from that era? default: false'))
+    .addBooleanOption(o => o.setName('available').setDescription('Freely available w/out checks? default: false')),
   
   async execute(interaction) {
     try {
@@ -183,7 +185,7 @@ module.exports = {
       if (doc.acquire.requireEra) gates.push(`era=${doc.acquire.requireEra}${doc.acquire.requireEraComplete ? '(complete)' : ''}`);
 
       const msg =
-        `Template created!\n` +
+        `✔️ Template created!\n` +
         `• Code: **${doc.code}**\n` +
         `• Label: **${doc.label}**\n` +
         `• File: \`${doc.filename}\`\n` +

@@ -6,6 +6,7 @@ const AcquireSchema = new mongoose.Schema({
   roles: { type: [String], default: [] },                // Discord role IDs
   requireEra: { type: String, default: null },
   requireEraComplete: { type: Boolean, default: false },
+  available: { type: Boolean, default: false },          // free claim
 }, { _id: false });
 
 const TemplateSchema = new mongoose.Schema({
