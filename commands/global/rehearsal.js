@@ -13,6 +13,7 @@ const handleReminders = require('../../utils/reminderHandler');
 const Card = require('../../models/Card');
 const pickRarity = require('../../utils/rarityPicker');
 const {safeReply} = require('../../utils/safeReply'); // compat export
+const getRandomCardByRarity = require('../../utils/randomCardFromRarity');
 
 module.exports = {
   data: new SlashCommandBuilder()
