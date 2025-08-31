@@ -12,7 +12,7 @@ async function getRandomCardByRarity(rarity) {
 
   const weights = cards.map(c => {
     const eraKey = c.era ? String(c.era).toLowerCase() : '';
-    const codeKey = c.code ? String(c.code).toLowerCase() : '';
+    const codeKey = c.cardCode ? String(c.cardCode).toLowerCase() : '';
 
     const mEra  = eraKey && eraMultipliers[eraKey] !== undefined ? eraMultipliers[eraKey] : 1;
     const mCode = codeKey && codeMultipliers[codeKey] !== undefined ? codeMultipliers[codeKey] : 1;
