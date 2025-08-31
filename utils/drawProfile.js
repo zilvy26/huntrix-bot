@@ -71,11 +71,11 @@ module.exports = async function drawProfile(user, profile, favoriteCardImageURL 
   ctx.fillText(`${user.username}`, 400, 225);
 
   ctx.font = '18px "Segoe UI", sans-serif';
-  ctx.fillText(String(profile.patterns ?? 0), 345, 277);
+  ctx.fillText(String(profile.patterns ?? 0), 345, 275);
   ctx.fillText(String(profile.sopop ?? 0),    515, 277);
 
   // bio
-  ctx.font = '22px "Segoe UI", sans-serif';
+  ctx.font = '18px "Segoe UI", sans-serif';
 ctx.fillStyle = '#2f1b39';
 
 const bio = (profile.aboutMe && profile.aboutMe.trim())
