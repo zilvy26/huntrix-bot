@@ -40,28 +40,28 @@ module.exports = {
     await handleReminders(interaction, commandName, cooldownDuration);
 
     // Pull 3 cards
-    const cards = [];
-    for (let i = 0; i < 3; i++) {
-      const rarity = await pickRarity();
-      const result = await Card.aggregate([
-        { $match: { pullable: true, rarity, localImagePath: { $exists: true } } },
-        { $sample: { size: 1 } }
-      ]);
-      if (result[0]) cards.push(result[0]);
-    }
+    
+    const rarities = await Promise.all(
+      Array.from({ length: 3 }, () => pickRarity())
+    );
 
-    if (cards.length < 3) {
+    const pulls = (await Promise.all(
+      rarities.map(async (rarity) => getRandomCardByRarity(rarity))
+    )).filter(Boolean);
+
+
+    if (pulls.length < 3) {
       return safeReply(interaction, { content: 'Not enough pullable cards in the database.' });
     }
-
+    
     // Canvas
     const canvas = Canvas.createCanvas(600, 340);
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#2f3136';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    for (let i = 0; i < cards.length; i++) {
-      const c = cards[i];
+    for (let i = 0; i < pulls.length; i++) {
+      const c = pulls[i];
       if (!c.localImagePath) {
         console.warn(`⚠️ No local image for card ${c.cardCode}`);
         continue;
@@ -102,7 +102,7 @@ module.exports = {
     // Cache cards for your interactionRouter (unchanged)
     interaction.client.cache ??= {};
     interaction.client.cache.rehearsal ??= {};
-    interaction.client.cache.rehearsal[userId] = cards;
+    interaction.client.cache.rehearsal[userId] = pulls;
 
     return safeReply(interaction, { embeds: [embed], files: [attachment], components: [row] });
   }

@@ -2,11 +2,11 @@
 
 // Hardcoded rarity weights
 const RARITY_WEIGHTS = {
-  '1S': 0.1,
-  '2S': 99.6,
-  '3S': 0.1,
-  '4S': 0.1,
-  '5S': 0.1,
+  '1S': 36,
+  '2S': 29,
+  '3S': 20.25,
+  '4S': 12,
+  '5S': 2.75,
 };
 
 // Hardcoded multipliers for eras (always lowercased keys!)
@@ -16,7 +16,6 @@ const ERA_MULTIPLIERS = {
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
 const CODE_MULTIPLIERS = {
-    'sb-rmsp02': 4000,
 };
 
 const MIN_WEIGHT = 0.00001;
