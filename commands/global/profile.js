@@ -7,6 +7,8 @@ const User = require('../../models/User');
 const drawProfile = require('../../utils/drawProfile');
 const { safeReply } = require('../../utils/safeReply');
 const { DEFAULT_TEMPLATE_LABEL } = require('../../config/profile');
+const { ensureDefaultTemplate } = require('../services/templateInventory');
+
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -38,6 +40,7 @@ module.exports = {
       profile.templateLabel = DEFAULT_TEMPLATE_LABEL;
       await profile.save();
     }
+    await ensureDefaultTemplate(user.id); // guarantees inventory exists + has base template
 
     // Currency from User model (unchanged)
     const userData = await User.findOne({ userId: user.id });

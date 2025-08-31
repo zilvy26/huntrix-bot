@@ -35,12 +35,12 @@ function requirementLines(interaction, acq = {}) {
   if (acq.price != null) lines.push(`**Price:** ${acq.price.toLocaleString()} Sopop`);
   if (Array.isArray(acq.roles) && acq.roles.length) {
     const r = formatRoles(interaction, acq.roles);
-    if (r) lines.push(`**Role(s) Required:** ${r}`);
+    if (r) lines.push(`**• Role(s) Required:** ${r}`);
   }
   if (acq.requireEra && acq.requireEraComplete) {
-    lines.push(`**Requirement:** Complete Era: **${acq.requireEra}**`);
+    lines.push(`**• Requirement:** Complete Era of **${acq.requireEra}**`);
   } else if (acq.requireEra) {
-    lines.push(`**Requirement:** Era **${acq.requireEra}**`);
+    lines.push(`**• Requirement:** Era **${acq.requireEra}**`);
   }
   return lines;
 }
@@ -130,7 +130,7 @@ module.exports = async function boutiquePreview(interaction) {
 
       const embed = new EmbedBuilder()
         .setTitle('Profile Templates')
-        .setDescription(`• Template Label: ${t.label}\n • ${owned ? 'Owned' : 'Not owned'}`)
+        .setDescription(`• **Template Label:** ${t.label}\n • **Owned:** ${owned ? 'Yes' : 'No'}`)
         .setColor(owned ? 0x2ecc71 : 0xe67e22)
         .setImage(`attachment://${attachName}`)
         .setFooter({ text: 'Boutique Template Preview • 1/1' }); // real page count set on send
