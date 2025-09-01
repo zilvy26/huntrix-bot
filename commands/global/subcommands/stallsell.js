@@ -48,9 +48,6 @@ function parseCodes(raw) {
   const tokens = raw.trim().split(/[\s,]+/).filter(Boolean);
 
   for (const t of tokens) {
-    if (/^[A-Za-z0-9-]+x\d+$/i.test(t)) {
-      throw new Error('Quantity must use "+" (e.g. CODE+2), not "x".');
-    }
     const m = t.match(/^([A-Za-z0-9-]+)(?:\+(\d+))?$/);
     if (!m) continue;
 
