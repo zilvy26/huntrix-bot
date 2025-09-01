@@ -28,13 +28,13 @@ module.exports = {
     // Handler has already deferReply()'d for us — don't defer here
     const userId = interaction.user.id;
     const commandName = 'Rehearsal';
-    const cooldownDuration = cooldownConfig[commandName];
 
     // Cooldown check (no set yet)
-    if (await cooldowns.isOnCooldown(userId, commandName)) {
-      const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
-      return safeReply(interaction, { content: `You must wait **${nextTime}** before rehearsing again.` });
-    }
+    const cooldownDuration = await cooldowns.getEffectiveCooldown(interaction, commandName);
+        if (await cooldowns.isOnCooldown(userId, commandName)) {
+          const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
+          return safeReply(interaction, { content: `You must wait ${nextTime} before using \`/pull\` again.` });
+        }
 
     // Start cooldown & schedule reminder AFTER the handler’s ACK
     await cooldowns.setCooldown(userId, commandName, cooldownDuration);
