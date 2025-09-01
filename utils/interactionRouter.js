@@ -609,7 +609,7 @@ module.exports = async function interactionRouter(interaction) {
 
       // 2-minute GLOBAL cooldown key
       const CLAIM_COMMAND = 'ListClaim';
-      const CLAIM_COOLDOWN_MS = 2 * 60 * 1000;
+      const CLAIM_COOLDOWN_MS = 5 * 60 * 1000;
 
       const cooldowns = require('../utils/cooldownManager');
 

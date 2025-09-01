@@ -29,7 +29,7 @@ const ERA_PRICE_CAPS = Object.fromEntries(
 );
 
 // Max concurrent listings per seller (unchanged)
-const MAX_LISTINGS = 50;
+const MAX_LISTINGS = 100;
 
 // ---- PARSERS ------------------------------------------------------------
 
