@@ -33,7 +33,7 @@ module.exports = {
     const cooldownDuration = await cooldowns.getEffectiveCooldown(interaction, commandName);
         if (await cooldowns.isOnCooldown(userId, commandName)) {
           const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
-          return safeReply(interaction, { content: `You must wait ${nextTime} before using \`/pull\` again.` });
+          return safeReply(interaction, { content: `You must wait ${nextTime} before using \`/Rehearsal\` again.` });
         }
 
     // Start cooldown & schedule reminder AFTER the handler’s ACK
