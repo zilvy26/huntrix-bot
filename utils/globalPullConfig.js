@@ -16,7 +16,7 @@ const ERA_MULTIPLIERS = {
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
 const CODE_MULTIPLIERS = {
-  'spc-wispc25': 0.8,
+  'spc-wispc25': 1.075,
 };
 
 const MIN_WEIGHT = 0.00001;
