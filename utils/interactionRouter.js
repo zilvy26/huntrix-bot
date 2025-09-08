@@ -34,7 +34,7 @@ async function getSourceMessage(interaction) {
   try {
     return interaction.message || await interaction.fetchReply();
   } catch (err) {
-    console.warn('⚠️ Failed to fetch message:', err.message);
+    console.warn('Failed to fetch message:', err.message);
     return null;
   }
 }
@@ -149,7 +149,7 @@ module.exports = async function interactionRouter(interaction) {
     if (customId?.startsWith('question')) {
       const message = await getSourceMessage(interaction);
       if (!message) {
-        return safeReply(interaction, { content: '⚠️ This interaction expired.', flags: 1 << 6 });
+        return safeReply(interaction, { content: 'This interaction expired.', flags: 1 << 6 });
       }
       if (!isOwnerOfMessage(interaction)) {
         return safeReply(interaction, { content: 'These buttons are not yours.', flags: 1 << 6 });
@@ -161,17 +161,17 @@ module.exports = async function interactionRouter(interaction) {
       const selectedIndex = parseInt(selectedIndexRaw, 10);
 
       if (!mongoose.Types.ObjectId.isValid(questionId)) {
-        return safeReply(interaction, { content: '❌ Invalid question ID.' });
+        return safeReply(interaction, { content: 'Invalid question ID.' });
       }
 
       try {
         const embedMsg = message.embeds?.[0];
         if (!embedMsg?.description) {
-          return safeReply(interaction, { content: '❌ Question data missing.' });
+          return safeReply(interaction, { content: 'Question data missing.' });
         }
 
         const selected = await Question.findById(questionId);
-        if (!selected) return safeReply(interaction, { content: '❌ Question not found.' });
+        if (!selected) return safeReply(interaction, { content: 'Question not found.' });
         const selectedAnswer = selected.options[selectedIndex];
 
         const userDoc =
@@ -184,19 +184,19 @@ module.exports = async function interactionRouter(interaction) {
           let rewardPatterns = 0;
           let rewardSopop = 0;
           if (selected.difficulty === 'easy') {
-            rewardPatterns = getRandomInt(850, 975);
+            rewardPatterns = getRandomInt(800, 900);
             if (Math.random() < 0.22) rewardSopop = 1;
           } else if (selected.difficulty === 'hard') {
-            rewardPatterns = getRandomInt(1000, 1125);
+            rewardPatterns = getRandomInt(950, 1035);
             if (Math.random() < 0.28) rewardSopop = 1;
           } else if (selected.difficulty === 'impossible') {
-            rewardPatterns = getRandomInt(1150, 1275);
+            rewardPatterns = getRandomInt(1085, 1150);
             if (Math.random() < 0.34) rewardSopop = 1;
           }
 
           let streakBonus = '';
-          if (userDoc.correctStreak % 15 === 0) {
-            rewardPatterns += 725;
+          if (userDoc.correctStreak % 20 === 0) {
+            rewardPatterns += 750;
             rewardSopop += 1;
             streakBonus = '\n**Bonus rewards granted!**';
           }
@@ -221,7 +221,7 @@ module.exports = async function interactionRouter(interaction) {
           });
         }
       } catch (err) {
-        console.error('❌ Error handling battle button:', err);
+        console.error('Error handling battle button:', err);
         return safeReply(interaction, { content: 'An error occurred processing your answer.' });
       }
       return;
@@ -302,7 +302,7 @@ module.exports = async function interactionRouter(interaction) {
     if (stallPattern.test(customId || '')) {
       const msg = await getSourceMessage(interaction);
       if (!msg) {
-        return safeReply(interaction, { content: '⚠️ This stall preview expired.', flags: 1 << 6 });
+        return safeReply(interaction, { content: 'This stall preview expired.', flags: 1 << 6 });
       }
 
       if (!isOwnerOfMessage(interaction)) {
@@ -314,7 +314,7 @@ module.exports = async function interactionRouter(interaction) {
       const embed = msg.embeds?.[0];
       const match = embed?.title?.match(/Page (\d+)\/(\d+)/);
       if (!match || match.length < 3) {
-        return interaction.editReply({ content: '⚠️ Could not read current page.', components: [] });
+        return interaction.editReply({ content: 'Could not read current page.', components: [] });
       }
 
       let [, currentPage, totalPages] = match.map(Number);
@@ -373,7 +373,7 @@ module.exports = async function interactionRouter(interaction) {
     if (customId?.startsWith('rehearsal')) {
       const msg = await getSourceMessage(interaction);
       if (!msg) {
-        return safeReply(interaction, { content: '⚠️ This interaction expired.', flags: 1 << 6 });
+        return safeReply(interaction, { content: 'This interaction expired.', flags: 1 << 6 });
       }
       if (!isOwnerOfMessage(interaction)) {
         return safeReply(interaction, { content: 'These buttons are not yours.', flags: 1 << 6 });
@@ -450,13 +450,13 @@ module.exports = async function interactionRouter(interaction) {
 
       if (!session) {
         if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: '⚠️ This index view expired. Run /index again.', flags: 1 << 6 }).catch(()=>{});
+          await interaction.followUp({ content: 'This index view expired. Run /index again.', flags: 1 << 6 }).catch(()=>{});
         }
         return;
       }
       const ownerId = interaction.message?.interaction?.user?.id;
       if (ownerId && interaction.user.id !== ownerId) {
-        await interaction.reply({ content: "These buttons aren't yours.", flags: 1 << 6 }).catch(()=>{});
+        await interaction.followUp({ content: "These buttons aren't yours.", flags: 1 << 6 }).catch(()=>{});
         return;
       }
 
