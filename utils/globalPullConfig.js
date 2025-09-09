@@ -12,7 +12,7 @@ const RARITY_WEIGHTS = {
 // Hardcoded multipliers for eras (always lowercased keys!)
 const ERA_MULTIPLIERS = {
   'vir25': 0.1235,
-  'candy festival (demo)': 0.14,
+  'candy festival (demo)': 1.1,
 };
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
