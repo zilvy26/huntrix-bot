@@ -12,11 +12,13 @@ const RARITY_WEIGHTS = {
 // Hardcoded multipliers for eras (always lowercased keys!)
 const ERA_MULTIPLIERS = {
   'vir25': 0.1235,
+  'candy festival (demo)': 0.14,
 };
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
 const CODE_MULTIPLIERS = {
-  'spc-wispc25': 1.075,
+  'spc-wispc25': 1.25,
+  'spc-reepc25': 1.25,
 };
 
 const MIN_WEIGHT = 0.00001;
