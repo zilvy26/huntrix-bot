@@ -21,7 +21,8 @@ const ERA_PRICE_CAPS_RAW = {
   'VIR25': 15000,
   'LEO25': 19000,
   'How It\'s Done': 30000,
-  'Candy Festival (Demo)': 15000,
+  'Candy Festival (Demo)': 18000,
+  'Candy Festival (Album)': 15000
 };
 
 // Normalize keys to lowercase+trim once at startup
