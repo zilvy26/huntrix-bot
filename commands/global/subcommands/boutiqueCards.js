@@ -28,6 +28,22 @@ module.exports = async function(interaction) {
   const shopType = interaction.options.getString('shop');
   const amount = interaction.options.getInteger('amount');
 
+  const rawGroups = interaction.options.getString('groups');
+const rawNames  = interaction.options.getString('names');
+const rawEras   = interaction.options.getString('eras');
+
+// helper: true if the option is a non-empty, non-whitespace string
+const hasText = (s) => typeof s === 'string' && s.trim().length > 0;
+
+// if ANY filter is used AND this isn’t choice10 → block early (no deduction)
+const filtersUsed = hasText(rawGroups) || hasText(rawNames) || hasText(rawEras);
+if (shopType !== 'choice10' && filtersUsed) {
+  return safeReply(interaction, {
+    content: 'Filters (**groups**, **names**, **eras**) can only be used with **choice10**.',
+    ephemeral: true
+  });
+}
+
   // --- simple 30s cooldown for this command ---
   const cooldown = await BoutiqueCooldown.findOne({ userId: interaction.user.id });
   const now = new Date();
@@ -86,15 +102,6 @@ module.exports = async function(interaction) {
 
   // choice10 (weighted 10x with filters)
   if (shopType === 'choice10') {
-    const rawGroups = interaction.options.getString('groups');
-    const rawNames  = interaction.options.getString('names');
-    const rawEras   = interaction.options.getString('eras');
-
-    if (shopType !== 'choice10' && (rawGroups || rawNames || rawEras)) {
-  return safeReply(interaction, {
-    content: `Filters (groups, names, eras) can only be used with **10x Cards of Choice**.`,
-  });
-}
 
     const filters = [
       { pullable: true },

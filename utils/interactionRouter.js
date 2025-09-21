@@ -472,7 +472,7 @@ if (interaction.customId?.startsWith('rehearsal_')) {
   // Finalize message (embed + keep components disabled)
   await interaction.editReply({
     embeds: [result],
-    components: disableAllComponents(msg),
+    components: [],
     files: imageAttachment ? [imageAttachment] : []
   });
 
