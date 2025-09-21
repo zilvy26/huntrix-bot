@@ -373,8 +373,20 @@ const InventoryItem = require('../models/InventoryItem');
 const generateStars = require('../utils/starGenerator');
 
 // helper to disable all buttons on the message
+function disableAllComponents(msg) {
+  const disabledRows = msg.components.map(row => {
+    const r = new ActionRowBuilder();
+    for (const comp of row.components) {
+      r.addComponents(
+        ButtonBuilder.from(comp).setDisabled(true)
+      );
+    }
+    return r;
+  });
+  return disabledRows;
+}
 
-if (customId?.startsWith('rehearsal')) {
+if (interaction.customId?.startsWith('rehearsal_')) {
   const msg = interaction.message;               // the original message with buttons
   const msgId = msg.id;
   const index = Number(interaction.customId.split('_')[1] || 0);
@@ -414,7 +426,7 @@ if (customId?.startsWith('rehearsal')) {
   const sopop = Math.random() < 0.42 ? (Math.random() < 0.75 ? 1 : 2) : 0;
 
   // give currency (your existing helper)
-  const giveCurrency = require('../../utils/giveCurrency');
+  const giveCurrency = require('../utils/giveCurrency');
   await giveCurrency(session.userId, { sopop });
 
   // inventory +1 (atomic upsert)
