@@ -179,9 +179,8 @@ module.exports = {
       new ButtonBuilder().setCustomId('cancel_refund').setLabel('Cancel').setStyle(ButtonStyle.Danger)
     );
 
-    const sent = await interaction.reply({ embeds: [preview], components: [row1, row2] });
     registerRefundSession({
-      message: sent,
+      message,
       userId,
       items,                 // [{ cardCode, rarity, category, qty }]
       includeSpecials,       // boolean; session will pay R5 as 2500/3750 or skip if false
