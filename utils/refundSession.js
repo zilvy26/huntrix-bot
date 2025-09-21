@@ -63,6 +63,8 @@ function registerRefundSession({ message, userId, items, includeSpecials, perPag
 }
 
 /** Router helper: handle generic buttons for refund; returns true if handled */
+// utils/refundSession.js  (only the handler body shown)
+// ...snip...
 async function handleRefundButtons(interaction, { Card, User, InventoryItem, REFUND_VALUES }) {
   if (!interaction.isButton?.()) return false;
 
@@ -85,20 +87,30 @@ async function handleRefundButtons(interaction, { Card, User, InventoryItem, REF
     if (id === 'next')  state.page = Math.min(pages - 1, state.page + 1);
     if (id === 'last')  state.page = pages - 1;
 
-    await interaction.editReply({ embeds: [makeEmbed(state)], components: makeButtons(state) });
+    // ✅ Button -> use update(), not editReply()
+    await interaction.update({ embeds: [makeEmbed(state)], components: makeButtons(state) });
     return true;
   }
 
   // CANCEL
   if (id === 'cancel_refund') {
     sessions.delete(msgId);
-    await interaction.editReply({ content: 'Refund cancelled.', embeds: [], components: [] });
+    // ✅ Button -> use update()
+    await interaction.update({ content: 'Refund cancelled.', embeds: [], components: [] });
     return true;
   }
 
   // CONFIRM
   if (id === 'confirm_refund') {
-    // compute totals + apply changes
+    // 🔒 disable the UI immediately to acknowledge the click
+    const disabledRows = interaction.message.components.map(row => {
+      const r = ActionRowBuilder.from(row);
+      r.components = r.components.map(c => ButtonBuilder.from(c).setDisabled(true));
+      return r;
+    });
+    await interaction.update({ embeds: interaction.message.embeds, components: disabledRows });
+
+    // --- compute + apply changes (unchanged from your code) ---
     const codes = state.items.map(i => i.cardCode);
     const cards = await Card.find({ cardCode: { $in: codes } }).lean();
     const byCode = new Map(cards.map(c => [c.cardCode, c]));
@@ -114,14 +126,13 @@ async function handleRefundButtons(interaction, { Card, User, InventoryItem, REF
       const isSpecial = card.rarity === 5 && ['event', 'zodiac', 'others'].includes(category);
       const isR5Main  = card.rarity === 5 && ['kpop', 'anime', 'game'].includes(category);
 
-      // R5 handling (unchanged logic from your original) :contentReference[oaicite:1]{index=1}
       let amount = 0;
       if (card.rarity === 5) {
         if (state.includeSpecials) {
           if (isSpecial) amount = 3750 * it.qty;
           else if (isR5Main) amount = 2500 * it.qty;
         } else {
-          continue; // skip R5 entirely when specials are excluded
+          continue;
         }
       } else {
         amount = (REFUND_VALUES[card.rarity] || 0) * it.qty;
@@ -131,7 +142,6 @@ async function handleRefundButtons(interaction, { Card, User, InventoryItem, REF
         total += amount;
         lines.push(`\`${card.cardCode}\` • R${card.rarity} ×${it.qty} → +${amount}`);
 
-        // ✅ NEW: decrement per-item inventory with guard, then prune at 0
         const dec = await InventoryItem.findOneAndUpdate(
           { userId: state.ownerId, cardCode: card.cardCode, quantity: { $gte: it.qty } },
           { $inc: { quantity: -it.qty } },
@@ -143,7 +153,6 @@ async function handleRefundButtons(interaction, { Card, User, InventoryItem, REF
       }
     }
 
-    // (Old code: $pull cards <= 0 & add patterns) :contentReference[oaicite:2]{index=2}
     if (total > 0) {
       await User.updateOne({ userId: state.ownerId }, { $inc: { patterns: total } });
     }
@@ -155,12 +164,18 @@ async function handleRefundButtons(interaction, { Card, User, InventoryItem, REF
       .addFields({ name: 'Details', value: (lines.join('\n') || '—').slice(0, 1024) });
 
     sessions.delete(msgId);
-    await interaction.editReply({ embeds: [result], components: [] });
+
+    // ✅ after update(), edit the same message object
+    await interaction.message.edit({ embeds: [result], components: [] });
+    // (optional) also send an ephemeral confirmation
+    // await interaction.followUp({ content: '✅ Refund completed.', ephemeral: true });
+
     return true;
   }
 
-  return false; // not one of our refund IDs
+  return false;
 }
+
 
 module.exports = {
   registerRefundSession,
