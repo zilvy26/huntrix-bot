@@ -11,6 +11,11 @@ const InventoryItem = require('../../models/InventoryItem');
 const generateStars = require('../../utils/starGenerator');
 const { safeReply } = require('../../utils/safeReply');
 
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+const toRegexList = (arr) => arr.map(v => new RegExp(`^${escapeRegExp(v)}$`, 'i'));
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('index')
@@ -24,20 +29,23 @@ module.exports = {
       )
     )
     .addUserOption(opt => opt.setName('user').setDescription('Whose inventory to view?'))
-    .addStringOption(opt => opt.setName('category').setDescription('Filter by category (kpop, anime, game, etc.)'))
-    .addStringOption(opt => opt.setName('group').setDescription('Filter by group(s)'))
-    .addStringOption(opt => opt.setName('era').setDescription('Filter by era(s)'))
-    .addStringOption(opt => opt.setName('name').setDescription('Filter by name(s)'))
-    .addStringOption(opt => opt.setName('rarity').setDescription('Filter by rarity: 3 | 2-5 | 2,4,5'))
+    .addStringOption(opt => opt.setName('category').setDescription('Filter by category (comma=OR)'))
+    .addStringOption(opt => opt.setName('group').setDescription('Filter by group (comma=OR)'))
+    .addStringOption(opt => opt.setName('era').setDescription('Filter by era (comma=OR)'))
+    .addStringOption(opt => opt.setName('name').setDescription('Filter by name (comma=OR)'))
+    .addStringOption(opt => opt.setName('rarity').setDescription('Rarity: 3 | 2-5 | 2,4,5'))
     .addStringOption(opt =>
-      opt.setName('include_others').setDescription('Show Customs, Test & Limited cards?')
+      opt.setName('include_others')
+        .setDescription('Show Customs, Test & Limited cards?')
         .addChoices({ name: 'Yes', value: 'yes' }, { name: 'No', value: 'no' })
     ),
 
   async execute(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+
     const user = interaction.options.getUser('user') || interaction.user;
     const show = interaction.options.getString('show');
-    const includeOthers = interaction.options.getString('include_others') === 'no';
+    const includeOthers = interaction.options.getString('include_others') === 'yes';
 
     const parseList = (s) => (s || '')
       .split(',')
@@ -49,6 +57,7 @@ module.exports = {
     const groups     = parseList(interaction.options.getString('group'));
     const eras       = parseList(interaction.options.getString('era'));
     const names      = parseList(interaction.options.getString('name'));
+
     // Rarity parsing
     const rarityRaw = interaction.options.getString('rarity');
     let allowedRarities = null, minR = 1, maxR = 5;
@@ -67,50 +76,50 @@ module.exports = {
       }
     }
 
-    // Build Mongo query for cards
-    const cardQuery = {};
-    if (groups.length) {
-  cardQuery.group = { $in: groups.map(g => new RegExp(`^${g}$`, 'i')) };
-}
-if (eras.length) {
-  cardQuery.era = { $in: eras.map(e => new RegExp(`^${e}$`, 'i')) };
-}
-if (names.length) {
-  cardQuery.name = { $in: names.map(n => new RegExp(`^${n}$`, 'i')) };
-}
-if (categories.length) {
-  cardQuery.category = { $in: categories.map(c => new RegExp(`^${c}$`, 'i')) };
-}
-    if (allowedRarities)   cardQuery.rarity = { $in: allowedRarities };
-    else                   cardQuery.rarity = { $gte: minR, $lte: maxR };
-    if (!includeOthers)    cardQuery.era = { $nin: ['customs', 'test', 'limited'] };
+    // ---- Card query ----
+    const and = [];
+    if (categories.length) and.push({ category: { $in: toRegexList(categories) } });
+    if (groups.length)     and.push({ group:    { $in: toRegexList(groups) } });
+    if (eras.length)       and.push({ era:      { $in: toRegexList(eras) } });
+    if (names.length)      and.push({ name:     { $in: toRegexList(names) } });
 
-    // Fetch cards + inventory in parallel
+    if (allowedRarities) and.push({ rarity: { $in: allowedRarities } });
+    else                 and.push({ rarity: { $gte: minR, $lte: maxR } });
+
+    if (!includeOthers) {
+      // exclude Customs/Test/Limited (case-insensitive)
+      and.push({ era: { $not: /^(customs|test|limited)$/i } });
+    }
+
+    const cardQuery = and.length ? { $and: and } : {};
+
+    // fetch cards + inventory
     const [cards, invDocs] = await Promise.all([
-      Card.find(cardQuery).lean(),
+      Card.find(cardQuery).sort({ _id: 1 }).lean(), // oldest first
       InventoryItem.find({ userId: user.id }).lean()
     ]);
-    const inventoryMap = new Map(invDocs.map(d => [d.cardCode, d.quantity]));
 
-    // Build entries
+    const invMap = new Map(invDocs.map(d => [d.cardCode, d.quantity]));
+
+    // build entries
     const entries = cards
       .map(c => {
-        const qty = inventoryMap.get(c.cardCode) || 0;
+        const qty = invMap.get(c.cardCode) || 0;
         return {
           name: c.name,
           group: c.group,
-          category: c.category || '',
+          category: (c.category || '').toLowerCase(),
           era: c.era || '',
           cardCode: c.cardCode,
-          rarity: c.rarity,
+          rarity: Number(c.rarity),
           copies: qty,
-          stars: generateStars({ rarity: c.rarity, overrideEmoji: c.emoji })
+          stars: generateStars({ rarity: Number(c.rarity), overrideEmoji: c.emoji })
         };
       })
       .filter(e => {
-        if (show === 'owned') return e.copies > 0;
+        if (show === 'owned')   return e.copies > 0;
         if (show === 'missing') return e.copies === 0;
-        if (show === 'dupes') return e.copies > 1;
+        if (show === 'dupes')   return e.copies > 1;
         return true;
       })
       .sort((a, b) => b.rarity - a.rarity);
@@ -119,7 +128,7 @@ if (categories.length) {
       return interaction.editReply({ content: 'No cards match your filters.' });
     }
 
-    // Totals
+    // totals
     let totalCopies = 0, totalStars = 0;
     for (const e of entries) {
       const count = show === 'dupes' ? Math.max(0, e.copies - 1) : e.copies;
@@ -127,13 +136,12 @@ if (categories.length) {
       totalStars  += e.rarity * count;
     }
 
-    // Pagination (first page only here; your button handler can reuse `entries`)
+    // page 1
     const perPage = 6;
     const totalPages = Math.max(1, Math.ceil(entries.length / perPage));
     const pageEntries = entries.slice(0, perPage);
 
     const showEraFor = new Set(['kpop', 'zodiac', 'event']);
-
     const description = pageEntries.map(card => {
       const eraPart = showEraFor.has(card.category) && card.era ? ` | Era: ${card.era}` : '';
       return `**${card.stars} ${card.name}**\nGroup: ${card.group}${eraPart} | Code: \`${card.cardCode}\` | Copies: ${card.copies}`;
@@ -155,7 +163,7 @@ if (categories.length) {
 
     await safeReply(interaction, { embeds: [embed], components: [row] });
 
-    // cache entries for button pagination
+    // cache for pagination buttons
     interaction.client.cache = interaction.client.cache || {};
     interaction.client.cache.indexSessions = interaction.client.cache.indexSessions || {};
     interaction.client.cache.indexSessions[(await interaction.fetchReply()).id] = {
