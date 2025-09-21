@@ -8,24 +8,45 @@ const {
   AttachmentBuilder
 } = require('discord.js');
 const Canvas = require('canvas');
+const cooldowns = require('../../utils/cooldownManager');
+const cooldownConfig = require('../../utils/cooldownConfig');
+const handleReminders = require('../../utils/reminderHandler');
+const Card = require('../../models/Card');
 const pickRarity = require('../../utils/rarityPicker');
+const {safeReply} = require('../../utils/safeReply'); // compat export
 const getRandomCardByRarity = require('../../utils/randomCardFromRarity');
-const InventoryItem = require('../../models/InventoryItem');
-const { safeReply } = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('rehearsal')
-    .setDescription('Pick a rehearsal card and earn rare sopop!'),
+    .setDescription('Pick a rehearsal card and earn rare sopop!')
+    .addBooleanOption(opt =>
+      opt.setName('reminder').setDescription('Remind when cooldown ends').setRequired(false))
+    .addBooleanOption(opt =>
+      opt.setName('remindinchannel').setDescription('Remind in channel instead of DM').setRequired(false)),
 
   async execute(interaction) {
+    // Handler has already deferReply()'d for us — don't defer here
+    const userId = interaction.user.id;
+    const commandName = 'Rehearsal';
+
+    // Cooldown check (no set yet)
+    const cooldownDuration = await cooldowns.getEffectiveCooldown(interaction, commandName);
+        if (await cooldowns.isOnCooldown(userId, commandName)) {
+          const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
+          return safeReply(interaction, { content: `You must wait ${nextTime} before using \`/Rehearsal\` again.` });
+        }
+
+    // Start cooldown & schedule reminder AFTER the handler’s ACK
+    await cooldowns.setCooldown(userId, commandName, cooldownDuration);
+    await handleReminders(interaction, commandName, cooldownDuration);
+    
     // pick 3 cards
     const rarities = await Promise.all(Array.from({ length: 3 }, () => pickRarity()));
     const pulls = (await Promise.all(rarities.map(r => getRandomCardByRarity(r)))).filter(Boolean);
     if (pulls.length < 3) return safeReply(interaction, { content: 'Not enough cards to show.' });
 
     // preload quantities
-    const userId = interaction.user.id;
     const codes = pulls.map(c => c.cardCode);
     const items = await InventoryItem.find(
       { userId, cardCode: { $in: codes } },
