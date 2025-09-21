@@ -485,7 +485,8 @@ module.exports = async function interactionRouter(interaction) {
       const slice = session.entries.slice(page * perPage, page * perPage + perPage);
       const description = slice.map(card => {
         const stars = card.stars;
-        const eraPart = card.category === 'kpop' && card.era ? ` | Era: ${card.era}` : '';
+         const showEraFor = new Set(['kpop', 'zodiac', 'event']);
+         const eraPart = showEraFor.has(card.category) && card.era ? ` | Era: ${card.era}` : '';
         return `**${stars} ${card.name}**\nGroup: ${card.group}${eraPart} | Code: \`${card.cardCode}\` | Copies: ${card.copies}`;
       }).join('\n\n');
 
