@@ -29,6 +29,16 @@ preloadModels();
       serverSelectionTimeoutMS: 5000,
     });
     console.log('🗄️  Worker connected to MongoDB');
+
+    // 🔽 ensure indexes for models you care about
+    const InventoryItem = require('./models/InventoryItem');
+    await InventoryItem.syncIndexes();
+    console.log('✅ Worker synced InventoryItem indexes');
+
+    // You can add others too if needed
+    // const UserRecord = require('./models/UserRecord');
+    // await UserRecord.syncIndexes();
+
   } catch (e) {
     console.error('❌ Worker MongoDB connect error:', e.message);
   }

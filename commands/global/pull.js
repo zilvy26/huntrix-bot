@@ -2,6 +2,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const UserInventory = require('../../models/UserInventory');
 const getRandomCardByRarity = require('../../utils/randomCardFromRarity');
+const InventoryItem = require('../../models/InventoryItem');
 const pickRarity = require('../../utils/rarityPicker');
 const generateStars = require('../../utils/starGenerator');
 const cooldowns = require('../../utils/cooldownManager');
@@ -40,8 +41,6 @@ module.exports = {
     if (!card) {
       return safeReply(interaction, { content: `No pullable cards found for rarity ${rarity}.` });
     }
-
-    const InventoryItem = require('../../models/InventoryItem');
 
 // Atomically add +1 and get the updated quantity in one round-trip
 const updated = await InventoryItem.findOneAndUpdate(

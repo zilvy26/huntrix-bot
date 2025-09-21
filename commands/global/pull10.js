@@ -5,6 +5,7 @@ const cooldowns = require('../../utils/cooldownManager');
 const handleReminders = require('../../utils/reminderHandler');
 const Card = require('../../models/Card');
 const UserInventory = require('../../models/UserInventory');
+const InventoryItem = require('../../models/InventoryItem');
 const pickRarity = require('../../utils/rarityPicker');
 const getRandomCardByRarity = require('../../utils/randomCardFromRarity');
 const generateStars = require('../../utils/starGenerator');
@@ -71,24 +72,49 @@ if (pulls.length < 10) {
     const buffer = canvas.toBuffer();
     const attachment = { attachment: buffer, name: 'pull10.png' };
 
-    // 6) Inventory
-    let inv = await UserInventory.findOne({ userId });
-    if (!inv) inv = await UserInventory.create({ userId, cards: [] });
+   // 6) Inventory (per-item model, bulk upsert with counts)
 
-    const lines = [];
-    for (const card of pulls) {
-      const emoji = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji });
-      const found = inv.cards.find(v => v.cardCode === card.cardCode);
-      if (found) {
-        found.quantity += 1;
-        lines.push(`${emoji} **${card.name}** \`${card.cardCode}\` (Total: **${found.quantity}**)`);
-      } else {
-        inv.cards.push({ cardCode: card.cardCode, quantity: 1 });
-        lines.push(`${emoji} **${card.name}** · \`${card.cardCode}\` · (Total: **1**)`);
-      }
+// count how many times each cardCode appeared in this pull10
+const counts = new Map();
+for (const card of pulls) {
+  counts.set(card.cardCode, (counts.get(card.cardCode) || 0) + 1);
+}
+
+// build one update per unique cardCode
+const bulkOps = [];
+for (const [code, n] of counts.entries()) {
+  bulkOps.push({
+    updateOne: {
+      filter: { userId, cardCode: code },
+      update: {
+        $setOnInsert: { userId, cardCode: code, quantity: 0 },
+        $inc: { quantity: n }
+      },
+      upsert: true
     }
-    inv.markModified('cards');
-    await inv.save();
+  });
+}
+
+// execute all increments at once
+if (bulkOps.length) {
+  await InventoryItem.bulkWrite(bulkOps, { ordered: false });
+}
+
+// fetch updated quantities (once) so we can show totals
+const codes = Array.from(counts.keys());
+const updatedDocs = await InventoryItem.find(
+  { userId, cardCode: { $in: codes } },
+  { cardCode: 1, quantity: 1, _id: 0 }
+).lean();
+
+const qtyMap = Object.fromEntries(updatedDocs.map(d => [d.cardCode, d.quantity]));
+
+// build 10 display lines, in the same order as pulls
+const lines = pulls.map(card => {
+  const emoji = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji });
+  const total = qtyMap[card.cardCode];
+  return `${emoji} **${card.name}** \`${card.cardCode}\` (Total: **${total}**)`;
+});
 
     const embed = new EmbedBuilder()
       .setTitle('Special Pull Complete')
