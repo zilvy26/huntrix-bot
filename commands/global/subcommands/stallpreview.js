@@ -198,7 +198,7 @@ async function renderPreview(interaction, options) {
     // Compact list (no images), multiple items per page
     const lines = listings.map(l => {
       const stars = generateStars({ rarity: l.rarity, overrideEmoji: l.emoji });
-      return `**${stars} ${l.cardName}** \`${l.cardCode}\`\n**${l.price} <:ehx_patterns:1389584144895315978>** — \`${l.buyCode}\` — <@${l.sellerId}>`;
+      return `**${stars} ${l.cardName}** \`${l.cardCode}\`\n\n**${l.price} <:ehx_patterns:1389584144895315978>** — \`${l.buyCode}\` — <@${l.sellerId}>`;
     });
     embed.setDescription(lines.join('\n'));
   } else {
