@@ -10,6 +10,9 @@ const Card = require('../../models/Card');
 const InventoryItem = require('../../models/InventoryItem');
 const generateStars = require('../../utils/starGenerator');
 const { safeReply } = require('../../utils/safeReply');
+// commands/global/index.js — add this with the other imports at the top
+const IndexPrivacy = require('../../models/IndexPrivacy');
+
 
 function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -89,6 +92,28 @@ module.exports = {
       // exclude Customs/Test/Limited (case-insensitive)
       and.push({ era: { $not: /^(customs|test|limited)$/i } });
     }
+
+    // ---- PRIVACY ENFORCEMENT (hide other users’ private content) ----
+const isSelfView = user.id === interaction.user.id;
+if (!isSelfView) {
+  const priv = await IndexPrivacy.findOne({ userId: user.id }).lean();
+  if (priv?.hideAll) {
+    return interaction.editReply({ content: 'This user has set their index to private.' });
+  }
+  if (priv) {
+    const pushNin = (field, list) => {
+      if (!Array.isArray(list) || list.length === 0) return;
+      and.push({ [field]: { $nin: toRegexList(list) } });
+    };
+
+    // Adjust these field names if your Card schema uses different ones
+    pushNin('cardCode', priv.cards);
+    pushNin('group',    priv.groups);
+    pushNin('name',     priv.names);
+    pushNin('era',      priv.eras);
+  }
+}
+// ---- end privacy enforcement ----
 
     const cardQuery = and.length ? { $and: and } : {};
 

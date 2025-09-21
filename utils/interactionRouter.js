@@ -25,6 +25,7 @@ const generateStars = require('../utils/starGenerator');
 const { handleRefundButtons } = require('../utils/refundSession');
 const { REFUND_VALUES } = require('../commands/global/refund');
 const InventoryItem = require('../models/InventoryItem');
+const iprvView = require('../components/indexprivacy.view.handler');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -62,6 +63,9 @@ module.exports = async function interactionRouter(interaction) {
           console.warn('router deferUpdate failed:', err?.message || err);
         }
       }
+  // This will only catch customIds starting with 'iprv|'
+  await iprvView.handle(interaction);
+  return; // important: stop here so nothing else tries to handle it
     }
 
     // 1) /recommend moderation buttons first: rec:<action>:<submissionId>
@@ -652,6 +656,7 @@ if (interaction.customId?.startsWith('rehearsal_')) {
     return;
   }
 }
+
 /*** end: TEMPLATE PREVIEW PAGER ***/
 
 

@@ -47,15 +47,15 @@ function makeButtons(state) {
     )
   ];
 }
+
 /** Called by /refund after sending the preview */
-function registerRefundSession({ message, userId, items, includeSpecials, mode, perPage = 10 }) {
+function registerRefundSession({ message, userId, items, includeSpecials, perPage = 10 }) {
   sessions.set(message.id, {
     ownerId: userId,
     messageId: message.id,
     channelId: message.channelId,
-    items,
-    includeSpecials,
-    mode,
+    items,                // [{ cardCode, rarity, category, qty }]
+    includeSpecials,      // boolean
     page: 0,
     perPage,
     expiresAt: Date.now() + 30 * 60 * 1000
@@ -63,7 +63,7 @@ function registerRefundSession({ message, userId, items, includeSpecials, mode, 
 }
 
 /** Router helper: handle generic buttons for refund; returns true if handled */
-async function handleRefundButtons(interaction, { Card, User, UserInventory, REFUND_VALUES }) {
+async function handleRefundButtons(interaction, { Card, User, InventoryItem, REFUND_VALUES }) {
   if (!interaction.isButton?.()) return false;
 
   const msgId = interaction.message?.id;
@@ -100,7 +100,7 @@ async function handleRefundButtons(interaction, { Card, User, UserInventory, REF
   if (id === 'confirm_refund') {
     // compute totals + apply changes
     const codes = state.items.map(i => i.cardCode);
-    const cards = await Card.find({ cardCode: { $in: codes } });
+    const cards = await Card.find({ cardCode: { $in: codes } }).lean();
     const byCode = new Map(cards.map(c => [c.cardCode, c]));
 
     let total = 0;
@@ -114,13 +114,14 @@ async function handleRefundButtons(interaction, { Card, User, UserInventory, REF
       const isSpecial = card.rarity === 5 && ['event', 'zodiac', 'others'].includes(category);
       const isR5Main  = card.rarity === 5 && ['kpop', 'anime', 'game'].includes(category);
 
+      // R5 handling (unchanged logic from your original) :contentReference[oaicite:1]{index=1}
       let amount = 0;
       if (card.rarity === 5) {
         if (state.includeSpecials) {
           if (isSpecial) amount = 3750 * it.qty;
           else if (isR5Main) amount = 2500 * it.qty;
         } else {
-          continue; // skip R5 entirely
+          continue; // skip R5 entirely when specials are excluded
         }
       } else {
         amount = (REFUND_VALUES[card.rarity] || 0) * it.qty;
@@ -130,18 +131,19 @@ async function handleRefundButtons(interaction, { Card, User, UserInventory, REF
         total += amount;
         lines.push(`\`${card.cardCode}\` • R${card.rarity} ×${it.qty} → +${amount}`);
 
-        await UserInventory.updateOne(
-          { userId: state.ownerId, 'cards.cardCode': card.cardCode },
-          { $inc: { 'cards.$.quantity': -it.qty } }
+        // ✅ NEW: decrement per-item inventory with guard, then prune at 0
+        const dec = await InventoryItem.findOneAndUpdate(
+          { userId: state.ownerId, cardCode: card.cardCode, quantity: { $gte: it.qty } },
+          { $inc: { quantity: -it.qty } },
+          { new: true, projection: { quantity: 1 } }
         );
+        if (dec && (dec.quantity ?? 0) <= 0) {
+          await InventoryItem.deleteOne({ userId: state.ownerId, cardCode: card.cardCode });
+        }
       }
     }
 
-    await UserInventory.updateOne(
-      { userId: state.ownerId },
-      { $pull: { cards: { quantity: { $lte: 0 } } } }
-    );
-
+    // (Old code: $pull cards <= 0 & add patterns) :contentReference[oaicite:2]{index=2}
     if (total > 0) {
       await User.updateOne({ userId: state.ownerId }, { $inc: { patterns: total } });
     }
