@@ -24,6 +24,7 @@ const UserRecord = require('../models/UserRecord');
 const generateStars = require('../utils/starGenerator');
 const { handleRefundButtons } = require('../utils/refundSession');
 const { REFUND_VALUES } = require('../commands/global/refund');
+const InventoryItem = require('../models/InventoryItem');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -380,9 +381,6 @@ module.exports = async function interactionRouter(interaction) {
     }
 
     /* 🎵 Rehearsal pick buttons (kept) */
-const InventoryItem = require('../models/InventoryItem');
-const generateStars = require('../utils/starGenerator');
-
 // helper to disable all buttons on the message
 function disableAllComponents(msg) {
   const disabledRows = msg.components.map(row => {
@@ -726,14 +724,18 @@ if (interaction.customId?.startsWith('rehearsal_')) {
       }
 
       // Grant inventory
-      let inv = await UserInventory.findOne({ userId });
-      if (!inv) inv = await UserInventory.create({ userId, cards: [] });
-
-      const existing = inv.cards.find(c => c.cardCode === card.cardCode);
-      let copies = 1;
-      if (existing) { existing.quantity += 1; copies = existing.quantity; }
-      else { inv.cards.push({ cardCode: card.cardCode, quantity: 1 }); }
-      await inv.save();
+      const updated = await InventoryItem.findOneAndUpdate(
+        { userId: interaction.user.id, cardCode: card.cardCode },
+        { $inc: { quantity: 1 } },
+        {
+          upsert: true,
+          new: true,                 // return the post-update doc
+          setDefaultsOnInsert: true,
+          projection: { quantity: 1, _id: 0 }
+        }
+      );
+      
+      const copies = updated.quantity;
 
       await UserRecord.create({
         userId,
@@ -747,6 +749,8 @@ if (interaction.customId?.startsWith('rehearsal_')) {
         : (card.discordPermalinkImage || card.imgurImageLink);
       const files = card.localImagePath ? [new AttachmentBuilder(card.localImagePath, { name: `${card._id}.png` })] : [];
       const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji || '<:fullstar:1387609456824680528>' });
+      const showEraFor = new Set(['kpop', 'zodiac', 'event']);
+const cat = (card.category || '').toLowerCase();
 
       try {
         await interaction.followUp({
@@ -760,7 +764,7 @@ if (interaction.customId?.startsWith('rehearsal_')) {
                 '',
                 `**Group:** ${card.group}`,
                 `**Name:** ${card.name}`,
-                ...(card.category?.toLowerCase() === 'kpop' ? [`**Era:** ${card.era}`] : []),
+                ...(showEraFor.has(cat) && card.era ? [`**Era:** ${card.era}`] : []),
                 `**Code:** \`${card.cardCode}\``,
                 `**Copies:** ${copies}`
               ].join('\n'))
