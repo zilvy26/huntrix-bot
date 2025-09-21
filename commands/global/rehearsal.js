@@ -11,8 +11,9 @@ const cooldowns = require('../../utils/cooldownManager');
 const cooldownConfig = require('../../utils/cooldownConfig');
 const handleReminders = require('../../utils/reminderHandler');
 const Card = require('../../models/Card');
+const InventoryItem = require('../../models/InventoryItem'); // ✅ new
 const pickRarity = require('../../utils/rarityPicker');
-const {safeReply} = require('../../utils/safeReply'); // compat export
+const { safeReply } = require('../../utils/safeReply');
 const getRandomCardByRarity = require('../../utils/randomCardFromRarity');
 
 module.exports = {
@@ -20,41 +21,35 @@ module.exports = {
     .setName('rehearsal')
     .setDescription('Pick a rehearsal card and earn rare sopop!')
     .addBooleanOption(opt =>
-      opt.setName('reminder').setDescription('Remind when cooldown ends').setRequired(false))
+      opt.setName('reminder').setDescription('Remind when cooldown ends'))
     .addBooleanOption(opt =>
-      opt.setName('remindinchannel').setDescription('Remind in channel instead of DM').setRequired(false)),
+      opt.setName('remindinchannel').setDescription('Remind in channel instead of DM')),
 
   async execute(interaction) {
-    // Handler has already deferReply()'d for us — don't defer here
     const userId = interaction.user.id;
     const commandName = 'Rehearsal';
 
-    // Cooldown check (no set yet)
     const cooldownDuration = await cooldowns.getEffectiveCooldown(interaction, commandName);
-        if (await cooldowns.isOnCooldown(userId, commandName)) {
-          const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
-          return safeReply(interaction, { content: `You must wait ${nextTime} before using \`/Rehearsal\` again.` });
-        }
+    if (await cooldowns.isOnCooldown(userId, commandName)) {
+      const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
+      return safeReply(interaction, { content: `You must wait ${nextTime} before using \`/Rehearsal\` again.` });
+    }
 
-    // Start cooldown & schedule reminder AFTER the handler’s ACK
     await cooldowns.setCooldown(userId, commandName, cooldownDuration);
     await handleReminders(interaction, commandName, cooldownDuration);
 
-    // Pull 3 cards
-    
-    const rarities = await Promise.all(
-      Array.from({ length: 3 }, () => pickRarity())
-    );
-
-    const pulls = (await Promise.all(
-      rarities.map(async (rarity) => getRandomCardByRarity(rarity))
-    )).filter(Boolean);
-
-
+    // Pick 3 random rarities and cards
+    const rarities = await Promise.all(Array.from({ length: 3 }, () => pickRarity()));
+    const pulls = (await Promise.all(rarities.map(r => getRandomCardByRarity(r)))).filter(Boolean);
     if (pulls.length < 3) {
       return safeReply(interaction, { content: 'Not enough pullable cards in the database.' });
     }
-    
+
+    // 🟢 Preload owned counts
+    const codes = pulls.map(c => c.cardCode);
+    const items = await InventoryItem.find({ userId, cardCode: { $in: codes } }, { cardCode: 1, quantity: 1 }).lean();
+    const qtyMap = Object.fromEntries(items.map(i => [i.cardCode, i.quantity]));
+
     // Canvas
     const canvas = Canvas.createCanvas(600, 340);
     const ctx = canvas.getContext('2d');
@@ -63,24 +58,26 @@ module.exports = {
 
     for (let i = 0; i < pulls.length; i++) {
       const c = pulls[i];
-      if (!c.localImagePath) {
-        console.warn(`⚠️ No local image for card ${c.cardCode}`);
-        continue;
+      const cardX = i * 200 + 10;
+      const cardY = 10;
+
+      if (c.localImagePath) {
+        try {
+          const img = await Canvas.loadImage(c.localImagePath);
+          ctx.drawImage(img, cardX, cardY, 180, 240);
+        } catch (err) {
+          console.error(`❌ Failed to load image for ${c.cardCode}:`, err.message);
+        }
       }
-      try {
-        const img = await Canvas.loadImage(c.localImagePath);
-        const cardX = i * 200 + 10;
-        const cardY = 10;
-        ctx.drawImage(img, cardX, cardY, 180, 240);
-        let textY = cardY + 260;
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '10px Sans';
-        ctx.fillText(`Rarity: ${c.rarity}`, cardX, textY); textY += 18;
-        ctx.fillText(`Group: ${c.group}`, cardX, textY);  textY += 18;
-        ctx.fillText(`Code: ${c.cardCode}`, cardX, textY);
-      } catch (err) {
-        console.error(`❌ Failed to load local image for ${c.cardCode}:`, c.localImagePath, err.message);
-      }
+
+      let textY = cardY + 260;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px Sans';
+      ctx.fillText(`Rarity: ${c.rarity}`, cardX, textY); textY += 18;
+      ctx.fillText(`Group: ${c.group}`, cardX, textY);  textY += 18;
+      ctx.fillText(`Code: ${c.cardCode}`, cardX, textY); textY += 18;
+      const copies = qtyMap[c.cardCode] ?? 0;
+      ctx.fillText(`Copies: ${copies > 0 ? copies : 'Unowned'}`, cardX, textY);
     }
 
     const buffer = canvas.toBuffer();
@@ -100,10 +97,15 @@ module.exports = {
       )
     );
 
-    // Cache cards for your interactionRouter (unchanged)
-    interaction.client.cache ??= {};
-    interaction.client.cache.rehearsal ??= {};
-    interaction.client.cache.rehearsal[userId] = pulls;
+    const sent = await interaction.fetchReply();
+
+interaction.client.cache ??= {};
+interaction.client.cache.rehearsalSessions ??= {};
+interaction.client.cache.rehearsalSessions[sent.id] = {
+  userId: interaction.user.id,
+  pulls,          // the 3 cards
+  claimed: false  // << guard against multiple clicks
+};
 
     return safeReply(interaction, { embeds: [embed], files: [attachment], components: [row] });
   }

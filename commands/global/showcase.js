@@ -1,3 +1,4 @@
+// commands/global/showcase.js
 const {
   SlashCommandBuilder,
   EmbedBuilder,
@@ -7,9 +8,10 @@ const {
   ButtonStyle
 } = require('discord.js');
 const Card = require('../../models/Card');
-const UserInventory = require('../../models/UserInventory');
+// ⬇️ NEW: per-item inventory
+const InventoryItem = require('../../models/InventoryItem');
 const generateStars = require('../../utils/starGenerator');
-const {safeReply} = require('../../utils/safeReply');
+const { safeReply } = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -18,7 +20,8 @@ module.exports = {
     .addStringOption(opt =>
       opt.setName('cardcodes')
         .setDescription('Comma-separated card codes (e.g. ZB1-RKDR02,BTS-JK01)')
-        .setRequired(true)),
+        .setRequired(true)
+    ),
 
   async execute(interaction) {
     const rawInput = interaction.options.getString('cardcodes');
@@ -29,37 +32,45 @@ module.exports = {
       return safeReply(interaction, { content: 'You must provide at least one valid card code.' });
     }
 
-    const [cards, userInventory] = await Promise.all([
-      Card.find({ cardCode: { $in: codes } }),
-      UserInventory.findOne({ userId })
+    // Pull only requested cards + this user’s item rows for those codes
+    const [cards, items] = await Promise.all([
+      Card.find({ cardCode: { $in: codes } }).lean(),
+      InventoryItem.find(
+        { userId, cardCode: { $in: codes } },
+        { _id: 0, cardCode: 1, quantity: 1 }
+      ).lean()
     ]);
 
     if (!cards.length) {
       return safeReply(interaction, { content: 'No cards found for those codes.' });
     }
 
+    const qtyByCode = new Map(items.map(i => [i.cardCode, i.quantity]));
+    const showEraFor = new Set(['kpop', 'zodiac', 'event']);
+
     const showcaseItems = [];
 
     for (const card of cards) {
       const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji ?? undefined });
-      const owned = userInventory?.cards?.find(c => c.cardCode === card.cardCode);
-      const copies = owned?.quantity || 0;
+      const copies = qtyByCode.get(card.cardCode) || 0;
 
-      const showEraFor = new Set(['kpop', 'zodiac', 'event']);
-const cat = (card.category || '').toLowerCase();
-
+      const cat = (card.category || '').toLowerCase();
       const desc = [
         `**${stars}**`,
-        `**Name:** ${card.name}`,
-  ...(showEraFor.has(cat) && card.era ? [`**Era:** ${card.era}`] : []),
         `**Group:** ${card.group}`,
+        `**Name:** ${card.name}`,
+        ...(showEraFor.has(cat) && card.era ? [`**Era:** ${card.era}`] : []),
         `**Card Code:** \`${card.cardCode}\``,
         `**Copies Owned:** ${copies}`,
-        `**Designer(s):** ${Array.isArray(card.designerIds) ? card.designerIds.map(id => `<@${id}>`).join(', ') : (card.designerId ? `<@${card.designerId}>` : 'Unknown')}`
+        `**Designer(s):** ${
+          Array.isArray(card.designerIds)
+            ? card.designerIds.map(id => `<@${id}>`).join(', ')
+            : (card.designerId ? `<@${card.designerId}>` : 'Unknown')
+        }`
       ];
 
       const embed = new EmbedBuilder()
-        .setTitle(`Card Showcase`)
+        .setTitle('Card Showcase')
         .setDescription(desc.join('\n'))
         .setFooter({ text: `Pullable: ${card.pullable ? 'Yes' : 'No'}` })
         .setColor('#2f3136');
@@ -70,17 +81,19 @@ const cat = (card.category || '').toLowerCase();
         embed.setImage(`attachment://${card._id}.png`);
       }
 
-      showcaseItems.push({
-  embed,
-  attachment
-});
+      showcaseItems.push({ embed, attachment });
     }
 
+    // Buttons (fixed a small emoji name typo on "next")
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('show_first').setStyle(ButtonStyle.Secondary).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-      new ButtonBuilder().setCustomId('show_prev').setStyle(ButtonStyle.Primary).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
-      new ButtonBuilder().setCustomId('show_next').setStyle(ButtonStyle.Primary).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
-      new ButtonBuilder().setCustomId('show_last').setStyle(ButtonStyle.Secondary).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' })
+      new ButtonBuilder().setCustomId('show_first').setStyle(ButtonStyle.Secondary)
+        .setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new ButtonBuilder().setCustomId('show_prev').setStyle(ButtonStyle.Primary)
+        .setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new ButtonBuilder().setCustomId('show_next').setStyle(ButtonStyle.Primary)
+        .setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
+      new ButtonBuilder().setCustomId('show_last').setStyle(ButtonStyle.Secondary)
+        .setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' })
     );
 
     const first = showcaseItems[0];
@@ -91,6 +104,7 @@ const cat = (card.category || '').toLowerCase();
       files: first.attachment ? [first.attachment] : []
     });
 
+    // Cache the prepared pages for your button handler
     interaction.client.cache = interaction.client.cache || {};
     interaction.client.cache.showcase = interaction.client.cache.showcase || {};
     interaction.client.cache.showcase[userId] = showcaseItems;

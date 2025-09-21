@@ -332,7 +332,6 @@ module.exports = async function interactionRouter(interaction) {
     if (customId === 'select_template') {
       await autoDefer(interaction, 'update');
 
-      const UserRecord = require('../models/UserRecord');
       const templateOptions = require('../data/templateOptions');
       const userId = interaction.user.id;
 
@@ -370,74 +369,120 @@ module.exports = async function interactionRouter(interaction) {
     }
 
     /* 🎵 Rehearsal pick buttons (kept) */
-    if (customId?.startsWith('rehearsal')) {
-      const msg = await getSourceMessage(interaction);
-      if (!msg) {
-        return safeReply(interaction, { content: 'This interaction expired.', flags: 1 << 6 });
-      }
-      if (!isOwnerOfMessage(interaction)) {
-        return safeReply(interaction, { content: 'These buttons are not yours.', flags: 1 << 6 });
-      }
+const InventoryItem = require('../../models/InventoryItem');
+const generateStars = require('../../utils/starGenerator');
 
-      await autoDefer(interaction, 'update');
-
-      const index = parseInt(customId.split('_')[1], 10);
-      const userId = interaction.user.id;
-
-      const giveCurrency = require('../utils/giveCurrency');
-
-      const cards = interaction.client.cache?.rehearsal?.[userId];
-      if (!cards || cards.length < 3) {
-        return safeReply(interaction, { content: 'Rehearsal session not found or expired.', flags: 1 << 6 });
-      }
-      const selected = cards[index];
-      const sopop = Math.random() < 0.42 ? (Math.random() < 0.75 ? 1 : 2) : 0;
-      await giveCurrency(userId, { sopop });
-
-      let inv = await UserInventory.findOne({ userId });
-      if (!inv) inv = await UserInventory.create({ userId, cards: [] });
-
-      const existing = inv.cards.find(c => c.cardCode === selected.cardCode);
-      let copies = 1;
-      if (existing) { existing.quantity += 1; copies = existing.quantity; }
-      else { inv.cards.push({ cardCode: selected.cardCode, quantity: 1 }); }
-      await inv.save();
-
-      await UserRecord.create({
-        userId,
-        type: 'rehearsal',
-        detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
-      });
-
-      const imageSource = selected.localImagePath
-        ? `attachment://${selected._id || 'preview'}.png`
-        : selected.discordPermalinkImage || selected.imgurImageLink;
-
-      const resultEmbed = new EmbedBuilder()
-        .setTitle(`You chose: ${selected.name}`)
-        .setDescription([
-          `**Rarity:** ${selected.rarity}`,
-          `**Name:** ${selected.name}`,
-          ...(selected.category?.toLowerCase() === 'kpop' ? [`**Era:** ${selected.era}`] : []),
-          `**Group:** ${selected.group}`,
-          `**Code:** \`${selected.cardCode}\``,
-          `**Copies Owned:** ${copies}`,
-          `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
-        ].join('\n'))
-        .setImage(imageSource)
-        .setColor('#FFD700');
-
-      const imageAttachment = selected.localImagePath
-        ? new AttachmentBuilder(selected.localImagePath, { name: `${selected._id || 'preview'}.png` })
-        : null;
-
-      await interaction.editReply({
-        embeds: [resultEmbed],
-        components: [],
-        files: imageAttachment ? [imageAttachment] : [],
-      });
-      return;
+// helper to disable all buttons on the message
+function disableAllComponents(msg) {
+  const disabledRows = msg.components.map(row => {
+    const r = new ActionRowBuilder();
+    for (const comp of row.components) {
+      r.addComponents(
+        ButtonBuilder.from(comp).setDisabled(true)
+      );
     }
+    return r;
+  });
+  return disabledRows;
+}
+
+if (interaction.customId?.startsWith('rehearsal_')) {
+  // Ensure we ack quickly to beat double-click spam
+  try { await interaction.deferUpdate(); } catch {}
+
+  const msg = interaction.message;               // the original message with buttons
+  const msgId = msg.id;
+  const index = Number(interaction.customId.split('_')[1] || 0);
+
+  // session lookup
+  const sessions = interaction.client.cache?.rehearsalSessions || {};
+  const session = sessions[msgId];
+  if (!session) {
+    return interaction.followUp({ content: 'This rehearsal session has expired.', flags: 1 << 6 }).catch(()=>{});
+  }
+
+  // only the original user can click
+  if (interaction.user.id !== session.userId) {
+    return interaction.followUp({ content: 'These buttons are not yours.', flags: 1 << 6 }).catch(()=>{});
+  }
+
+  // ❗ single-click guard (in-memory)
+  if (session.claimed) {
+    // If someone managed to click again, just let them know
+    return interaction.followUp({ content: 'You already chose a card for this session.', flags: 1 << 6 }).catch(()=>{});
+  }
+  // Flip the flag immediately to block any more clicks in this process
+  session.claimed = true;
+
+  // Immediately disable buttons on the message (UX + reduces race)
+  try {
+    await interaction.editReply({ components: disableAllComponents(msg) });
+  } catch {}
+
+  // OPTIONAL (cross-process safety): DB lock (shown below in section C)
+  // if (!(await claimRehearsalOnce(msgId, session.userId))) {
+  //   return interaction.followUp({ content: 'Already claimed.', ephemeral: true }).catch(()=>{});
+  // }
+
+  // proceed with reward & inventory
+  const selected = session.pulls[index] || session.pulls[0];
+  const sopop = Math.random() < 0.42 ? (Math.random() < 0.75 ? 1 : 2) : 0;
+
+  // give currency (your existing helper)
+  const giveCurrency = require('../../utils/giveCurrency');
+  await giveCurrency(session.userId, { sopop });
+
+  // inventory +1 (atomic upsert)
+  const updated = await InventoryItem.findOneAndUpdate(
+    { userId: session.userId, cardCode: selected.cardCode },
+    { $setOnInsert: { userId: session.userId, cardCode: selected.cardCode }, $inc: { quantity: 1 } },
+    { upsert: true, new: true, projection: { quantity: 1, _id: 0 } }
+  );
+  const copies = updated.quantity;
+
+  await UserRecord.create({
+    userId: session.userId,
+    type: 'rehearsal',
+    detail: `Chose ${selected.name} (${selected.cardCode}) [${selected.rarity}]`
+  });
+
+  // Build result embed
+  const imageAttachment = selected.localImagePath
+    ? new AttachmentBuilder(selected.localImagePath, { name: `${selected._id || 'preview'}.png` })
+    : null;
+
+  const imageSource = selected.localImagePath
+    ? `attachment://${selected._id || 'preview'}.png`
+    : (selected.discordPermalinkImage || selected.imgurImageLink);
+
+  const showEraFor = new Set(['kpop', 'zodiac', 'event']);
+  const stars = generateStars({ rarity: selected.rarity, overrideEmoji: selected.emoji ?? undefined });
+
+  const result = new EmbedBuilder()
+    .setTitle(`You chose: ${selected.name}`)
+    .setDescription([
+      `**${stars}**`,
+      `**Group:** ${selected.group}`,
+      ...(showEraFor.has((selected.category || '').toLowerCase()) && selected.era ? [`**Era:** ${selected.era}`] : []),
+      `**Code:** \`${selected.cardCode}\``,
+      `**Copies Owned:** ${copies > 0 ? copies : 'Unowned'}`,
+      `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
+    ].join('\n'))
+    .setColor('#FFD700');
+
+  if (imageSource) result.setImage(imageSource);
+
+  // Finalize message (embed + keep components disabled)
+  await interaction.editReply({
+    embeds: [result],
+    components: disableAllComponents(msg),
+    files: imageAttachment ? [imageAttachment] : []
+  });
+
+  // cleanup memory so later clicks say "expired"
+  delete interaction.client.cache.rehearsalSessions[msgId];
+}
+
 
     /* 📇 Index pager (kept) */
     interaction.client.cache ??= {};
