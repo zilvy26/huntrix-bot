@@ -1,9 +1,11 @@
+// commands/global/redeem.js
 const { SlashCommandBuilder } = require('discord.js');
 const RedeemCode = require('../../models/RedeemCode');
 const Card = require('../../models/Card');
 const User = require('../../models/User');
-const UserInventory = require('../../models/UserInventory');
-const {safeReply} = require('../../utils/safeReply');
+// ⬇️ NEW: per-item inventory
+const InventoryItem = require('../../models/InventoryItem');
+const { safeReply } = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -19,16 +21,24 @@ module.exports = {
 
   async execute(interaction) {
     const userId = interaction.user.id;
-    const codeInput = interaction.options.getString('code').trim().toUpperCase();
-    const selectedCardInput = interaction.options.getString('cardcode')?.trim().toUpperCase();
+    const codeInput = (interaction.options.getString('code') || '').trim().toUpperCase();
+    const selectedCardInput = (interaction.options.getString('cardcode') || '').trim().toUpperCase() || null;
 
     const code = await RedeemCode.findOne({ code: codeInput });
     if (!code) return safeReply(interaction, { content: '❌ Invalid code.' });
-    if (code.expiresAt && code.expiresAt < new Date()) return safeReply(interaction, { content: '⚠️ This code has expired.' });
-    if (code.maxUses && code.usedBy.length >= code.maxUses) return safeReply(interaction, { content: '⚠️ This code has reached its usage limit.' });
-    if (code.usedBy.includes(userId)) return safeReply(interaction, { content: '⚠️ You already used this code.' });
 
-    // Handle currency rewards
+    const now = new Date();
+    if (code.expiresAt && code.expiresAt < now) {
+      return safeReply(interaction, { content: '⚠️ This code has expired.' });
+    }
+    if (code.maxUses && code.usedBy.length >= code.maxUses) {
+      return safeReply(interaction, { content: '⚠️ This code has reached its usage limit.' });
+    }
+    if (code.usedBy.includes(userId)) {
+      return safeReply(interaction, { content: '⚠️ You already used this code.' });
+    }
+
+    // --- Currency rewards (unchanged)
     if (code.reward && (code.reward.patterns || code.reward.sopop)) {
       await User.findOneAndUpdate(
         { userId },
@@ -42,54 +52,67 @@ module.exports = {
       );
     }
 
-    // Static card reward
+    // --- Static single-card reward (NEW: InventoryItem upsert +1)
     if (code.cardCode) {
-      const cardCode = code.cardCode;
-      const inv = await UserInventory.findOneAndUpdate(
-        { userId },
-        { $inc: { 'cards.$[el].quantity': 1 } },
-        { arrayFilters: [{ 'el.cardCode': cardCode }], new: true }
+      const cardCode = String(code.cardCode).trim().toUpperCase();
+      await InventoryItem.findOneAndUpdate(
+        { userId, cardCode },
+        { $setOnInsert: { userId, cardCode }, $inc: { quantity: 1 } },
+        { upsert: true, new: false }
       );
-      if (!inv || !inv.cards.some(c => c.cardCode === cardCode)) {
-        await UserInventory.findOneAndUpdate(
-          { userId },
-          { $push: { cards: { cardCode, quantity: 1 } } },
-          { upsert: true }
-        );
-      }
     }
 
-    // Handle manual card choice
+    // --- Manual card choice path (NEW: InventoryItem upsert +1)
     if (code.allowCardChoice) {
       if (!selectedCardInput) {
-        return safeReply(interaction, { content: 'This code requires you to manually specify a valid card code using `/redeem code:<code> cardcode:<yourCard>`.' });
+        return safeReply(interaction, {
+          content: 'This code requires you to specify a card: `/redeem code:<code> cardcode:<yourCard>`.'
+        });
       }
 
-      const validCard = await Card.findOne({ cardCode: selectedCardInput, category: { $ne: 'others' } });
+      // Only allow real, redeemable cards
+      const validCard = await Card.findOne({
+        cardCode: selectedCardInput,
+        category: { $ne: 'others' }
+      }).lean();
+
       if (!validCard) {
         return safeReply(interaction, { content: 'Invalid card code or not redeemable.' });
       }
 
-      const inv = await UserInventory.findOneAndUpdate(
-        { userId },
-        { $inc: { 'cards.$[el].quantity': 1 } },
-        { arrayFilters: [{ 'el.cardCode': selectedCardInput }], new: true }
-      );
-      if (!inv || !inv.cards.some(c => c.cardCode === selectedCardInput)) {
-        await UserInventory.findOneAndUpdate(
-          { userId },
-          { $push: { cards: { cardCode: selectedCardInput, quantity: 1 } } },
-          { upsert: true }
-        );
-      }
+      // 🔒 Hardcoded exclusions (case-insensitive)
+const excludedCards = [];
+const excludedGroups = [];
+const excludedNames = [];
+const excludedEras = ['PC25', 'How It\'s Done'];
 
+if (
+  excludedCards.includes(validCard.cardCode.toLowerCase()) ||
+  excludedGroups.includes((validCard.group || '').toLowerCase()) ||
+  excludedNames.includes((validCard.name || '').toLowerCase()) ||
+  excludedEras.includes((validCard.era || '').toLowerCase())
+) {
+  return safeReply(interaction, { content: 'That card is not redeemable.' });
+}
+
+      // +1 copy to inventory (atomic)
+      const updated = await InventoryItem.findOneAndUpdate(
+        { userId, cardCode: selectedCardInput },
+        { $setOnInsert: { userId, cardCode: selectedCardInput }, $inc: { quantity: 1 } },
+        { upsert: true, new: true, projection: { quantity: 1, _id: 0 } }
+      );
+
+      // Mark usage and finish
       code.usedBy.push(userId);
       await code.save();
 
-      return safeReply(interaction, { content: `Redeemed and received card **${selectedCardInput}**!` });
+      const total = updated?.quantity ?? 1;
+      return safeReply(interaction, {
+        content: `Redeemed and received **${selectedCardInput}**! (Total copies: **${total}**)`
+      });
     }
 
-    // Track usage
+    // --- Track usage for non-choice codes
     code.usedBy.push(userId);
     await code.save();
 
@@ -97,9 +120,9 @@ module.exports = {
       `Redeemed **${code.code}**!`,
       code.reward?.patterns ? `• ${code.reward.patterns} Patterns` : null,
       code.reward?.sopop ? `• ${code.reward.sopop} Sopop` : null,
-      code.cardCode ? `• Card Code: ${code.cardCode}` : null
+      code.cardCode ? `• Card Code: ${String(code.cardCode).trim().toUpperCase()}` : null
     ].filter(Boolean).join('\n');
 
-    return safeReply(interaction, { content: summary });
+    return safeReply(interaction, { content: summary || 'Redeemed successfully.' });
   }
 };
