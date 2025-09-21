@@ -45,10 +45,13 @@ module.exports = {
       const owned = userInventory?.cards?.find(c => c.cardCode === card.cardCode);
       const copies = owned?.quantity || 0;
 
+      const showEraFor = new Set(['kpop', 'zodiac', 'event']);
+const cat = (card.category || '').toLowerCase();
+
       const desc = [
         `**${stars}**`,
         `**Name:** ${card.name}`,
-        ...(card.category?.toLowerCase() === 'kpop' ? [`**Era:** ${card.era}`] : []),
+  ...(showEraFor.has(cat) && card.era ? [`**Era:** ${card.era}`] : []),
         `**Group:** ${card.group}`,
         `**Card Code:** \`${card.cardCode}\``,
         `**Copies Owned:** ${copies}`,
