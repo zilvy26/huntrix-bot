@@ -369,8 +369,8 @@ module.exports = async function interactionRouter(interaction) {
     }
 
     /* 🎵 Rehearsal pick buttons (kept) */
-const InventoryItem = require('../../models/InventoryItem');
-const generateStars = require('../../utils/starGenerator');
+const InventoryItem = require('../models/InventoryItem');
+const generateStars = require('../utils/starGenerator');
 
 // helper to disable all buttons on the message
 function disableAllComponents(msg) {
