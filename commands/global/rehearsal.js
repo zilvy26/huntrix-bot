@@ -49,7 +49,7 @@ module.exports = {
       } catch (e) { console.warn('rehearsal img fail', c.cardCode, e.message); }
       ctx.fillStyle = '#fff'; ctx.font = '9px Sans';
       let ty = y + ch + 18;
-      ctx.fillText(`Rarity: ${c.rarity}`, x, y + ch + 14);
+      ctx.fillText(`Rarity: ${c.rarity}`, x, y + ch + 18);
       ctx.fillText(`Group: ${c.group}`, x, ty); ty += 18;
       ctx.fillText(`Code: ${c.cardCode}`, x, ty); ty += 18;
       const n = qty[c.cardCode] ?? 0;
