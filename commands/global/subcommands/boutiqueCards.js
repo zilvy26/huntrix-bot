@@ -264,13 +264,14 @@ if (shopType !== 'choice10' && filtersUsed) {
     new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
     new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
     new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+    new ButtonBuilder().setCustomId('copy').setLabel('Copy Codes').setStyle(ButtonStyle.Success)
   );
 
   await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
 
   // --- Pagination loop (unchanged) ---
   while (true) {
-    const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
+    const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last', 'copy'], 120000);
     if (!btn) break;
 
     if (!btn.deferred && !btn.replied) {
@@ -281,6 +282,16 @@ if (shopType !== 'choice10' && filtersUsed) {
     if (btn.customId === 'prev')  current = Math.max(0, current - 1);
     if (btn.customId === 'next')  current = Math.min(totalPages - 1, current + 1);
     if (btn.customId === 'last')  current = totalPages - 1;
+    if (btn.customId === 'copy') {
+        const slice = session.entries.slice(page * perPage, page * perPage + perPage);
+        const codes = slice.map(c => c.cardCode === g.card.cardCode).join(', ');
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+        } else {
+          await interaction.followUp({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+        }
+        return;
+      }
 
     await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
   }

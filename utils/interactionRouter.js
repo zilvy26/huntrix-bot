@@ -275,7 +275,7 @@ module.exports = async function interactionRouter(interaction) {
     }
 
     /* Universal simple pager (kept) */
-    const navPattern = /^(first|prev|next|last)$/;
+    const navPattern = /^(first|prev|next|last|copy)$/;
     if (navPattern.test(customId || '')) {
       const pageData = interaction.message.embeds?.[0]?.footer?.text?.match(/Page (\d+)\/(\d+)/);
       if (!pageData) return;
@@ -285,6 +285,17 @@ module.exports = async function interactionRouter(interaction) {
       if (customId === 'prev') currentPage = Math.max(1, currentPage - 1);
       if (customId === 'next') currentPage = Math.min(totalPages, currentPage + 1);
       if (customId === 'last') currentPage = totalPages;
+
+      if (customId === 'copy') {
+        const slice = session.entries.slice(page * perPage, page * perPage + perPage);
+        const codes = slice.map(c => c.cardCode).join(', ');
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+        } else {
+          await interaction.followUp({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+        }
+        return;
+      }
 
       const updatedEmbed = JSON.parse(JSON.stringify(interaction.message.embeds[0]));
       updatedEmbed.footer.text = `Page ${currentPage}/${totalPages}`;
