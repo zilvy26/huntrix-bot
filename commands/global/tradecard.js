@@ -1,3 +1,4 @@
+// commands/global/tradecard.js
 const {
   SlashCommandBuilder,
   EmbedBuilder,
@@ -7,11 +8,11 @@ const {
 } = require('discord.js');
 
 const Card = require('../../models/Card');
-const UserInventory = require('../../models/UserInventory');
+const InventoryItem = require('../../models/InventoryItem'); // ✅ new (replaces UserInventory)
 const UserRecord = require('../../models/UserRecord');
 const generateStars = require('../../utils/starGenerator');
 const awaitUserButton = require('../../utils/awaitUserButton');
-const {safeReply} = require('../../utils/safeReply');
+const { safeReply } = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -24,11 +25,10 @@ module.exports = {
     .addStringOption(opt =>
       opt.setName('cardcodes')
         .setDescription('Comma-separated card codes like CODE1+2, CODE2')
-        .setRequired(true)),
+        .setRequired(true)
+    ),
 
   async execute(interaction) {
-
-
     const giver = interaction.user;
     const receiver = interaction.options.getUser('user');
     const rawCodes = interaction.options.getString('cardcodes');
@@ -37,67 +37,75 @@ module.exports = {
       return safeReply(interaction, { content: 'You cannot trade cards to yourself or bots.' });
     }
 
+    // Parse "CODE" or "CODE+N"
     const counts = {};
-const inputCodes = rawCodes.trim().split(/[\s,]+/); // however you split codes
-
-for (const code of inputCodes) {
-  const match = code.match(/^(.+?)(?:\+(\d+))?$/i); // match "CODE" or "CODE+2"
-  if (!match) continue;
-
-  const cardCode = match[1].toUpperCase();
-  const quantity = match[2] ? parseInt(match[2]) : 1;
-
-  counts[cardCode] = (counts[cardCode] || 0) + quantity;
-}
-
-
-
-    const uniqueCodes = Object.keys(counts);
-    const cards = await Card.find({ cardCode: { $in: uniqueCodes } });
-    if (!cards.length || cards.length !== uniqueCodes.length) {
-    const foundCodes = new Set(cards.map(c => c.cardCode));
-    const missing = uniqueCodes.filter(code => !foundCodes.has(code));
-  return safeReply(interaction, { content: `These codes are invalid or not found: ${missing.join(', ')}` });
+    const inputCodes = rawCodes.trim().split(/[\s,]+/);
+    for (const token of inputCodes) {
+      const m = token.match(/^(.+?)(?:\+(\d+))?$/i);
+      if (!m) continue;
+      const cardCode = m[1].toUpperCase().trim();
+      const qty = m[2] ? parseInt(m[2], 10) : 1;
+      if (!cardCode || isNaN(qty) || qty <= 0) continue;
+      counts[cardCode] = (counts[cardCode] || 0) + qty;
     }
 
-    const giverInv = await UserInventory.findOne({ userId: giver.id });
-    if (!giverInv) return safeReply(interaction, { content: 'You have no cards to trade.' });
-    
+    const uniqueCodes = Object.keys(counts);
+    if (!uniqueCodes.length) {
+      return safeReply(interaction, { content: 'No valid card codes were provided.' });
+    }
 
+    // Validate codes exist
+    const cards = await Card.find({ cardCode: { $in: uniqueCodes } }).lean();
+    const foundCodes = new Set(cards.map(c => c.cardCode));
+    const missing = uniqueCodes.filter(code => !foundCodes.has(code));
+    if (missing.length) {
+      return safeReply(interaction, { content: `These codes are invalid or not found: ${missing.join(', ')}` });
+    }
 
-    let receiverInv = await UserInventory.findOne({ userId: receiver.id });
-    if (!receiverInv) receiverInv = await UserInventory.create({ userId: receiver.id, cards: [] });
+    // Load giver quantities for the requested codes
+    const giverRows = await InventoryItem.find(
+      { userId: giver.id, cardCode: { $in: uniqueCodes } },
+      { cardCode: 1, quantity: 1, _id: 0 }
+    ).lean();
+    const giverQtyMap = Object.fromEntries(giverRows.map(r => [r.cardCode, r.quantity]));
 
     const traded = [];
     let totalSouls = 0;
     let totalCards = 0;
 
+    // Process each requested card code
     for (const card of cards) {
-  const qty = counts[card.cardCode];
-  const entry = giverInv.cards.find(c =>
-    c.cardCode.toUpperCase().trim() === card.cardCode
-  );
-  
-
-  if (!entry || entry.quantity < qty) {
-    continue;
-  }
-
-      entry.quantity -= qty;
-      if (entry.quantity === 0) {
-        giverInv.cards = giverInv.cards.filter(c => c.cardCode !== card.cardCode);
+      const need = counts[card.cardCode];
+      const have = giverQtyMap[card.cardCode] || 0;
+      if (have < need) {
+        // skip; not enough copies to give
+        continue;
       }
 
-      const existing = receiverInv.cards.find(c => c.cardCode === card.cardCode);
-      if (existing) existing.quantity += qty;
-      else receiverInv.cards.push({ cardCode: card.cardCode, quantity: qty });
-      const newQty = receiverInv.cards.find(c => c.cardCode === card.cardCode).quantity;
+      // 1) Decrement giver with guard (won't go negative)
+      const dec = await InventoryItem.findOneAndUpdate(
+        { userId: giver.id, cardCode: card.cardCode, quantity: { $gte: need } },
+        { $inc: { quantity: -need } },
+        { new: true, projection: { quantity: 1 } }
+      );
+      if (!dec) {
+        // Another concurrent action may have consumed copies—skip this one
+        continue;
+      }
+      if ((dec.quantity ?? 0) <= 0) {
+        await InventoryItem.deleteOne({ userId: giver.id, cardCode: card.cardCode });
+      }
 
-      traded.push({ card, qty, total: newQty });
-      totalSouls += card.rarity * qty;
-      totalCards += qty;
+      // 2) Increment receiver (upsert)
+      const inc = await InventoryItem.findOneAndUpdate(
+        { userId: receiver.id, cardCode: card.cardCode },
+        { $setOnInsert: { userId: receiver.id, cardCode: card.cardCode }, $inc: { quantity: need } },
+        { upsert: true, new: true, projection: { quantity: 1, _id: 0 } }
+      );
+      const newQty = inc?.quantity ?? need;
 
-      for (let i = 0; i < qty; i++) {
+      // 3) Audit logs (one per copy to match your old behavior)
+      for (let i = 0; i < need; i++) {
         await UserRecord.create({
           userId: receiver.id,
           type: 'tradecard',
@@ -111,16 +119,17 @@ for (const code of inputCodes) {
           detail: `Gave ${card.name} (${card.cardCode}) [${card.rarity}] to <@${receiver.id}>`
         });
       }
-    }
 
-    await giverInv.save();
-    await receiverInv.save();
+      traded.push({ card, qty: need, total: newQty });
+      totalSouls += card.rarity * need;
+      totalCards += need;
+    }
 
     if (!traded.length) {
-      return safeReply(interaction, { content: 'No cards were successfully traded.' });
+      return safeReply(interaction, { content: 'No cards were successfully traded (not enough copies?).' });
     }
 
-    // Pagination Setup
+    // Pagination
     const perPage = 5;
     const pages = Math.ceil(traded.length / perPage);
     let current = 0;
@@ -141,46 +150,48 @@ for (const code of inputCodes) {
     };
 
     const renderRow = () => new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-      new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
-      new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= pages - 1).setEmoji({ id: '1390462706544410704', name: ':ehx_rightarrow' }),
-      new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= pages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+      new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0)
+        .setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0)
+        .setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= pages - 1)
+        .setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
+      new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= pages - 1)
+        .setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
     );
 
-    // 1. Send the embed page without a mention first
-await safeReply(interaction, {
-  embeds: [renderEmbed(current)],
-  components: [renderRow()]
-});
+    // 1) Send the embed page
+    await safeReply(interaction, {
+      embeds: [renderEmbed(current)],
+      components: [renderRow()]
+    });
 
-// 2. Immediately send the ping in a separate message to trigger Mentions tab
-await interaction.followUp({
-  content: `Card trade sent to <@${receiver.id}>!`,
-  allowedMentions: { users: [receiver.id] }
-});
+    // 2) Ping the receiver (separate msg so it hits Mentions)
+    await interaction.followUp({
+      content: `Card trade sent to <@${receiver.id}>!`,
+      allowedMentions: { users: [receiver.id] }
+    });
 
+    // Pagination loop
     while (true) {
-          const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
-          if (!btn) break;
-    
-          // Ack the component to avoid red "failed" banner
-          if (!btn.deferred && !btn.replied) {
-            try { await btn.deferUpdate(); } catch {}
-          }
-    
-          if (btn.customId === 'first') current = 0;
-          if (btn.customId === 'prev') current = Math.max(0, current - 1);
-          if (btn.customId === 'next') current = Math.min(pages - 1, current + 1);
-          if (btn.customId === 'last') current = pages - 1;
-    
-          await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
-        }
-    
-        // Cleanup components when collector ends or timeout
-        try {
-          await interaction.editReply({ components: [] });
-        } catch (err) {
-          console.warn('Pagination cleanup failed:', err.message);
-        }
+      const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last'], 120000);
+      if (!btn) break;
+
+      if (!btn.deferred && !btn.replied) {
+        try { await btn.deferUpdate(); } catch {}
       }
-    };
+
+      if (btn.customId === 'first') current = 0;
+      if (btn.customId === 'prev') current = Math.max(0, current - 1);
+      if (btn.customId === 'next') current = Math.min(pages - 1, current + 1);
+      if (btn.customId === 'last') current = pages - 1;
+
+      await interaction.editReply({ embeds: [renderEmbed(current)], components: [renderRow()] });
+    }
+
+    // Cleanup
+    try { await interaction.editReply({ components: [] }); } catch (err) {
+      console.warn('Pagination cleanup failed:', err.message);
+    }
+  }
+};

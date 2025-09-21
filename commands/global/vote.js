@@ -1,20 +1,20 @@
-const {safeReply} = require('../../utils/safeReply');
+// commands/global/vote.js
+const { safeReply } = require('../../utils/safeReply');
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const cooldowns = require('../../utils/cooldownManager');
-const cooldownConfig = require('../../utils/cooldownConfig');
+const cooldownConfig = require('../../utils/cooldownConfig'); // if you use it elsewhere
 const handleReminders = require('../../utils/reminderHandler');
 const pickRarity = require('../../utils/rarityPicker');
 const getRandomCardByRarity = require('../../utils/randomCardFromRarity');
 const generateStars = require('../../utils/starGenerator');
 const giveCurrency = require('../../utils/giveCurrency');
-const UserInventory = require('../../models/UserInventory');
+const InventoryItem = require('../../models/InventoryItem');             // ✅ NEW
 const UserRecord = require('../../models/UserRecord');
 const topgg = require('../../topgg'); // your top.gg setup
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
 function shouldDropSopop() {
   return Math.random() < 0.46;
 }
@@ -34,37 +34,33 @@ module.exports = {
     const cooldownMs = await cooldowns.getEffectiveCooldown(interaction, commandName);
     const voteLink = `https://top.gg/bot/${interaction.client.user.id}/vote`;
 
+    // Cooldown gate
     if (await cooldowns.isOnCooldown(userId, commandName)) {
-          const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
-          return safeReply(interaction, {
-            content: `You can vote again **${nextTime}**`,
-          });
-        }
-
+      const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
+      return safeReply(interaction, { content: `You can vote again **${nextTime}**` });
+    }
+    // Check top.gg
     let hasVoted = false;
     try {
       hasVoted = await topgg.hasVoted(userId);
     } catch (err) {
       console.warn('Top.gg API error:', err.message);
     }
-
     if (!hasVoted) {
       return safeReply(interaction, {
-        content: `You haven’t voted yet!\n [Click here to vote](${voteLink})`,
+        content: `You haven’t voted yet!\n[Click here to vote](${voteLink})`,
         ephemeral: true
       });
     }
 
+    // Set cooldown & optional reminder
     await cooldowns.setCooldown(userId, commandName, cooldownMs);
     await handleReminders(interaction, commandName, cooldownMs);
-    const inventory = await UserInventory.findOneAndUpdate(
-      { userId },
-      { $setOnInsert: { userId, cards: [] } },
-      { upsert: true, new: true }
-    );
 
+    // Pull 3 cards
+    const showEraFor = new Set(['kpop', 'zodiac', 'event']);
     const cardLines = [];
-    const pulledCards = [];
+    const pulled = []; // keep Card docs for inventory ops + logging
 
     for (let i = 0; i < 3; i++) {
       const rarity = await pickRarity();
@@ -75,27 +71,42 @@ module.exports = {
         rarity: card.rarity,
         overrideEmoji: card.emoji || '<:fullstar:1387609456824680528>'
       });
+      const eraLine = showEraFor.has((card.category || '').toLowerCase()) && card.era
+        ? `\n• Era: ${card.era}`
+        : '';
 
-      cardLines.push([
-        `${stars} **${card.name}**`,
-        `• Group: ${card.group}`,
-        ...(card.category?.toLowerCase() === 'kpop' ? [`• Era: ${card.era}`] : []),
+      cardLines.push(
+        `${stars} **${card.name}**\n` +
+        `• Group: ${card.group}${eraLine}\n` +
         `• Code: \`${card.cardCode}\``
-      ].join('\n'));
+      );
 
-      pulledCards.push(`${card.name} (${card.cardCode})`);
-
-      const existing = inventory.cards.find(c => c.cardCode === card.cardCode);
-      if (existing) existing.quantity += 1;
-      else inventory.cards.push({ cardCode: card.cardCode, quantity: 1 });
+      pulled.push(card);
     }
 
-    await inventory.save();
+    if (!pulled.length) {
+      return safeReply(interaction, { content: 'No cards could be pulled at this time.' });
+    }
 
+    // ✅ Inventory write (InventoryItem): bulk upsert the 3 cards
+    const counts = {};
+    for (const c of pulled) counts[c.cardCode] = (counts[c.cardCode] || 0) + 1;
+
+    const ops = Object.entries(counts).map(([code, n]) => ({
+      updateOne: {
+        filter: { userId, cardCode: code },
+        update: { $setOnInsert: { userId, cardCode: code }, $inc: { quantity: n } },
+        upsert: true
+      }
+    }));
+    if (ops.length) await InventoryItem.bulkWrite(ops, { ordered: false });
+
+    // Currency rewards
     const patterns = getRandomInt(2385, 2585);
     const sopop = shouldDropSopop() ? 2 : 1;
     const user = await giveCurrency(userId, { patterns, sopop });
 
+    // Embeds
     const embeds = [
       new EmbedBuilder()
         .setTitle('You received 3 cards for voting!')
@@ -113,6 +124,7 @@ module.exports = {
         .setColor('#f9a825')
     ];
 
+    // Audit
     await UserRecord.create({
       userId,
       type: 'vote',
