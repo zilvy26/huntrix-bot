@@ -56,27 +56,40 @@ module.exports = {
     const qty = Object.fromEntries(items.map(i => [i.cardCode, i.quantity]));
 
     // canvas
-    const W = 600, H = 340, cw = 180, ch = 240, pad = 10;
-    const canvas = Canvas.createCanvas(W, H);
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#2f3136'; ctx.fillRect(0, 0, W, H);
-    for (let i = 0; i < pulls.length; i++) {
-      const c = pulls[i];
-      const x = i * (cw + pad) + pad, y = pad;
-      try {
-        if (c.localImagePath) {
-          const img = await Canvas.loadImage(c.localImagePath);
-          ctx.drawImage(img, x, y, cw, ch);
-        }
-      } catch (e) { console.warn('rehearsal img fail', c.cardCode, e.message); }
-      ctx.fillStyle = '#fff'; ctx.font = '9px Sans';
-      let ty = y + 260;
-      ctx.fillText(`Rarity: ${c.rarity}`, x, y); y += 18;
-      ctx.fillText(`Group: ${c.group}`, x, ty); ty += 18;
-      ctx.fillText(`Code: ${c.cardCode}`, x, ty); ty += 18;
-      const n = qty[c.cardCode] ?? 0;
-      ctx.fillText(`Copies: ${n > 0 ? n : 'Unowned'}`, x, ty);
+    const canvas = Canvas.createCanvas(600, 340);
+const ctx = canvas.getContext('2d');
+ctx.fillStyle = '#2f3136';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+for (let i = 0; i < pulls.length; i++) {
+  const c = pulls[i];
+  const cardX = i * 200 + 10;  // (180 width + 20 gutter)
+  const cardY = 10;
+
+  // Try to draw the image, but never bail out of the loop if it fails
+  if (c.localImagePath) {
+    try {
+      const img = await Canvas.loadImage(c.localImagePath);
+      ctx.drawImage(img, cardX, cardY, 180, 240);
+    } catch (err) {
+      console.warn('⚠️ rehearsal img fail', c.cardCode, err.message);
     }
+  } else {
+    console.warn('⚠️ No local image for card', c.cardCode);
+  }
+
+  // Text block (always drawn)
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '10px Sans';
+  let textY = cardY + 260; // 240 image + 20px margin
+
+  ctx.fillText(`Rarity: ${c.rarity}`,   cardX, textY); textY += 18;
+  ctx.fillText(`Group: ${c.group}`,     cardX, textY); textY += 18;
+  ctx.fillText(`Code: ${c.cardCode}`,   cardX, textY); textY += 18;
+
+  const n = (qty?.[c.cardCode] ?? 0);
+  ctx.fillText(`Copies: ${n > 0 ? n : 'Unowned'}`, cardX, textY);
+}
 
     const attachment = new AttachmentBuilder(canvas.toBuffer(), { name: 'rehearsal.png' });
     const embed = new EmbedBuilder()
