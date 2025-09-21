@@ -6,10 +6,6 @@ const userInventorySchema = new mongoose.Schema({
     required: true,
     index: true, // index for faster lookups
   },
-  binder: {
-  type: [[String]],
-  default: [[], [], []] // 3 pages, 8 slots each
-},
   cards: {
     type: [
       {

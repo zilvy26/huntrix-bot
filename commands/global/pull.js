@@ -7,54 +7,64 @@ const generateStars = require('../../utils/starGenerator');
 const cooldowns = require('../../utils/cooldownManager');
 const handleReminders = require('../../utils/reminderHandler');
 const UserRecord = require('../../models/UserRecord');
-const { safeReply } = require('../../utils/safeReply'); // compat export
+const { safeReply } = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('pull')
     .setDescription('Pull a random card from any pullable category')
     .addBooleanOption(opt =>
-      opt.setName('reminder').setDescription('Remind you when cooldown ends').setRequired(false))
+      opt.setName('reminder').setDescription('Remind you when cooldown ends'))
     .addBooleanOption(opt =>
-      opt.setName('remindinchannel').setDescription('Remind in the command channel instead of DM').setRequired(false)),
+      opt.setName('remindinchannel').setDescription('Remind in the command channel instead of DM')),
 
   async execute(interaction) {
     const userId = interaction.user.id;
     const commandName = 'Pull';
 
-    // Handler already did deferReply(); we only send via safeReply()
-
-    // Cooldown check (no set yet)
+    // Cooldown
     const cooldownMs = await cooldowns.getEffectiveCooldown(interaction, commandName);
     if (await cooldowns.isOnCooldown(userId, commandName)) {
       const nextTime = await cooldowns.getCooldownTimestamp(userId, commandName);
       return safeReply(interaction, { content: `You must wait ${nextTime} before using \`/pull\` again.` });
     }
-
-    // Now that the interaction is ACKed (by handler), it's safe to start the cooldown
     await cooldowns.setCooldown(userId, commandName, cooldownMs);
 
+    // RNG
     const rarity = await pickRarity();
     const card = await getRandomCardByRarity(rarity);
-
     if (!card) {
       return safeReply(interaction, { content: `No pullable cards found for rarity ${rarity}.` });
     }
 
-    // Inventory updates
-    let userInventory = await UserInventory.findOne({ userId });
-    if (!userInventory) userInventory = await UserInventory.create({ userId, cards: [] });
-
-    const existing = userInventory.cards.find(c => c.cardCode === card.cardCode);
+    // Atomic inventory update
     let copies = 1;
-    if (existing) { existing.quantity += 1; copies = existing.quantity; }
-    else { userInventory.cards.push({ cardCode: card.cardCode, quantity: 1 }); }
-    await userInventory.save();
+    const res = await UserInventory.updateOne(
+      { userId, "cards.cardCode": card.cardCode },
+      { $inc: { "cards.$.quantity": 1 } }
+    );
 
-    // Embed + image
+    if (res.matchedCount === 0) {
+      // Push new card if not found
+      await UserInventory.updateOne(
+        { userId },
+        { $push: { cards: { cardCode: card.cardCode, quantity: 1 } } },
+        { upsert: true }
+      );
+      copies = 1;
+    } else {
+      // Need to read back the current count
+      const doc = await UserInventory.findOne(
+        { userId, "cards.cardCode": card.cardCode },
+        { "cards.$": 1 }
+      ).lean();
+      copies = doc?.cards?.[0]?.quantity ?? 1;
+    }
+
+    // Embed
     const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji || '<:fullstar:1387609456824680528>' });
     const imageSource = card.localImagePath ? `attachment://${card._id}.png`
-        : (card.discordPermalinkImage || card.imgurImageLink);
+      : (card.discordPermalinkImage || card.imgurImageLink);
     const files = card.localImagePath ? [{ attachment: card.localImagePath, name: `${card._id}.png` }] : [];
 
     const embed = new EmbedBuilder()
@@ -69,7 +79,6 @@ module.exports = {
       .setImage(imageSource)
       .setFooter({ text: `Pulled ${new Date().toUTCString()}` });
 
-    // Reminder and audit (don’t block the reply on failure)
     try { await handleReminders(interaction, commandName, cooldownMs); } catch {}
     try {
       await UserRecord.create({

@@ -170,8 +170,17 @@ client.once('ready', () => {
   cycleStatus();
 });
 
-mongoose.connect(process.env.MONGO_URI).then(() => {
+mongoose.connect(process.env.MONGO_URI).then(async () => {
   console.log('🟢 Connected to MongoDB');
+
+  // Ensure indexes exist (runs fast if already built)
+  try {
+    const InventoryItem = require('../models/InventoryItem'); // adjust relative path if needed
+    await InventoryItem.syncIndexes();
+    console.log('✅ InventoryItem indexes synced');
+  } catch (err) {
+    console.error('⚠️ Failed to sync InventoryItem indexes:', err);
+  }
 }).catch(err => {
   console.error('❌ MongoDB connection error:', err);
 });
