@@ -6,6 +6,7 @@ const {
   ButtonStyle,
 } = require('discord.js');
 const IndexPrivacy = require('../../models/IndexPrivacy');
+const { safeReply } = require('../../utils/safeReply');
 
 // --- Helpers ---
 const YES = /^(yes|true|1|on)$/i;
@@ -157,7 +158,7 @@ module.exports = {
   async execute(interaction) {
     // Slash command
     if (interaction.isChatInputCommand()) {
-      await interaction.deferReply({ ephemeral: true });
+      await safeReply(interaction, { ephemeral: true });
       const sub = interaction.options.getSubcommand();
       const userId = interaction.user.id;
       let doc = await IndexPrivacy.findOne({ userId });
