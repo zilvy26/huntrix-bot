@@ -269,6 +269,9 @@ if (shopType !== 'choice10' && filtersUsed) {
 
   await safeReply(interaction, { embeds: [renderEmbed(current)], components: [renderRow()] });
 
+  const pageSlice = (arr, page, perPage) =>
+  arr.slice(page * perPage, (page + 1) * perPage);
+
   // --- Pagination loop (unchanged) ---
   while (true) {
     const btn = await awaitUserButton(interaction, interaction.user.id, ['first', 'prev', 'next', 'last', 'copy'], 120000);
@@ -283,8 +286,8 @@ if (shopType !== 'choice10' && filtersUsed) {
     if (btn.customId === 'next')  current = Math.min(totalPages - 1, current + 1);
     if (btn.customId === 'last')  current = totalPages - 1;
     if (btn.customId === 'copy') {
-        const slice = session.entries.slice(page * perPage, page * perPage + perPage);
-        const codes = slice.map(c => c.cardCode === g.card.cardCode).join(', ');
+         const slice = pageSlice(granted, current, perPage);
+    const codes = slice.map(g => g.card.cardCode).join(', ');
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
         } else {
