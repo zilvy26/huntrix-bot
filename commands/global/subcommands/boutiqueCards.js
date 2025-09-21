@@ -238,7 +238,7 @@ module.exports = async function(interaction) {
 
     const desc = items.map(g => {
       const total = qtyMap[g.card.cardCode] ?? 0; // ✅ use updated totals
-      return `• ${generateStars({ rarity: g.card.rarity, overrideEmoji: g.card.emoji })} \`${g.card.cardCode}\` — x${g.qty} [Total: ${total}]`;
+      return `• ${generateStars({ rarity: g.card.rarity, overrideEmoji: g.card.emoji })} **${g.card.name}** \`${g.card.cardCode}\` — x${g.qty} [Total: ${total}]`;
     }).join('\n');
 
     return new EmbedBuilder()
