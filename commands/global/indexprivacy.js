@@ -166,7 +166,6 @@ module.exports = {
   async execute(interaction) {
     // Handle slash commands
     if (interaction.isChatInputCommand?.()) {
-      await interaction.deferReply({ ephemeral: true });
       const sub = interaction.options.getSubcommand();
       const userId = interaction.user.id;
 
