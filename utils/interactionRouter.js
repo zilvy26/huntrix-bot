@@ -374,10 +374,7 @@ const generateStars = require('../utils/starGenerator');
 
 // helper to disable all buttons on the message
 
-if (interaction.customId?.startsWith('rehearsal_')) {
-  // Ensure we ack quickly to beat double-click spam
-  try { await interaction.deferUpdate(); } catch {}
-
+if (customId?.startsWith('rehearsal')) {
   const msg = interaction.message;               // the original message with buttons
   const msgId = msg.id;
   const index = Number(interaction.customId.split('_')[1] || 0);
