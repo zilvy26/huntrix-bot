@@ -373,18 +373,6 @@ const InventoryItem = require('../models/InventoryItem');
 const generateStars = require('../utils/starGenerator');
 
 // helper to disable all buttons on the message
-function disableAllComponents(msg) {
-  const disabledRows = msg.components.map(row => {
-    const r = new ActionRowBuilder();
-    for (const comp of row.components) {
-      r.addComponents(
-        ButtonBuilder.from(comp).setDisabled(true)
-      );
-    }
-    return r;
-  });
-  return disabledRows;
-}
 
 if (interaction.customId?.startsWith('rehearsal_')) {
   // Ensure we ack quickly to beat double-click spam
