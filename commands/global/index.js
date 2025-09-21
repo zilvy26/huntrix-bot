@@ -35,7 +35,6 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
     const user = interaction.options.getUser('user') || interaction.user;
     const show = interaction.options.getString('show');
     const includeOthers = interaction.options.getString('include_others') === 'yes';
