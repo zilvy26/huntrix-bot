@@ -25,7 +25,7 @@ module.exports = {
         .addBooleanOption(o => o.setName('cheapest').setDescription('Sort by cheapest first'))
         .addBooleanOption(o => o.setName('newest').setDescription('Sort by newest first'))
         .addUserOption(o => o.setName('seller').setDescription('Only show this seller'))
-        .addIntegerOption(o => o.setName('per_page').setDescription('Listings per page (1-10)'))
+        .addIntegerOption(o => o.setName('per_page').setDescription('Listings per page (1-6)'))
         .addIntegerOption(o => o.setName('page').setDescription('Start page'))
     )
     // in your stall command registration

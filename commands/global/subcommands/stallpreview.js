@@ -12,8 +12,8 @@ const { stallPreviewFilters } = require('../../../utils/cache');
 const { safeReply } = require('../../../utils/safeReply');
 
 // ===== Config =====
-const DEFAULT_PER_PAGE = 10;
-const MAX_PER_PAGE = 10;
+const DEFAULT_PER_PAGE = 6;
+const MAX_PER_PAGE = 6;
 const MAX_DEFAULT_PAGES = 200; // cap pages when no filters to avoid scanning forever
 
 // ===== Utilities =====
@@ -198,7 +198,7 @@ async function renderPreview(interaction, options) {
     // Compact list (no images), multiple items per page
     const lines = listings.map(l => {
       const stars = generateStars({ rarity: l.rarity, overrideEmoji: l.emoji });
-      return `**${stars} ${l.cardName}** \`${l.cardCode}\`\n\n**${l.price} <:ehx_patterns:1389584144895315978>** — \`${l.buyCode}\` — <@${l.sellerId}>`;
+      return `**${stars} ${l.cardName}** \`${l.cardCode}\`\n**${l.price} <:ehx_patterns:1389584144895315978>** — \`${l.buyCode}\` — <@${l.sellerId}>\n`;
     });
     embed.setDescription(lines.join('\n'));
   } else {
