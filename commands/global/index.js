@@ -37,7 +37,7 @@ module.exports = {
   async execute(interaction) {
     const user = interaction.options.getUser('user') || interaction.user;
     const show = interaction.options.getString('show');
-    const includeOthers = interaction.options.getString('include_others') === 'yes';
+    const includeOthers = interaction.options.getString('include_others') === 'no';
 
     const parseList = (s) => (s || '')
       .split(',')
