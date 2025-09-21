@@ -5,7 +5,6 @@ const cooldowns = require('../../utils/cooldownManager');
 const handleReminders = require('../../utils/reminderHandler');
 const Card = require('../../models/Card');
 const UserInventory = require('../../models/UserInventory');
-const InventoryItem = require('../../models/InventoryItem');
 const pickRarity = require('../../utils/rarityPicker');
 const getRandomCardByRarity = require('../../utils/randomCardFromRarity');
 const generateStars = require('../../utils/starGenerator');
@@ -74,45 +73,52 @@ if (pulls.length < 10) {
 
    // 6) Inventory (per-item model, bulk upsert with counts)
 
+// =========================
+// Inventory (per-item model)
+// =========================
+const InventoryItem = require('../../models/InventoryItem');
+
 // 1) Count duplicates in this pull
-    const counts = new Map();
-    for (const card of pulls) {
-      counts.set(card.cardCode, (counts.get(card.cardCode) || 0) + 1);
+const counts = new Map();
+for (const card of pulls) {
+  counts.set(card.cardCode, (counts.get(card.cardCode) || 0) + 1);
+}
+
+// 2) Build a single bulk upsert per unique cardCode
+const bulkOps = [];
+for (const [code, n] of counts.entries()) {
+  bulkOps.push({
+    updateOne: {
+      filter: { userId, cardCode: code },
+      update: {
+        // IMPORTANT: do NOT set quantity here; it conflicts with $inc
+        $setOnInsert: { userId, cardCode: code },
+        $inc: { quantity: n }
+      },
+      upsert: true
     }
+  });
+}
 
-    // 2) Build a single bulk upsert per unique cardCode
-    const bulkOps = [];
-    for (const [code, n] of counts.entries()) {
-      bulkOps.push({
-        updateOne: {
-          filter: { userId, cardCode: code },
-          update: {
-            $setOnInsert: { userId, cardCode: code, quantity: 0 },
-            $inc: { quantity: n }
-          },
-          upsert: true
-        }
-      });
-    }
+// 3) Execute all increments at once
+if (bulkOps.length) {
+  await InventoryItem.bulkWrite(bulkOps, { ordered: false });
+}
 
-    if (bulkOps.length) {
-      await InventoryItem.bulkWrite(bulkOps, { ordered: false });
-    }
+// 4) Read back updated totals once
+const codes = Array.from(counts.keys());
+const updatedDocs = await InventoryItem.find(
+  { userId, cardCode: { $in: codes } },
+  { cardCode: 1, quantity: 1, _id: 0 }
+).lean();
+const qtyMap = Object.fromEntries(updatedDocs.map(d => [d.cardCode, d.quantity]));
 
-    // 3) Read back updated totals once
-    const codes = Array.from(counts.keys());
-    const updatedDocs = await InventoryItem.find(
-      { userId, cardCode: { $in: codes } },
-      { cardCode: 1, quantity: 1, _id: 0 }
-    ).lean();
-    const qtyMap = Object.fromEntries(updatedDocs.map(d => [d.cardCode, d.quantity]));
-
-    // 4) Build the 10 lines in original pull order with totals
-    const lines = pulls.map(card => {
-      const emoji = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji });
-      const total = qtyMap[card.cardCode] ?? 1;
-      return `${emoji} **${card.name}** \`${card.cardCode}\` (Total: **${total}**)`;
-    })
+// 5) Build the 10 lines in original pull order with totals
+const lines = pulls.map(card => {
+  const emoji = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji });
+  const total = qtyMap[card.cardCode] ?? 1;
+  return `${emoji} **${card.name}** \`${card.cardCode}\` (Total: **${total}**)`;
+});
 
     const embed = new EmbedBuilder()
       .setTitle('Special Pull Complete')
