@@ -62,17 +62,20 @@ const copies = updated.quantity;
         : (card.discordPermalinkImage || card.imgurImageLink);
     const files = card.localImagePath ? [{ attachment: card.localImagePath, name: `${card._id}.png` }] : [];
 
-    const embed = new EmbedBuilder()
-      .setTitle(stars)
-      .setDescription([
-        `**Group:** ${card.group}`,
-        `**Name:** ${card.name}`,
-        ...(card.category?.toLowerCase() === 'kpop' ? [`**Era:** ${card.era}`] : []),
-        `**Code:** \`${card.cardCode}\``,
-        `**Copies:** ${copies}`
-      ].join('\n'))
-      .setImage(imageSource)
-      .setFooter({ text: `Pulled ${new Date().toUTCString()}` });
+    const showEraFor = new Set(['kpop', 'zodiac', 'event']);
+const cat = (card.category || '').toLowerCase();
+
+const embed = new EmbedBuilder()
+  .setTitle(stars)
+  .setDescription([
+    `**Group:** ${card.group}`,
+    `**Name:** ${card.name}`,
+    ...(showEraFor.has(cat) && card.era ? [`**Era:** ${card.era}`] : []),
+    `**Code:** \`${card.cardCode}\``,
+    `**Copies:** ${copies}`
+  ].join('\n'))
+  .setImage(imageSource)
+  .setFooter({ text: `Pulled ${new Date().toUTCString()}` });
 
     // Reminder and audit (don’t block the reply on failure)
     try { await handleReminders(interaction, commandName, cooldownMs); } catch {}

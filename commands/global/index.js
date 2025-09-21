@@ -1,4 +1,4 @@
-// commands/index.js
+// commands/global/index.js
 const {
   SlashCommandBuilder,
   EmbedBuilder,
@@ -7,7 +7,7 @@ const {
   ButtonStyle
 } = require('discord.js');
 const Card = require('../../models/Card');
-const UserInventory = require('../../models/UserInventory');
+const InventoryItem = require('../../models/InventoryItem');
 const generateStars = require('../../utils/starGenerator');
 const { safeReply } = require('../../utils/safeReply');
 
@@ -16,221 +16,149 @@ module.exports = {
     .setName('index')
     .setDescription('View your inventory with filters and pagination.')
     .addStringOption(opt =>
-      opt
-        .setName('show')
-        .setDescription('Which cards to show')
-        .setRequired(true)
-        .addChoices(
-          { name: 'Owned Only', value: 'owned' },
-          { name: 'Missing Only', value: 'missing' },
-          { name: 'Duplicates Only', value: 'dupes' },
-          { name: 'All', value: 'all' }
-        )
+      opt.setName('show').setDescription('Which cards to show').setRequired(true).addChoices(
+        { name: 'Owned Only', value: 'owned' },
+        { name: 'Missing Only', value: 'missing' },
+        { name: 'Duplicates Only', value: 'dupes' },
+        { name: 'All', value: 'all' }
+      )
     )
     .addUserOption(opt => opt.setName('user').setDescription('Whose inventory to view?'))
-    .addStringOption(opt => opt.setName('group').setDescription('Filter by group (comma to OR)'))
-    .addStringOption(opt => opt.setName('era').setDescription('Filter by era (comma to OR)'))
-    .addStringOption(opt => opt.setName('name').setDescription('Filter by card name (comma to OR)'))
-    // Updated help text: allow 3, 2-5, or 2,4,5
+    .addStringOption(opt => opt.setName('category').setDescription('Filter by category (kpop, anime, game, etc.)'))
+    .addStringOption(opt => opt.setName('group').setDescription('Filter by group(s)'))
+    .addStringOption(opt => opt.setName('era').setDescription('Filter by era(s)'))
+    .addStringOption(opt => opt.setName('name').setDescription('Filter by name(s)'))
+    .addStringOption(opt => opt.setName('rarity').setDescription('Filter by rarity: 3 | 2-5 | 2,4,5'))
     .addStringOption(opt =>
-      opt.setName('rarity').setDescription('Rarity filter: `3`, `2-5`, or `2,4,5`')
-    )
-    .addStringOption(opt =>
-      opt
-        .setName('include_others')
-        .setDescription('Show Customs, Test & Limited cards?')
+      opt.setName('include_others').setDescription('Show Customs, Test & Limited cards?')
         .addChoices({ name: 'Yes', value: 'yes' }, { name: 'No', value: 'no' })
     ),
 
   async execute(interaction) {
-    // simple in-memory session storage for pagination
-    interaction.client.cache = interaction.client.cache || {};
-    interaction.client.cache.indexSessions = interaction.client.cache.indexSessions || {};
-
     const user = interaction.options.getUser('user') || interaction.user;
-    const parseList = (s) =>
-      s?.split(',')
-        .map((t) => t.trim())
-        .filter(Boolean)
-        .map((t) => t.toLowerCase()) || [];
+    const show = interaction.options.getString('show');
+    const includeOthers = interaction.options.getString('include_others') === 'yes';
 
-    // --- RARITY PARSING: single, range, or comma-list ---
+    const parseList = (s) => (s || '')
+      .split(',')
+      .map(v => v.trim())
+      .filter(Boolean);
+
+    // Parse filters
+    const categories = parseList(interaction.options.getString('category'));
+    const groups     = parseList(interaction.options.getString('group'));
+    const eras       = parseList(interaction.options.getString('era'));
+    const names      = parseList(interaction.options.getString('name'));
+    // Rarity parsing
     const rarityRaw = interaction.options.getString('rarity');
-    let allowedRarities = null; // array of exact rarities when user passes a list
-    let minRarity = 1;
-    let maxRarity = 5;
-
+    let allowedRarities = null, minR = 1, maxR = 5;
+    const clamp = (v) => Math.max(1, Math.min(5, v));
     if (rarityRaw) {
-      const rangeMatch = rarityRaw.match(/^(\d+)-(\d+)$/);
-      const singleMatch = rarityRaw.match(/^(\d+)$/);
-      const listMatch = rarityRaw.match(/^(\d+(?:,\d+)*)$/);
-
-      if (rangeMatch) {
-        minRarity = clamp(parseInt(rangeMatch[1], 10), 1, 5);
-        maxRarity = clamp(parseInt(rangeMatch[2], 10), 1, 5);
-        if (minRarity > maxRarity) [minRarity, maxRarity] = [maxRarity, minRarity];
-      } else if (singleMatch) {
-        const v = clamp(parseInt(singleMatch[1], 10), 1, 5);
-        minRarity = v;
-        maxRarity = v;
-      } else if (listMatch) {
-        allowedRarities = listMatch[1]
-          .split(',')
-          .map((n) => clamp(parseInt(n, 10), 1, 5))
-          .filter((n, i, a) => !Number.isNaN(n) && a.indexOf(n) === i) // unique + valid
-          .sort((a, b) => a - b);
-        if (!allowedRarities.length) {
-          return safeReply(interaction, {
-            content: 'Invalid rarity list. Use something like `2,4,5`.'
-          });
-        }
-      } else {
-        return safeReply(interaction, {
-          content: 'Invalid rarity format. Use `3`, `2-5`, or `2,4,5`.'
-        });
+      const range = rarityRaw.match(/^(\d+)-(\d+)$/);
+      const single = rarityRaw.match(/^(\d+)$/);
+      const list = rarityRaw.match(/^(\d+(?:,\d+)*)$/);
+      if (range) {
+        minR = clamp(+range[1]); maxR = clamp(+range[2]);
+        if (minR > maxR) [minR, maxR] = [maxR, minR];
+      } else if (single) {
+        minR = maxR = clamp(+single[1]);
+      } else if (list) {
+        allowedRarities = list[1].split(',').map(Number).filter(n => n >= 1 && n <= 5);
       }
     }
-    // ----------------------------------------------------
-    const filters = {
-      groups: parseList(interaction.options.getString('group')),
-      eras: parseList(interaction.options.getString('era')),
-      names: parseList(interaction.options.getString('name')),
-      show: interaction.options.getString('show') || 'owned',
-      includeCustoms: interaction.options.getString('include_others') === 'yes',
-      minRarity,
-      maxRarity,
-      allowedRarities
-    };
 
-    // Fetch data
-    const [allCards, inv] = await Promise.all([
-      Card.find().lean(),
-      UserInventory.findOne({ userId: user.id }).lean()
+    // Build Mongo query for cards
+    const cardQuery = {};
+    if (groups.length) {
+  cardQuery.group = { $in: groups.map(g => new RegExp(`^${g}$`, 'i')) };
+}
+if (eras.length) {
+  cardQuery.era = { $in: eras.map(e => new RegExp(`^${e}$`, 'i')) };
+}
+if (names.length) {
+  cardQuery.name = { $in: names.map(n => new RegExp(`^${n}$`, 'i')) };
+}
+if (categories.length) {
+  cardQuery.category = { $in: categories.map(c => new RegExp(`^${c}$`, 'i')) };
+}
+    if (allowedRarities)   cardQuery.rarity = { $in: allowedRarities };
+    else                   cardQuery.rarity = { $gte: minR, $lte: maxR };
+    if (!includeOthers)    cardQuery.era = { $nin: ['customs', 'test', 'limited'] };
+
+    // Fetch cards + inventory in parallel
+    const [cards, invDocs] = await Promise.all([
+      Card.find(cardQuery).lean(),
+      InventoryItem.find({ userId: user.id }).lean()
     ]);
-    const inventoryMap = new Map((inv?.cards || []).map((c) => [c.cardCode, c.quantity]));
+    const inventoryMap = new Map(invDocs.map(d => [d.cardCode, d.quantity]));
 
-   // Filter
-    const filtered = allCards
-      .filter((card) => {
-        const qty = inventoryMap.get(card.cardCode) || 0;
-        const inInv = qty > 0;
-
-        // allow OR semantics for multi-values
-        const groupMatch =
-          !filters.groups.length || filters.groups.includes((card.group || '').toLowerCase());
-        const eraMatch =
-          !filters.eras.length || filters.eras.includes((card.era || '').toLowerCase());
-        const nameMatch =
-          !filters.names.length || filters.names.includes((card.name || '').toLowerCase());
-
-        // rarity: if list provided -> exact match; else use min/max inclusive
-        const rarityMatch = filters.allowedRarities
-          ? filters.allowedRarities.includes(Number(card.rarity))
-          : Number(card.rarity) >= filters.minRarity && Number(card.rarity) <= filters.maxRarity;
-          // exclude customs/test/limited when requested
-        if (
-          !filters.includeCustoms &&
-          ['customs', 'test', 'limited'].includes((card.era || '').toLowerCase())
-        ) {
-          return false;
-        }
-
-       if (!(groupMatch && eraMatch && nameMatch && rarityMatch)) return false;
-
-        if (filters.show === 'owned') return inInv;
-        if (filters.show === 'missing') return !inInv;
-        if (filters.show === 'dupes') return qty > 1;
-        return true; // 'all'
+    // Build entries
+    const entries = cards
+      .map(c => {
+        const qty = inventoryMap.get(c.cardCode) || 0;
+        return {
+          name: c.name,
+          group: c.group,
+          category: c.category || '',
+          era: c.era || '',
+          cardCode: c.cardCode,
+          rarity: c.rarity,
+          copies: qty,
+          stars: generateStars({ rarity: c.rarity, overrideEmoji: c.emoji })
+        };
       })
-      .sort((a, b) => Number(b.rarity) - Number(a.rarity));
+      .filter(e => {
+        if (show === 'owned') return e.copies > 0;
+        if (show === 'missing') return e.copies === 0;
+        if (show === 'dupes') return e.copies > 1;
+        return true;
+      })
+      .sort((a, b) => b.rarity - a.rarity);
 
-    if (!filtered.length) {
-      return safeReply(interaction, { content: 'No cards match your filters.' });
+    if (!entries.length) {
+      return interaction.editReply({ content: 'No cards match your filters.' });
     }
-
-    // Build entries for current page rendering & later pagination
-    const entries = filtered.map((c) => {
-      const qty = inventoryMap.get(c.cardCode) || 0;
-      return {
-        name: c.name,
-        group: c.group,
-        category: (c.category || '').toLowerCase(),
-        era: c.era || '',
-        cardCode: c.cardCode,
-        rarity: Number(c.rarity),
-        copies: qty,
-        stars: generateStars({ rarity: Number(c.rarity), overrideEmoji: c.emoji })
-      };
-    });
 
     // Totals
-    let totalCopies = 0;
-    let totalStars = 0;
-    if (filters.show === 'dupes') {
-      for (const e of entries) {
-        if (e.copies > 1) {
-          totalCopies += e.copies - 1;
-          totalStars += e.rarity * (e.copies - 1);
-        }
-      }
-    } else {
-      for (const e of entries) {
-        totalCopies += e.copies;
-        totalStars += e.rarity * e.copies;
-      }
+    let totalCopies = 0, totalStars = 0;
+    for (const e of entries) {
+      const count = show === 'dupes' ? Math.max(0, e.copies - 1) : e.copies;
+      totalCopies += count;
+      totalStars  += e.rarity * count;
     }
-    // Pagination
-    const perPage = 6;
-    const totalPages = Math.ceil(entries.length / perPage);
-    const page = 0;
 
-    const pageSlice = entries.slice(page * perPage, page * perPage + perPage);
-    const description = pageSlice
-      .map((card) => {
-        const eraPart = card.category === 'kpop' && card.era ? ` | Era: ${card.era}` : '';
-        return `**${card.stars} ${card.name}**\nGroup: ${card.group}${eraPart} | Code: \`${card.cardCode}\` | Copies: ${card.copies}`;
-      })
-      .join('\n\n');
+    // Pagination (first page only here; your button handler can reuse `entries`)
+    const perPage = 6;
+    const totalPages = Math.max(1, Math.ceil(entries.length / perPage));
+    const pageEntries = entries.slice(0, perPage);
+
+    const showEraFor = new Set(['kpop', 'zodiac', 'event']);
+
+    const description = pageEntries.map(card => {
+      const eraPart = showEraFor.has(card.category) && card.era ? ` | Era: ${card.era}` : '';
+      return `**${card.stars} ${card.name}**\nGroup: ${card.group}${eraPart} | Code: \`${card.cardCode}\` | Copies: ${card.copies}`;
+    }).join('\n\n');
 
     const embed = new EmbedBuilder()
       .setTitle(`${user.username}'s Inventory`)
       .setDescription(description)
       .setColor('#FF69B4')
-      .setFooter({
-        text: `Page ${page + 1} of ${totalPages} • Total Cards: ${entries.length} • Total Copies: ${totalCopies} • Total Stars: ${totalStars}`
-      });
+      .setFooter({ text: `Page 1 of ${totalPages} • Total Cards: ${entries.length} • Total Copies: ${totalCopies} • Total Stars: ${totalStars}` });
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('index:first')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(page === 0)
-        .setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
-      new ButtonBuilder()
-        .setCustomId('index:prev')
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(page === 0)
-        .setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
-      new ButtonBuilder()
-        .setCustomId('index:next')
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(page >= totalPages - 1)
-        .setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
-      new ButtonBuilder()
-        .setCustomId('index:last')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(page >= totalPages - 1)
-        .setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
-      new ButtonBuilder()
-        .setCustomId('index:copy')
-        .setLabel('Copy Codes')
-        .setStyle(ButtonStyle.Success)
+      new ButtonBuilder().setCustomId('index:first').setStyle(ButtonStyle.Secondary).setDisabled(true).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+      new ButtonBuilder().setCustomId('index:prev').setStyle(ButtonStyle.Primary).setDisabled(true).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+      new ButtonBuilder().setCustomId('index:next').setStyle(ButtonStyle.Primary).setDisabled(totalPages <= 1).setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
+      new ButtonBuilder().setCustomId('index:last').setStyle(ButtonStyle.Secondary).setDisabled(totalPages <= 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+      new ButtonBuilder().setCustomId('index:copy').setLabel('Copy Codes').setStyle(ButtonStyle.Success)
     );
-    // Send & store session for button handlers
-    await safeReply(interaction, { embeds: [embed], components: [row] });
-    const sent = await interaction.fetchReply();
 
-    interaction.client.cache.indexSessions[sent.id] = {
+    await safeReply(interaction, { embeds: [embed], components: [row] });
+
+    // cache entries for button pagination
+    interaction.client.cache = interaction.client.cache || {};
+    interaction.client.cache.indexSessions = interaction.client.cache.indexSessions || {};
+    interaction.client.cache.indexSessions[(await interaction.fetchReply()).id] = {
       entries,
       perPage,
       totalPages,
@@ -240,9 +168,3 @@ module.exports = {
     };
   }
 };
-
-// --- helpers ---
-function clamp(v, min, max) {
-  if (Number.isNaN(v)) return min;
-  return Math.max(min, Math.min(max, v));
-}
