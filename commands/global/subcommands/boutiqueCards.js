@@ -39,7 +39,7 @@ const hasText = (s) => typeof s === 'string' && s.trim().length > 0;
 const filtersUsed = hasText(rawGroups) || hasText(rawNames) || hasText(rawEras);
 if (shopType !== 'choice10' && filtersUsed) {
   return safeReply(interaction, {
-    content: 'Filters (**groups**, **names**, **eras**) can only be used with **choice10**.',
+    content: 'Filters can only be used with **10x Cards of Choice**.',
     ephemeral: true
   });
 }
