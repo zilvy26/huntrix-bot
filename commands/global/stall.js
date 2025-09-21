@@ -5,6 +5,7 @@ const handleBuy = require('./subcommands/stallbuy');
 const handleRemove = require('./subcommands/stallremove');
 const handleDelete = require('./subcommands/stalldelete');
 const {safeReply} = require('../../utils/safeReply');
+const { trusted } = require('mongoose');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -13,24 +14,19 @@ module.exports = {
     .addSubcommand(sub =>
       sub.setName('preview')
         .setDescription('Browse cards listed on the market')
-        .addStringOption(opt =>
-          opt.setName('group').setDescription('Group filter'))
-        .addStringOption(opt =>
-          opt.setName('name').setDescription('Card name filter'))
-        .addIntegerOption(opt =>
-          opt.setName('rarity').setDescription('Rarity filter'))
-        .addStringOption(opt =>
-          opt.setName('era').setDescription('Era filter'))
-        .addUserOption(opt =>
-          opt.setName('seller').setDescription('Seller filter'))
-        .addBooleanOption(opt =>
-          opt.setName('unowned').setDescription('Only show cards you don’t own'))
-        .addBooleanOption(opt =>
-          opt.setName('cheapest').setDescription('Sort by cheapest'))
-        .addBooleanOption(opt =>
-          opt.setName('newest').setDescription('Sort by newest'))
-        .addIntegerOption(opt =>
-          opt.setName('page').setDescription('Page number'))
+        .addBooleanOption(o => o.setName('compact').setDescription('Compact list (no images)').setRequired(true))
+        .addStringOption(o => o.setName('name').setDescription('Name, comma-separated for multiple'))
+        .addStringOption(o => o.setName('group').setDescription('Group, comma-separated for multiple'))
+        .addStringOption(o => o.setName('era').setDescription('Era, comma-separated for multiple'))
+        .addStringOption(o => o.setName('rarities').setDescription('Rarity spec: 1 or 1,3 or 1-4 or 1,3-5'))
+// keep legacy too if you want backward compatibility
+        .addIntegerOption(o => o.setName('rarity').setDescription('Single rarity (legacy)'))
+        .addBooleanOption(o => o.setName('unowned').setDescription('Only show cards you do not own'))
+        .addBooleanOption(o => o.setName('cheapest').setDescription('Sort by cheapest first'))
+        .addBooleanOption(o => o.setName('newest').setDescription('Sort by newest first'))
+        .addUserOption(o => o.setName('seller').setDescription('Only show this seller'))
+        .addIntegerOption(o => o.setName('per_page').setDescription('Listings per page (1-10)'))
+        .addIntegerOption(o => o.setName('page').setDescription('Start page'))
     )
     // in your stall command registration
     .addSubcommand(sub =>

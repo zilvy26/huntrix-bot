@@ -173,13 +173,17 @@ client.once('ready', () => {
 mongoose.connect(process.env.MONGO_URI).then(async () => {
   console.log('🟢 Connected to MongoDB');
 
-  // Ensure indexes exist (runs fast if already built)
   try {
-    const InventoryItem = require('../models/InventoryItem'); // adjust relative path if needed
+    const InventoryItem  = require('../models/InventoryItem');
+    const MarketListing  = require('../models/MarketListing');
+
     await InventoryItem.syncIndexes();
     console.log('✅ InventoryItem indexes synced');
+
+    await MarketListing.syncIndexes();
+    console.log('✅ MarketListing indexes synced');
   } catch (err) {
-    console.error('⚠️ Failed to sync InventoryItem indexes:', err);
+    console.error('⚠️ Failed to sync indexes:', err);
   }
 }).catch(err => {
   console.error('❌ MongoDB connection error:', err);

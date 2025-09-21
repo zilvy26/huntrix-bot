@@ -1,11 +1,13 @@
+
 const { SlashCommandBuilder } = require('discord.js');
 const MarketListing = require('../../../models/MarketListing');
 const User = require('../../../models/User');
-const UserInventory = require('../../../models/UserInventory');
+// ⬇️ replaced UserInventory with InventoryItem
+const InventoryItem = require('../../../models/InventoryItem');
 const UserRecord = require('../../../models/UserRecord');
 const { safeReply } = require('../../../utils/safeReply');
 
-module.exports = async function(interaction) {
+module.exports = async function (interaction) {
   const input = interaction.options.getString('buycode');
   const buyerId = interaction.user.id;
   const codes = input.split(',').map(c => c.trim().toUpperCase());
@@ -33,29 +35,22 @@ module.exports = async function(interaction) {
       continue;
     }
 
-    // Deduct buyer currency
+    // Deduct buyer currency locally; we'll save once at the end
     buyer.patterns -= listing.price;
 
-    // Credit seller
+    // Credit seller immediately
     await User.findOneAndUpdate(
       { userId: listing.sellerId },
-      { $inc: { patterns: listing.price } }
+      { $inc: { patterns: listing.price } },
+      { upsert: false }
     );
 
-    // Add card to inventory
-    const result = await UserInventory.findOneAndUpdate(
-      { userId: buyerId, 'cards.cardCode': listing.cardCode },
-      { $inc: { 'cards.$.quantity': 1 } },
-      { new: true }
+    // ✅ Add card to new per-item inventory: upsert + increment
+    await InventoryItem.findOneAndUpdate(
+      { userId: buyerId, cardCode: listing.cardCode },
+      { $inc: { quantity: 1 } },
+      { upsert: true, new: true }
     );
-
-    if (!result) {
-      await UserInventory.findOneAndUpdate(
-        { userId: buyerId },
-        { $push: { cards: { cardCode: listing.cardCode, quantity: 1 } } },
-        { upsert: true }
-      );
-    }
 
     // Log both sides
     await UserRecord.create({
@@ -72,21 +67,26 @@ module.exports = async function(interaction) {
       detail: `Sold ${listing.cardName} (${listing.cardCode}) for ${listing.price} Patterns`
     });
 
+    // Notify seller (best-effort)
     try {
       const sellerUser = await interaction.client.users.fetch(listing.sellerId);
-      await sellerUser.send(`<@${buyerId}> purchased **${listing.cardName}** \`${listing.cardCode}\` for **${listing.price} Patterns**!`);
+      await sellerUser.send(
+        `<@${buyerId}> purchased **${listing.cardName}** \`${listing.cardCode}\` for **${listing.price} Patterns**!`
+      );
     } catch (e) {
-      console.warn('DM failed:', e.message);
+      console.warn('DM failed:', e?.message);
     }
 
+    // Remove listing
     await listing.deleteOne();
     totalCost += listing.price;
     results.push(`Bought **${listing.cardName}** \`${listing.cardCode}\` \`${code}\` for **${listing.price} Patterns**`);
   }
 
+  // Persist buyer balance change once
   await buyer.save();
 
   return safeReply(interaction, {
-    content: `Purchase complete:\n${results.join('\n')}\n\n Total Spent: **${totalCost} Patterns**`
+    content: `Purchase complete:\n${results.join('\n')}\n\nTotal Spent: **${totalCost} Patterns**`
   });
 };

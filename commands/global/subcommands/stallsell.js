@@ -1,150 +1,129 @@
 // commands/stall/sell.js
-const UserInventory = require('../../../models/UserInventory');
 const Card = require('../../../models/Card');
 const MarketListing = require('../../../models/MarketListing');
+const InventoryItem = require('../../../models/InventoryItem');
 const { safeReply } = require('../../../utils/safeReply');
-const shortid = require('shortid');
 
-// ---- CONFIG -------------------------------------------------------------
+// ====== NEW: robust buy-code generator ======
+const { customAlphabet } = require('nanoid');
+// Avoid ambiguous chars; 8 chars ≈ 1e12 space
+const nano = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8);
 
 // Rarity-based caps (unchanged)
 const RARITY_CAPS = { 1: 300, 2: 600, 3: 900, 4: 1200 };
 
-// Special 5★ rule (unchanged)
 const isSpecialR5 = (card) =>
   Number(card.rarity) === 5 &&
   ['kpop', 'anime', 'game', 'franchise'].includes(String(card.category || '').toLowerCase());
 
-// ---- ERA CAPS CONFIG ----------------------------------------------------
-// Define them normally (any case/spacing, whatever you like)
+// ---- ERA CAPS CONFIG ----
 const ERA_PRICE_CAPS_RAW = {
   'VIR25': 15000,
   'LEO25': 19000,
-  'How It\'s Done': 30000,
+  "How It's Done": 30000,
   'Candy Festival (Demo)': 18000,
   'Candy Festival (Album)': 15000
 };
-
-// Normalize keys to lowercase+trim once at startup
 const ERA_PRICE_CAPS = Object.fromEntries(
   Object.entries(ERA_PRICE_CAPS_RAW).map(([k, v]) => [String(k).trim().toLowerCase(), Number(v)])
 );
 
-// Max concurrent listings per seller (unchanged)
 const MAX_LISTINGS = 100;
 
-// ---- PARSERS ------------------------------------------------------------
-
-/**
- * Parse codes:
- *   CODE
- *   CODE+QTY
- * Space/comma separated. Quantity uses '+' only. 'x' is rejected.
- * Returns batches: [{ code, qty }] and totals per code: Map<code, qtyNeeded>
- */
+// ---------- helpers ----------
 function parseCodes(raw) {
   const batches = [];
   const needCounts = new Map();
   if (!raw) return { batches, needCounts };
-
   const tokens = raw.trim().split(/[\s,]+/).filter(Boolean);
-
   for (const t of tokens) {
     const m = t.match(/^([A-Za-z0-9-]+)(?:\+(\d+))?$/);
     if (!m) continue;
-
     const code = m[1].toUpperCase();
     const qty = m[2] ? Math.max(1, parseInt(m[2], 10)) : 1;
-
     batches.push({ code, qty });
     needCounts.set(code, (needCounts.get(code) || 0) + qty);
   }
-
   return { batches, needCounts };
 }
 
-/**
- * Parse prices from the price STRING option.
- * Accepts:
- *   - single integer: "900" (applied to all batches)
- *   - list of integers: "700, 800 900" (order matches batches)
- * Returns an array of numbers of length == batches.length, or throws with a helpful message.
- */
 function parsePrices(rawPrice, batches) {
   if (!rawPrice || typeof rawPrice !== 'string') {
     throw new Error('You must provide a price. Use a single number or a list matching each card.');
   }
+  const tokens = rawPrice.trim().split(/[\s,]+/).filter(Boolean);
 
-  const priceTokens = rawPrice.trim().split(/[\s,]+/).filter(Boolean);
-
-  // Single price for all
-  if (priceTokens.length === 1) {
-    const p = parseInt(priceTokens[0], 10);
-    if (!Number.isFinite(p) || p <= 0) {
-      throw new Error('Price must be a positive number.');
-    }
+  if (tokens.length === 1) {
+    const p = parseInt(tokens[0], 10);
+    if (!Number.isFinite(p) || p <= 0) throw new Error('Price must be a positive number.');
     return Array(batches.length).fill(p);
   }
-  // Many prices: must match batches length
-  if (priceTokens.length !== batches.length) {
-    // figure out which code is missing a price (first unmatched index)
-    const idx = Math.min(priceTokens.length, batches.length) - 1;
-    const missingIdx = priceTokens.length < batches.length ? priceTokens.length : -1;
+  if (tokens.length !== batches.length) {
+    const missingIdx = tokens.length < batches.length ? tokens.length : -1;
     if (missingIdx >= 0) {
       const missingCode = batches[missingIdx]?.code || 'UNKNOWN';
       throw new Error(`No price provided for **${missingCode}**. Please supply the same number of prices as card entries.`);
-    } else {
-      throw new Error(`You provided more prices than cards. Please match counts exactly (${batches.length}).`);
     }
+    throw new Error(`You provided more prices than cards. Please match counts exactly (${batches.length}).`);
   }
 
-  const prices = priceTokens.map((t, i) => {
+  return tokens.map((t, i) => {
     const p = parseInt(t, 10);
     if (!Number.isFinite(p) || p <= 0) {
       throw new Error(`Invalid price "${t}" for **${batches[i].code}**. Prices must be positive integers.`);
     }
     return p;
   });
-
-  return prices;
 }
-
-// ---- CAPS ---------------------------------------------------------------
 
 function checkPriceCapsForCard(card, price) {
   const eraKey = String(card.era || '').trim().toLowerCase();
   const eraCap = ERA_PRICE_CAPS[eraKey];
-
   if (typeof eraCap === 'number' && price > eraCap) {
     return `Price cap for era **${card.era}** is **${eraCap}** <:ehx_patterns:1389584144895315978>.`;
   }
-
   if (Number(card.rarity) < 5) {
     const cap = RARITY_CAPS[Number(card.rarity)];
     if (cap && price > cap) {
       return `Price cap for rarity ${card.rarity} cards is **${cap}** <:ehx_patterns:1389584144895315978>.`;
     }
   }
-
   if (isSpecialR5(card) && price > 5000) {
     return `5 Star Standard cards are capped at **5000** <:ehx_patterns:1389584144895315978>.`;
   }
-
   return null;
 }
 
-// ---- HANDLER ------------------------------------------------------------
+// ===== NEW: create listing with unique buyCode (retries on E11000) =====
+async function createListingWithUniqueCode(data, maxAttempts = 5) {
+  let lastErr;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const buyCode = nano();
+    try {
+      const doc = await MarketListing.create({ ...data, buyCode });
+      return doc;
+    } catch (err) {
+      const msg = String(err?.message || '');
+      if (err?.code === 11000 || msg.includes('E11000') || msg.includes('duplicate key')) {
+        lastErr = err; // collision; retry
+        continue;
+      }
+      throw err; // other errors: surface immediately
+    }
+  }
+  throw new Error(`Failed to allocate unique buy code after ${maxAttempts} attempts. Last error: ${lastErr?.message || lastErr}`);
+}
 
+// ---------- handler ----------
 module.exports = async function sell(interaction) {
   const userId = interaction.user.id;
-  const rawCodes = interaction.options.getString('cardcode'); // e.g., "ABC123 DEF456+2 GHI789"
-  const rawPrice = interaction.options.getString('price');     // e.g., "900" or "700 800 900"
+  const rawCodes = interaction.options.getString('cardcode');
+  const rawPrice = interaction.options.getString('price');
 
   if (!rawCodes) {
     return safeReply(interaction, { content: 'Please provide at least one card code.' });
   }
 
-  // Parse codes/quantities
   let batches, needCounts;
   try {
     ({ batches, needCounts } = parseCodes(rawCodes));
@@ -155,14 +134,13 @@ module.exports = async function sell(interaction) {
     return safeReply(interaction, { content: 'No valid items found. Use `CODE` or `CODE+2` (quantity uses `+`).' });
   }
 
-  // Parse prices (must match batches count or be a single price)
   let prices;
   try {
-    prices = parsePrices(rawPrice, batches); // array length == batches.length
+    prices = parsePrices(rawPrice, batches);
   } catch (err) {
     return safeReply(interaction, { content: err.message });
   }
-  // Listing slots check
+
   const existingCount = await MarketListing.countDocuments({ sellerId: userId });
   const remainingSlots = Math.max(0, MAX_LISTINGS - existingCount);
   const totalRequested = Array.from(needCounts.values()).reduce((a, b) => a + b, 0);
@@ -176,16 +154,18 @@ module.exports = async function sell(interaction) {
     });
   }
 
-  // Load inventory
-  const inventoryDoc = await UserInventory.findOne({ userId });
-  if (!inventoryDoc) {
-    return safeReply(interaction, { content: 'You have no inventory record.' });
-  }
+  const uniqueCodes = Array.from(needCounts.keys());
+  const [invDocs, cards] = await Promise.all([
+    InventoryItem.find({ userId, cardCode: { $in: uniqueCodes } })
+      .select({ cardCode: 1, quantity: 1, _id: 0 })
+      .lean(),
+    Card.find({ cardCode: { $in: uniqueCodes } })
+      .select({ cardCode: 1, name: 1, group: 1, era: 1, emoji: 1, rarity: 1, category: 1, localImagePath: 1 })
+      .lean()
+  ]);
 
-  // Ownership check
-  const invMap = new Map(
-    inventoryDoc.cards.map(c => [String(c.cardCode).trim().toUpperCase(), Number(c.quantity) || 0])
-  );
+  const invMap = new Map(invDocs.map(d => [String(d.cardCode).toUpperCase(), Number(d.quantity) || 0]));
+
   for (const [code, needed] of needCounts.entries()) {
     const have = invMap.get(code) || 0;
     if (have < needed) {
@@ -193,19 +173,14 @@ module.exports = async function sell(interaction) {
     }
   }
 
-  // Card metadata
-  const uniqueCodes = Array.from(needCounts.keys());
-  const cards = await Card.find({ cardCode: { $in: uniqueCodes } });
   if (cards.length !== uniqueCodes.length) {
-    const foundSet = new Set(cards.map(c => c.cardCode));
+    const foundSet = new Set(cards.map(c => c.cardCode.toUpperCase()));
     const missing = uniqueCodes.filter(c => !foundSet.has(c));
-    return safeReply(interaction, {
-      content: `Metadata not found for: \`${missing.join('`, `')}\`.`
-    });
+    return safeReply(interaction, { content: `Metadata not found for: \`${missing.join('`, `')}\`.` });
   }
+
   const metaByCode = new Map(cards.map(c => [c.cardCode.toUpperCase(), c]));
 
-  // Validate caps per batch/price
   for (let i = 0; i < batches.length; i++) {
     const batch = batches[i];
     const card = metaByCode.get(batch.code);
@@ -213,8 +188,8 @@ module.exports = async function sell(interaction) {
     if (capError) return safeReply(interaction, { content: capError });
   }
 
-  // Create listings and decrement inventory
-  const created = []; // [{ code, name, qty, price, buyCodes[] }]
+  // ---- Create listings (WITH UNIQUE BUY CODES) ----
+  const created = [];
   for (let i = 0; i < batches.length; i++) {
     const batch = batches[i];
     const card = metaByCode.get(batch.code);
@@ -222,10 +197,7 @@ module.exports = async function sell(interaction) {
 
     const buyCodes = [];
     for (let j = 0; j < batch.qty; j++) {
-      const buyCode = shortid.generate().toUpperCase();
-      buyCodes.push(buyCode);
-
-      await MarketListing.create({
+      const doc = await createListingWithUniqueCode({
         cardCode: card.cardCode,
         cardName: card.name,
         group: card.group,
@@ -235,31 +207,37 @@ module.exports = async function sell(interaction) {
         localImagePath: card.localImagePath,
         price: priceToUse,
         sellerId: userId,
-        sellerTag: `${interaction.user.username}#${interaction.user.discriminator}`,
-        buyCode
+        sellerTag: `${interaction.user.username}#${interaction.user.discriminator}`
       });
+      buyCodes.push(doc.buyCode);
     }
-
-    // decrement inventory for this code
-    invMap.set(batch.code, (invMap.get(batch.code) || 0) - batch.qty);
 
     created.push({ code: batch.code, name: card.name, qty: batch.qty, price: priceToUse, buyCodes });
   }
 
-  // Persist inventory
-  inventoryDoc.cards = Array.from(invMap.entries())
-    .filter(([, q]) => q > 0)
-    .map(([cardCode, quantity]) => ({ cardCode, quantity }));
-  await inventoryDoc.save();
+  // ---- Decrement inventory (atomic) ----
+  const decOps = [];
+  for (const [code, qty] of needCounts.entries()) {
+    decOps.push({
+      updateOne: {
+        filter: { userId, cardCode: code, quantity: { $gte: qty } },
+        update: { $inc: { quantity: -qty } }
+      }
+    });
+  }
+  if (decOps.length) {
+    await InventoryItem.bulkWrite(decOps, { ordered: true });
+    await InventoryItem.deleteMany({ userId, cardCode: { $in: uniqueCodes }, quantity: { $lte: 0 } });
+  }
 
-  // Build reply
   const totalListed = created.reduce((a, c) => a + c.qty, 0);
   const summaryLines = created.map(item => {
     const codesList = item.buyCodes.map(b => `\`${b}\``).join(', ');
     return `• **${item.name}** \`${item.code}\` × **${item.qty}** @ **${item.price}** <:ehx_patterns:1389584144895315978> — Buy Codes: ${codesList}`;
+    // you can also include price emoji/tokens here as you had before
   });
 
-  await safeReply(interaction, {
+  return safeReply(interaction, {
     content: [
       `<@${userId}> listed **${totalListed}** card(s):`,
       ...summaryLines
