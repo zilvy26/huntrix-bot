@@ -63,58 +63,69 @@ module.exports = {
     }
 
     // --- Manual card choice path (NEW: InventoryItem upsert +1)
-    if (code.allowCardChoice) {
-      if (!selectedCardInput) {
-        return safeReply(interaction, {
-          content: 'This code requires you to specify a card: `/redeem code:<code> cardcode:<yourCard>`.'
-        });
-      }
+    // --- Manual card choice path (InventoryItem + hardcoded exclusions) ---
+if (code.allowCardChoice) {
+  if (!selectedCardInput) {
+    return safeReply(interaction, {
+      content: 'This code requires a card choice: `/redeem code:<code> cardcode:<yourCard>`.'
+    });
+  }
 
-      // Only allow real, redeemable cards
-      const validCard = await Card.findOne({
-        cardCode: selectedCardInput,
-        category: { $ne: 'others' }
-      }).lean();
+  // 1) Load the requested card (must be redeemable)
+  const validCard = await Card.findOne({
+    cardCode: selectedCardInput,     // you already uppercased input above
+    category: { $ne: 'others' }
+  }).lean();
 
-      if (!validCard) {
-        return safeReply(interaction, { content: 'Invalid card code or not redeemable.' });
-      }
+  if (!validCard) {
+    return safeReply(interaction, { content: 'Invalid card code or not redeemable.' });
+  }
 
-      // 🔒 Hardcoded exclusions (case-insensitive)
-const excludedCards = [];
-const excludedGroups = [];
-const excludedNames = [];
-const excludedEras = ['PC25', 'How It\'s Done'];
+  // 2) 🔒 Hardcoded exclusions (edit these lists as needed)
+  const EXCLUDED = {
+    cards:  [],
+    groups: [],
+    names:  [],
+    eras:   ['PC25', 'How It\'s Done']
+  };
 
-if (
-  excludedCards.includes(validCard.cardCode.toLowerCase()) ||
-  excludedGroups.includes((validCard.group || '').toLowerCase()) ||
-  excludedNames.includes((validCard.name || '').toLowerCase()) ||
-  excludedEras.includes((validCard.era || '').toLowerCase())
-) {
-  return safeReply(interaction, { content: 'That card is not redeemable.' });
+  // normalize lists to lowercase for case-insensitive comparison
+  const ex = {
+    cards:  EXCLUDED.cards.map(s => s.toLowerCase().trim()),
+    groups: EXCLUDED.groups.map(s => s.toLowerCase().trim()),
+    names:  EXCLUDED.names.map(s => s.toLowerCase().trim()),
+    eras:   EXCLUDED.eras.map(s => s.toLowerCase().trim())
+  };
+
+  // normalize card fields
+  const cardLC   = (validCard.cardCode || '').toLowerCase().trim();
+  const groupLC  = (validCard.group    || '').toLowerCase().trim();
+  const nameLC   = (validCard.name     || '').toLowerCase().trim();
+  const eraLC    = (validCard.era      || '').toLowerCase().trim();
+
+  // 3) Check exclusions BEFORE marking code used or changing inventory
+  if (ex.cards.includes(cardLC) ||
+      ex.groups.includes(groupLC) ||
+      ex.names.includes(nameLC) ||
+      ex.eras.includes(eraLC)) {
+    return safeReply(interaction, { content: 'That card is excluded from this code.' });
+  }
+
+  // 4) Grant + mark usage (only if it passed exclusions)
+  const updated = await InventoryItem.findOneAndUpdate(
+    { userId, cardCode: selectedCardInput },
+    { $setOnInsert: { userId, cardCode: selectedCardInput }, $inc: { quantity: 1 } },
+    { upsert: true, new: true, projection: { quantity: 1, _id: 0 } }
+  );
+
+  code.usedBy.push(userId);
+  await code.save();
+
+  const total = updated?.quantity ?? 1;
+  return safeReply(interaction, {
+    content: `Redeemed and received **${selectedCardInput}**! (Total copies: **${total}**)`
+  });
 }
-
-      // +1 copy to inventory (atomic)
-      const updated = await InventoryItem.findOneAndUpdate(
-        { userId, cardCode: selectedCardInput },
-        { $setOnInsert: { userId, cardCode: selectedCardInput }, $inc: { quantity: 1 } },
-        { upsert: true, new: true, projection: { quantity: 1, _id: 0 } }
-      );
-
-      // Mark usage and finish
-      code.usedBy.push(userId);
-      await code.save();
-
-      const total = updated?.quantity ?? 1;
-      return safeReply(interaction, {
-        content: `Redeemed and received **${selectedCardInput}**! (Total copies: **${total}**)`
-      });
-    }
-
-    // --- Track usage for non-choice codes
-    code.usedBy.push(userId);
-    await code.save();
 
     const summary = [
       `Redeemed **${code.code}**!`,
