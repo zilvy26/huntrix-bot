@@ -198,7 +198,7 @@ async function renderPreview(interaction, options) {
     // Compact list (no images), multiple items per page
     const lines = listings.map(l => {
       const stars = generateStars({ rarity: l.rarity, overrideEmoji: l.emoji });
-      return `**${stars} ${l.cardName}** \`${l.cardCode}\`\n**${l.price} <:ehx_patterns:1389584144895315978>** — <@${l.sellerId}>\n**Buy Code:**\`${l.buyCode}\`\n`;
+      return `**${stars} ${l.cardName}** \`${l.cardCode}\`\n**${l.price} <:ehx_patterns:1389584144895315978>** — <@${l.sellerId}>\n**Buy Code:** \`${l.buyCode}\`\n`;
     });
     embed.setDescription(lines.join('\n'));
   } else {
@@ -231,6 +231,7 @@ async function renderPreview(interaction, options) {
     new ButtonBuilder().setCustomId('stall_prev').setStyle(ButtonStyle.Primary).setDisabled(page === 1).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
     new ButtonBuilder().setCustomId('stall_next').setStyle(ButtonStyle.Primary).setDisabled(page >= totalPages).setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
     new ButtonBuilder().setCustomId('stall_last').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+    new ButtonBuilder().setCustomId('stall_copy').setLabel('Copy Buy Codes').setStyle(ButtonStyle.Success)
   );
 
   const payload = { embeds: [embed], components: [row], files };

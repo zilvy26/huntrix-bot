@@ -289,9 +289,9 @@ if (shopType !== 'choice10' && filtersUsed) {
          const slice = pageSlice(granted, current, perPage);
     const codes = slice.map(g => g.card.cardCode).join(', ');
         if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+          await interaction.reply({ content: `${codes}`, flags: 1 << 6 }).catch(()=>{});
         } else {
-          await interaction.followUp({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+          await interaction.followUp({ content: `${codes}`, flags: 1 << 6 }).catch(()=>{});
         }
         return;
       }

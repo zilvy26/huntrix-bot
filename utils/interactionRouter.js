@@ -295,9 +295,9 @@ module.exports = async function interactionRouter(interaction) {
         const slice = session.entries.slice(page * perPage, page * perPage + perPage);
         const codes = slice.map(c => c.cardCode).join(', ');
         if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+          await interaction.reply({ content: `${codes}`, flags: 1 << 6 }).catch(()=>{});
         } else {
-          await interaction.followUp({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+          await interaction.followUp({ content: `${codes}`, flags: 1 << 6 }).catch(()=>{});
         }
         return;
       }
@@ -312,37 +312,92 @@ module.exports = async function interactionRouter(interaction) {
 
     /* 🛒 Stall Section (kept) */
     const { stallPreviewFilters } = require('../utils/cache');
-    const stallPreview = require('../commands/global/subcommands/stallpreview');
-    const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last)$/;
+const stallPreview = require('../commands/global/subcommands/stallpreview');
+const MarketListing = require('../models/MarketListing');        // ⬅️ add
+const InventoryItem = require('../models/InventoryItem');        // ⬅️ add
 
-    if (stallPattern.test(customId || '')) {
-      const msg = await getSourceMessage(interaction);
-      if (!msg) {
-        return safeReply(interaction, { content: 'This stall preview expired.', flags: 1 << 6 });
-      }
+// include stall_copy here:
+const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last|stall_copy)$/;
 
-      if (!isOwnerOfMessage(interaction)) {
-        return safeReply(interaction, { content: "You can't use buttons for someone else’s command.", flags: 1 << 6 });
-      }
+if (stallPattern.test(customId || '')) {
+  const msg = await getSourceMessage(interaction);
+  if (!msg) {
+    return safeReply(interaction, { content: 'This stall preview expired.', flags: 1 << 6 });
+  }
+  if (!isOwnerOfMessage(interaction)) {
+    return safeReply(interaction, { content: "You can't use buttons for someone else’s command.", flags: 1 << 6 });
+  }
 
-      await autoDefer(interaction, 'update');
+  // Read current page from the embed title
+  const embed = msg.embeds?.[0];
+  const match = embed?.title?.match(/Page (\d+)\/(\d+)/);
+  if (!match || match.length < 3) {
+    return interaction.editReply?.({ content: 'Could not read current page.', components: [] });
+  }
+  let [, currentPage, totalPages] = match.map(Number);
 
-      const embed = msg.embeds?.[0];
-      const match = embed?.title?.match(/Page (\d+)\/(\d+)/);
-      if (!match || match.length < 3) {
-        return interaction.editReply({ content: 'Could not read current page.', components: [] });
-      }
+  // Pull the cached filters we stored when rendering the page
+  const previousFilters = stallPreviewFilters.get(msg.id) || {};
+  const {
+    names = [], groups = [], eras = [],
+    rarity, rarities = [],
+    seller, cheapest, newest, unowned,
+    perPage = 1, compact = false
+  } = previousFilters;
 
-      let [, currentPage, totalPages] = match.map(Number);
-      if (customId === 'stall_first') currentPage = 1;
-      if (customId === 'stall_prev') currentPage = Math.max(1, currentPage - 1);
-      if (customId === 'stall_next') currentPage = Math.min(totalPages, currentPage + 1);
-      if (customId === 'stall_last') currentPage = totalPages;
+  // === COPY BUTTON ===
+  if (customId === 'stall_copy') {
+    // Build the exact same Mongo filter the preview uses
+    const filter = {};
+    if (names.length)  filter.cardName = { $in: names.map(n => new RegExp(`^${escapeRegex(n)}$`, 'i')) };
+    if (groups.length) filter.group    = { $in: groups.map(g => new RegExp(`^${escapeRegex(g)}$`, 'i')) };
+    if (eras.length)   filter.era      = { $in: eras.map(e => new RegExp(`^${escapeRegex(e)}$`, 'i')) };
+    if (Array.isArray(rarities) && rarities.length) filter.rarity = { $in: rarities };
+    else if (Number.isInteger(rarity)) filter.rarity = rarity;
+    if (seller?.id) filter.sellerId = seller.id;
 
-      const previousFilters = stallPreviewFilters.get(msg.id) || {};
-      await stallPreview(interaction, { ...previousFilters, page: currentPage, delivery: 'update' });
-      return;
+    if (unowned) {
+      const inv = await InventoryItem.find({ userId: interaction.user.id })
+        .select({ cardCode: 1, _id: 0 }).lean();
+      const ownedCodes = inv.map(x => x.cardCode);
+      filter.cardCode = { $nin: ownedCodes };
     }
+
+    const sort = cheapest ? { price: 1 } : (newest ? { createdAt: -1 } : { createdAt: 1 });
+    const skip = (currentPage - 1) * perPage;
+
+    const listings = await MarketListing.find(filter)
+      .sort(sort).skip(skip).limit(perPage).select({ buyCode: 1, _id: 0 }).lean();
+
+    const codes = listings.map(l => l.buyCode).filter(Boolean);
+    const text  = codes.length ? `${codes.join(', ')}` : '_No buy codes on this page_';
+
+    // Send as ephemeral reply (don’t update the preview message)
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.reply({ content: text, flags: 1 << 6 });     // ephemeral
+    } else {
+      await interaction.followUp({ content: text, flags: 1 << 6 });  // ephemeral
+    }
+    return; // done
+  }
+
+  // === NAV BUTTONS ===
+  // Only defer-update for navigation; we are going to edit the original message
+  await autoDefer(interaction, 'update');
+
+  if (customId === 'stall_first') currentPage = 1;
+  if (customId === 'stall_prev')  currentPage = Math.max(1, currentPage - 1);
+  if (customId === 'stall_next')  currentPage = Math.min(totalPages, currentPage + 1);
+  if (customId === 'stall_last')  currentPage = totalPages;
+
+  await stallPreview(interaction, { ...previousFilters, page: currentPage, delivery: 'update' });
+  return;
+}
+
+// tiny helper (copy-paste from preview file)
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
     /* ⬇️ Template select menu (kept) */
     if (customId === 'select_template') {
@@ -530,9 +585,9 @@ if (interaction.customId?.startsWith('rehearsal_')) {
         const slice = session.entries.slice(page * perPage, page * perPage + perPage);
         const codes = slice.map(c => c.cardCode).join(', ');
         if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+          await interaction.reply({ content: `${codes}`, flags: 1 << 6 }).catch(()=>{});
         } else {
-          await interaction.followUp({ content: `\n\`\`\`${codes}\`\`\``, flags: 1 << 6 }).catch(()=>{});
+          await interaction.followUp({ content: `${codes}`, flags: 1 << 6 }).catch(()=>{});
         }
         return;
       }
