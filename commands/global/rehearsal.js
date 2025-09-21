@@ -11,6 +11,7 @@ const Canvas = require('canvas');
 const cooldowns = require('../../utils/cooldownManager');
 const cooldownConfig = require('../../utils/cooldownConfig');
 const handleReminders = require('../../utils/reminderHandler');
+const InventoryItem = require('../../models/InventoryItem');
 const Card = require('../../models/Card');
 const pickRarity = require('../../utils/rarityPicker');
 const {safeReply} = require('../../utils/safeReply'); // compat export
@@ -69,8 +70,8 @@ module.exports = {
         }
       } catch (e) { console.warn('rehearsal img fail', c.cardCode, e.message); }
       ctx.fillStyle = '#fff'; ctx.font = '9px Sans';
-      let ty = y + ch + 18;
-      ctx.fillText(`Rarity: ${c.rarity}`, x, y + ch + 18);
+      let ty = y + 260;
+      ctx.fillText(`Rarity: ${c.rarity}`, x, y); y += 18;
       ctx.fillText(`Group: ${c.group}`, x, ty); ty += 18;
       ctx.fillText(`Code: ${c.cardCode}`, x, ty); ty += 18;
       const n = qty[c.cardCode] ?? 0;

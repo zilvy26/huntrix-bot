@@ -1,8 +1,8 @@
+// commands/global/register.js
 const { SlashCommandBuilder } = require('discord.js');
 const getOrCreateUser = require('../../utils/getOrCreateUser');
-const UserInventory = require('../../models/UserInventory');
 const User = require('../../models/User');
-const {safeReply} = require('../../utils/safeReply');
+const { safeReply } = require('../../utils/safeReply');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -11,18 +11,18 @@ module.exports = {
 
   async execute(interaction) {
     try {
+      // Check if a User doc already exists BEFORE creating/syncing
       const existed = await User.exists({ userId: interaction.user.id });
-      const user = await getOrCreateUser(interaction); // auto create or sync user
 
-      // 🧠 Create empty inventory if not already present
-      const inventoryExists = await UserInventory.exists({ userId: interaction.user.id });
-      if (!inventoryExists) {
-        await UserInventory.create({ userId: interaction.user.id, cards: [] });
-      }
+      // Create/sync the user profile (your existing util)
+      const user = await getOrCreateUser(interaction);
+
+      // With the new per-item InventoryItem model, there is nothing to pre-create here.
+      // (Each owned card gets its own { userId, cardCode, quantity } doc when acquired.)
 
       const message = existed
-        ? `You have now debuted — let us build the Honmoon together!`
-        : `Welcome back, ${user.username}! You're already registered.`;
+        ? `Welcome back, ${user.username}! You're already registered.`
+        : `You have now debuted — let us build the Honmoon together!`;
 
       await safeReply(interaction, { content: message });
 
