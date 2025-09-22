@@ -11,13 +11,13 @@ const RARITY_WEIGHTS = {
 
 // Hardcoded multipliers for eras (always lowercased keys!)
 const ERA_MULTIPLIERS = {
-  'vir25': 0.1235,
+  'lib25': 0.1435,
   'candy festival (album)': 0.185,
 };
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
 const CODE_MULTIPLIERS = {
-  'spc-reepc25': 1.45,
+  'svt-jhlib25': 1.45,
 };
 
 const MIN_WEIGHT = 0.00001;
