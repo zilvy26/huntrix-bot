@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const {safeReply} = require('../../utils/safeReply');
 const User = require('../../models/User');
 const UserRecord = require('../../models/UserRecord');
@@ -10,7 +10,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('grantpay')
     .setDescription('Give or remove patterns or sopop from a user')
-    .setDefaultMemberPermissions('0')
+    .setDefaultMemberPermissions(PermissionFlagsBits.DeafenMembers)
     .addUserOption(opt =>
       opt.setName('target')
         .setDescription('User to receive or lose currency')

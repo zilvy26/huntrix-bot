@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const {safeReply} = require('../../utils/safeReply');
 const Blacklist = require('../../models/Blacklist');
 const GRANTING_ROLE_ID = process.env.GRANTING_ROLE_ID;
@@ -8,7 +8,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('unblacklist')
     .setDescription('Remove a user from blacklist.')
-    .setDefaultMemberPermissions('0')
+    .setDefaultMemberPermissions(PermissionFlagsBits.DeafenMembers)
     .addUserOption(opt =>
       opt.setName('user').setDescription('User to unblacklist').setRequired(true)),
 

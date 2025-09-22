@@ -4,7 +4,8 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  PermissionFlagsBits
 } = require('discord.js');
 const dotenv = require('dotenv');
 dotenv.config();
@@ -23,7 +24,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('grantcard')
     .setDescription('Grant one or more cards to a user by card code')
-    .setDefaultMemberPermissions('0')
+    .setDefaultMemberPermissions(PermissionFlagsBits.DeafenMembers)
     .addUserOption(opt =>
       opt.setName('user').setDescription('User to receive the cards').setRequired(true))
     .addStringOption(opt =>
