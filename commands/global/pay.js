@@ -80,7 +80,7 @@ await UserRecord.create({
   userId: recipient.id,
   type: 'receive',
   targetId: senderId,
-  detail: `Received <:ehx_patterns:1389584144895315978> ${patternsToSend} and <:ehx_sopop:1389584273337618542> ${sopopToSend} from <@${interaction.user.tag}>`
+  detail: `Received <:ehx_patterns:1389584144895315978> ${patternsToSend} and <:ehx_sopop:1389584273337618542> ${sopopToSend} from <@${senderId}>`
 });
 
     return safeReply(interaction, { embeds: [embed] });
