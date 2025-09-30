@@ -1,14 +1,13 @@
 // commands/profile.js
 const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
 const UserProfile = require('../../models/UserProfile');
-const UserInventory = require('../../models/UserInventory');
+const InventoryItem = require('../../models/InventoryItem'); // ✅ new inventory
 const Card = require('../../models/Card');
 const User = require('../../models/User');
 const drawProfile = require('../../utils/drawProfile');
 const { safeReply } = require('../../utils/safeReply');
 const { DEFAULT_TEMPLATE_LABEL } = require('../../config/profile');
 const { ensureDefaultTemplate } = require('../../services/templateInventory');
-
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -24,7 +23,7 @@ module.exports = {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const user = await interaction.client.users.fetch(targetUser.id);
 
-    // Retrieve or initialize profile (mirror your original behavior)
+    // Ensure profile exists (same as before)
     let profile = await UserProfile.findOne({ userId: user.id });
     if (!profile) {
       profile = await UserProfile.create({
@@ -33,29 +32,31 @@ module.exports = {
         favoriteCard: null,
         badges: [],
         template: 'profile_base',
-        templateLabel: DEFAULT_TEMPLATE_LABEL, // ensure label exists from the start
+        templateLabel: DEFAULT_TEMPLATE_LABEL,
       });
     } else if (!profile.templateLabel) {
-      // backfill label so we always have a default
       profile.templateLabel = DEFAULT_TEMPLATE_LABEL;
       await profile.save();
     }
-    await ensureDefaultTemplate(user.id); // guarantees inventory exists + has base template
+
+    await ensureDefaultTemplate(user.id);
 
     // Currency from User model (unchanged)
     const userData = await User.findOne({ userId: user.id });
     const patterns = userData?.patterns || 0;
     const sopop = userData?.sopop || 0;
 
-    // Favorite card logic (unchanged)
+    // Favorite card lookup using InventoryItem
     let favoriteCardImageURL = null;
     if (profile.favoriteCard) {
-      const inventoryEntry = await UserInventory.findOne({
+      const hasCard = await InventoryItem.exists({
         userId: user.id,
-        'cards.cardCode': profile.favoriteCard
+        cardCode: profile.favoriteCard,
+        quantity: { $gt: 0 },
       });
+
       const card = await Card.findOne({ cardCode: profile.favoriteCard });
-      if (inventoryEntry && card) {
+      if (hasCard && card) {
         favoriteCardImageURL = card.localImagePath
           ? card.localImagePath
           : (card.discordPermalinkImage || card.imgurImageLink || null);
