@@ -314,7 +314,6 @@ module.exports = async function interactionRouter(interaction) {
     const { stallPreviewFilters } = require('../utils/cache');
 const stallPreview = require('../commands/global/subcommands/stallpreview');
 const MarketListing = require('../models/MarketListing');        // ⬅️ add
-const InventoryItem = require('../models/InventoryItem');        // ⬅️ add
 
 // include stall_copy here:
 const stallPattern = /^(stall_first|stall_prev|stall_next|stall_last|stall_copy)$/;
