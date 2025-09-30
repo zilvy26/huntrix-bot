@@ -171,7 +171,6 @@ if (amount > 0) {
       .setTitle('Refund Complete')
       .setColor('#2f3136')
       .setDescription(`You received **${total} <:ehx_patterns:1389584144895315978>**`)
-      .addFields({ name: 'Details', value: (lines.join('\n') || '—').slice(0, 1024) });
 
     sessions.delete(msgId);
 
