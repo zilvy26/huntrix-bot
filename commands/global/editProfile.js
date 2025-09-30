@@ -1,7 +1,7 @@
 // commands/editprofile.js
 const { SlashCommandBuilder } = require('discord.js');
 const UserProfile = require('../../models/UserProfile');
-const UserInventory = require('../../models/UserInventory');
+const InventoryItem = require('../../models/InventoryItem'); // ← swapped from UserInventory
 const { safeReply } = require('../../utils/safeReply');
 
 module.exports = {
@@ -14,7 +14,7 @@ module.exports = {
         .setMaxLength(400)
     )
     .addStringOption(option =>
-      option.setName('template_label') // <-- changed from 'template'
+      option.setName('template_label') // keep label-based template
         .setDescription('Set your profile template by label (case-insensitive)')
     )
     .addStringOption(option =>
@@ -25,34 +25,42 @@ module.exports = {
   async execute(interaction) {
     const userId = interaction.user.id;
     const aboutMe = interaction.options.getString('aboutme');
-    const templateLabel = interaction.options.getString('template_label'); // new
-    const favoriteCard = interaction.options.getString('favoritecard');
+    const templateLabel = interaction.options.getString('template_label');
+    const favoriteCardInput = interaction.options.getString('favoritecard');
 
     let profile = await UserProfile.findOne({ userId });
-    const userData = await require('../../models/User').findOne({ userId });
+    // (Left as-is if you need it elsewhere)
+    // const userData = await require('../../models/User').findOne({ userId });
 
     if (!profile) {
       profile = new UserProfile({ userId });
     }
 
-    if (aboutMe !== null) profile.aboutMe = aboutMe;
+    if (aboutMe !== null) {
+      profile.aboutMe = aboutMe;
+    }
 
-    // set label (no ownership check here; your boutique handles purchase/ownership)
+    // set template label exactly as user typed (trim only)
     if (templateLabel !== null) {
       profile.templateLabel = templateLabel.trim();
     }
 
-    if (favoriteCard) {
-      const ownsCard = await UserInventory.exists({
+    // favorite card → must own it in InventoryItem (quantity > 0)
+    if (favoriteCardInput) {
+      const code = favoriteCardInput.trim().toUpperCase();
+      const ownsCard = await InventoryItem.exists({
         userId,
-        'cards.cardCode': favoriteCard.toUpperCase()
+        cardCode: code,
+        quantity: { $gt: 0 }
       });
+
       if (!ownsCard) {
         return safeReply(interaction, {
-          content: `You don’t own a card with code \`${favoriteCard}\`.`,
+          content: `You don’t own a card with code \`${favoriteCardInput}\`.`,
         });
       }
-      profile.favoriteCard = favoriteCard.toUpperCase();
+
+      profile.favoriteCard = code;
     }
 
     await profile.save();

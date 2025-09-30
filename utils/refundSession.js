@@ -88,7 +88,7 @@ async function handleRefundButtons(interaction, { Card, User, InventoryItem, REF
     if (id === 'last')  state.page = pages - 1;
 
     // ✅ Button -> use update(), not editReply()
-    await interaction.update({ embeds: [makeEmbed(state)], components: makeButtons(state) });
+    await interaction.editReply({ embeds: [makeEmbed(state)], components: makeButtons(state) });
     return true;
   }
 
@@ -96,7 +96,7 @@ async function handleRefundButtons(interaction, { Card, User, InventoryItem, REF
   if (id === 'cancel_refund') {
     sessions.delete(msgId);
     // ✅ Button -> use update()
-    await interaction.update({ content: 'Refund cancelled.', embeds: [], components: [] });
+    await interaction.editReply({ content: 'Refund cancelled.', embeds: [], components: [] });
     return true;
   }
 
@@ -108,7 +108,7 @@ async function handleRefundButtons(interaction, { Card, User, InventoryItem, REF
       r.components = r.components.map(c => ButtonBuilder.from(c).setDisabled(true));
       return r;
     });
-    await interaction.update({ embeds: interaction.message.embeds, components: disabledRows });
+    await interaction.editReply({ embeds: interaction.message.embeds, components: disabledRows });
 
     // --- compute + apply changes (unchanged from your code) ---
     const codes = state.items.map(i => i.cardCode);
