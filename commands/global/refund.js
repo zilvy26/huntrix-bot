@@ -13,10 +13,10 @@ const { registerRefundSession } = require('../../utils/refundSession');
 
 // Values for R1–R4; R5 handled in session (specials vs main)
 const REFUND_VALUES = Object.freeze({
-  1: 10,
-  2: 25,
-  3: 75,
-  4: 250
+  1: 75,
+  2: 125,
+  3: 200,
+  4: 300
   // 5 is computed in refundSession (2500 / 3750) like your original, only when include_specials = true
 });
 
@@ -24,19 +24,19 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('refund')
     .setDescription('Refund cards for patterns')
+    .addBooleanOption(o => o.setName('include_specials').setDescription('Include R5 specials (event/zodiac/others)?').setRequired(true))
+    .addStringOption(o =>
+      o.setName('mode')
+        .setDescription('all = all copies, dupes = keep one')
+        .addChoices({ name: 'all', value: 'all' }, { name: 'dupes', value: 'dupes' })
+    )
     .addStringOption(o => o.setName('cardcodes').setDescription('Comma-separated card codes to refund (optional)'))
     .addStringOption(o => o.setName('group').setDescription('Filter by groups (comma-separated)'))
     .addStringOption(o => o.setName('name').setDescription('Filter by names (comma-separated)'))
     .addStringOption(o => o.setName('era').setDescription('Filter by eras (comma-separated)'))
     .addStringOption(o => o.setName('exclude_name').setDescription('Exclude names (comma-separated)'))
     .addStringOption(o => o.setName('exclude_era').setDescription('Exclude eras (comma-separated)'))
-    .addStringOption(o => o.setName('rarityrange').setDescription('Use "3" or "2-5"'))
-    .addStringOption(o =>
-      o.setName('mode')
-        .setDescription('all = all copies, dupes = keep one')
-        .addChoices({ name: 'all', value: 'all' }, { name: 'dupes', value: 'dupes' })
-    )
-    .addBooleanOption(o => o.setName('include_specials').setDescription('Include R5 specials (event/zodiac/others)?')),
+    .addStringOption(o => o.setName('rarityrange').setDescription('Use "3" or "2-5"')),
 
   async execute(interaction) {
     const userId = interaction.user.id;
@@ -185,7 +185,8 @@ module.exports = {
       userId,
       items,                 // [{ cardCode, rarity, category, qty }]
       includeSpecials,       // boolean; session will pay R5 as 2500/3750 or skip if false
-      perPage
+      perPage,
+      refundValues: REFUND_VALUES
     });
   }
 };

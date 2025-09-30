@@ -126,21 +126,31 @@ async function handleRefundButtons(interaction, { Card, User, InventoryItem, REF
       const isSpecial = card.rarity === 5 && ['event', 'zodiac', 'others'].includes(category);
       const isR5Main  = card.rarity === 5 && ['kpop', 'anime', 'game'].includes(category);
 
-      let amount = 0;
-      if (card.rarity === 5) {
-        if (state.includeSpecials) {
-          if (isSpecial) amount = 3750 * it.qty;
-          else if (isR5Main) amount = 2500 * it.qty;
-        } else {
-          continue;
-        }
-      } else {
-        amount = (REFUND_VALUES[card.rarity] || 0) * it.qty;
-      }
+      // utils/refundSession.js (inside confirm branch)
+const values = state.refundValues || { 1: 75, 2: 125, 3: 200, 4: 300 }; // fallback
 
-      if (amount > 0) {
-        total += amount;
-        lines.push(`\`${card.cardCode}\` • R${card.rarity} ×${it.qty} → +${amount}`);
+// ...
+const r = Number(card.rarity);          // <- coerce just in case
+let amount = 0;
+
+if (r === 5) {
+  if (state.includeSpecials) {
+    if (isSpecial)      amount = 3750 * it.qty;
+    else if (isR5Main)  amount = 2500 * it.qty;
+    else                amount = 0;
+  } else {
+    // skip r5 entirely when specials not allowed
+    continue;
+  }
+} else {
+  // Use ?? so a legitimate 0 isn’t treated as false (future-proof)
+  amount = ((values[r] ?? 0) * (it.qty ?? 0));
+}
+
+if (amount > 0) {
+  total += amount;
+  lines.push(`\`${card.cardCode}\` • R${r} ×${it.qty} → ${amount}`);
+  // ... your decrement/update logic follows
 
         const dec = await InventoryItem.findOneAndUpdate(
           { userId: state.ownerId, cardCode: card.cardCode, quantity: { $gte: it.qty } },
