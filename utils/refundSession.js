@@ -65,7 +65,7 @@ function registerRefundSession({ message, userId, items, includeSpecials, perPag
 /** Router helper: handle generic buttons for refund; returns true if handled */
 // utils/refundSession.js  (only the handler body shown)
 // ...snip...
-async function handleRefundButtons(interaction, { Card, User, InventoryItem, REFUND_VALUES }) {
+async function handleRefundButtons(interaction, { Card, User, InventoryItem }) {
   if (!interaction.isButton?.()) return false;
 
   const msgId = interaction.message?.id;

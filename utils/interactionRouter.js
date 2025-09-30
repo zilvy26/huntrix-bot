@@ -233,7 +233,7 @@ module.exports = async function interactionRouter(interaction) {
     }
 
     // --- Let /refund session claim the generic IDs for its own message ---
-    const handledRefund = await handleRefundButtons(interaction, { Card, User, UserInventory, REFUND_VALUES });
+    const handledRefund = await handleRefundButtons(interaction, { Card, User, InventoryItem, REFUND_VALUES });
     if (handledRefund) return;
 
     // ---- HELP PAGES (message-scoped) ----
