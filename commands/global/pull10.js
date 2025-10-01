@@ -114,10 +114,22 @@ const updatedDocs = await InventoryItem.find(
 const qtyMap = Object.fromEntries(updatedDocs.map(d => [d.cardCode, d.quantity]));
 
 // 5) Build the 10 lines in original pull order with totals
+// 5) Build the 10 lines in original pull order with running totals
+const seen = new Map(); // track how many times we’ve seen each card in this batch
+
 const lines = pulls.map(card => {
   const emoji = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji });
-  const total = qtyMap[card.cardCode] ?? 1;
-  return `${emoji} **${card.name}** \`${card.cardCode}\` (Total: **${total}**)`;
+  const code = card.cardCode;
+
+  const pulledBatch = counts.get(code) || 1;   // how many of this card were pulled in total this round
+  const finalTotal = qtyMap[code] ?? 1;        // total in inventory after DB update
+  const idx = (seen.get(code) || 0) + 1;       // which occurrence we are on now
+  seen.set(code, idx);
+
+  // Compute inventory total after this specific occurrence
+  const now = finalTotal - (pulledBatch - idx);
+
+  return `${emoji} **${card.name}** \`${code}\` (Total: **${now}**)`;
 });
 
     const embed = new EmbedBuilder()

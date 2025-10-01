@@ -204,17 +204,15 @@ if (designerIds.length > 0) {
         await Card.updateMany(filters, { $set: updates });
         // If cardCode was changed, propagate to UserInventory
         if (updates.cardCode) {
-        const UserInventory = require('../../models/UserInventory'); // make sure this path is correct
+        const InventoryItem = require('../../models/InventoryItem');
 
-        // For each matched card, update inventories
-        for (const card of matchedCards) {
-          await UserInventory.updateMany(
-          { 'cards.cardCode': card.cardCode },
-          { $set: { 'cards.$[elem].cardCode': updates.cardCode } },
-          { arrayFilters: [{ 'elem.cardCode': card.cardCode }] }
-          );
+for (const card of matchedCards) {
+  await InventoryItem.updateMany(
+    { cardCode: card.cardCode },        // find all inventory entries for this card
+    { $set: { cardCode: updates.cardCode } }
+  );
+}
         }
-      }
         return interaction.editReply({
           content: `✅ Updated ${matchedCards.length} card(s).`,
           embeds: [],
