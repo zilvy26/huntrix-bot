@@ -654,6 +654,49 @@ if (interaction.customId?.startsWith('rehearsal_')) {
       return;
     }
 
+    // interaction router excerpt
+const cdPattern = /^(cd_first|cd_prev|cd_next|cd_last|cd_close)$/;
+
+if (cdPattern.test(customId || '')) {
+  const userId = interaction.user.id;
+  const pages = interaction.client.cache?.viewcds?.[userId];
+
+  if (!pages?.length) {
+    await interaction.editReply({
+      content: 'CD viewer session expired or not found.',
+      embeds: [],
+      components: []
+    });
+    return;
+  }
+
+  // We store current page index in the header footer: "Page X/Y"
+  const header = interaction.message.embeds?.[0];
+  let current = 0;
+  const m = header?.footer?.text?.match(/Page\s+(\d+)\/(\d+)/i);
+  if (m) current = Math.max(0, Math.min(pages.length - 1, parseInt(m[1], 10) - 1));
+
+  if (customId === 'cd_first') current = 0;
+  else if (customId === 'cd_prev') current = (current - 1 + pages.length) % pages.length;
+  else if (customId === 'cd_next') current = (current + 1) % pages.length;
+  else if (customId === 'cd_last') current = pages.length - 1;
+  else if (customId === 'cd_close') {
+    await interaction.editReply({ content: 'Viewer closed.', embeds: [], components: [] });
+    return;
+  }
+
+  const page = pages[current];
+
+  await interaction.editReply({
+    embeds: page.embeds,
+    components: [interaction.message.components[0]],
+    files: page.files ?? []
+  });
+
+  return;
+}
+
+
     /*** ✨ TEMPLATE PREVIEW PAGER (like /showcase) ✨ ***/
 {
   const tplPattern = /^(tpl_first|tpl_prev|tpl_next|tpl_last)$/;
