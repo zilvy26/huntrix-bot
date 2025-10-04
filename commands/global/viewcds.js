@@ -66,13 +66,6 @@ async function buildPageEmbeds(userId, cds, ownedSet, ownedCount, totalCount, pa
   const embeds = [];
   const files = [];
 
-  // Top “header” embed with progress bar
-  const header = new EmbedBuilder()
-    .setColor('Blurple')
-    .setTitle('CD Collection')
-    .setDescription(`${progressBar(ownedCount, totalCount)}\nPage ${pageIdx + 1}/${totalPages}`);
-  embeds.push(header);
-
   // Per-CD embeds (up to PAGE_SIZE)
   for (const cd of cds) {
     const owned = ownedSet.has(String(cd._id));
@@ -94,8 +87,9 @@ async function buildPageEmbeds(userId, cds, ownedSet, ownedCount, totalCount, pa
     }
 
     const e = new EmbedBuilder()
-      .setTitle(`${owned ? '✅' : '⬜'} ${cd.title}`)
+      .setTitle(`${cd.title}`)
       .setColor(owned ? 0x00a86b : 0x777777)
+      .setDescription(`${progressBar(ownedCount, totalCount)}`)
       .addFields(
         { name: 'Owned', value: owned ? 'Yes' : 'No', inline: true },
         { name: 'Available', value: String(cd.available), inline: true },
@@ -194,7 +188,7 @@ module.exports = {
 
       collector.on('collect', async (btn) => {
         if (btn.user.id !== interaction.user.id) {
-          return btn.reply({ content: 'Only the command invoker can paginate this view.', ephemeral: true });
+          return btn.reply({ content: 'Only the command invoker can paginate this view.', flags: 1 << 6 });
         }
         try {
           await btn.deferUpdate();

@@ -2,11 +2,15 @@
 const {
   SlashCommandBuilder,
   EmbedBuilder,
+  AttachmentBuilder
 } = require('discord.js');
+
+const fs = require('fs');
+const path = require('path');
 
 const CD = require('../../models/CD');
 const UserCD = require('../../models/UserCD');
-const { hasCompleteEra } = require('../../services/eligibility'); // reusing your helper :contentReference[oaicite:1]{index=1}
+const { hasCompleteEra } = require('../../services/eligibility'); // your existing helper
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -32,15 +36,13 @@ module.exports = {
         return interaction.editReply({ content: `CD **${cd.title}** is not available to claim.` });
       }
 
-      // Check if already claimed by this user
+      // Already claimed?
       const already = await UserCD.findOne({ userId: interaction.user.id, cdId: cd._id });
       if (already) {
         return interaction.editReply({ content: `You have already claimed **${cd.title}**.` });
       }
 
-      // Determine eligibility:
-      // If active === true → only needs activeEra
-      // If active === false → needs activeEra AND inactiveEra
+      // Eligibility check
       let eligible = false;
       let reasons = [];
 
@@ -48,11 +50,9 @@ module.exports = {
         if (!cd.activeEra) {
           reasons.push('CD has no Active Era set; cannot validate eligibility.');
         } else {
-          const hasActive = await hasCompleteEra(interaction.user.id, cd.activeEra); // uses your helper :contentReference[oaicite:2]{index=2}
+          const hasActive = await hasCompleteEra(interaction.user.id, cd.activeEra);
           eligible = hasActive;
-          if (!hasActive) {
-            reasons.push(`Missing required cards for Active Era **${cd.activeEra}**.`);
-          }
+          if (!hasActive) reasons.push(`Missing required cards for Active Era **${cd.activeEra}**.`);
         }
       } else {
         if (!cd.activeEra || !cd.inactiveEra) {
@@ -61,8 +61,7 @@ module.exports = {
           const [hasActive, hasInactive] = await Promise.all([
             hasCompleteEra(interaction.user.id, cd.activeEra),
             hasCompleteEra(interaction.user.id, cd.inactiveEra),
-          ]); // both checks rely on your InventoryItem-based era completeness logic :contentReference[oaicite:3]{index=3}
-
+          ]);
           eligible = hasActive && hasInactive;
           if (!hasActive) reasons.push(`Missing required cards for Active Era **${cd.activeEra}**.`);
           if (!hasInactive) reasons.push(`Missing required cards for Inactive Era **${cd.inactiveEra}**.`);
@@ -75,25 +74,30 @@ module.exports = {
         });
       }
 
-      // Record the claim
-      await UserCD.create({
-        userId: interaction.user.id,
-        cdId: cd._id
-      });
+      // Record claim
+      await UserCD.create({ userId: interaction.user.id, cdId: cd._id });
 
+      // Build success embed + include CD image if available
       const embed = new EmbedBuilder()
-        .setTitle('CD Claimed')
+        .setTitle(`${cd.title} claimed`)
         .setColor('Green')
         .addFields(
-          { name: 'Title', value: cd.title, inline: true },
-          { name: 'Available', value: String(cd.available), inline: true },
-          { name: 'Requires', value: cd.active ? 'Active Era only' : 'Active + Inactive Eras', inline: true },
-          { name: 'Active Era', value: cd.activeEra || '—', inline: true },
-          { name: 'Inactive Era', value: cd.inactiveEra || '—', inline: true },
-          { name: 'Claimed By', value: `<@${interaction.user.id}>`, inline: true }
+          { name: 'Required', value: cd.active ? 'Active Era' : 'Active + Inactive Eras' },
+          { name: 'Active Era', value: cd.activeEra || '—' },
+          { name: 'Inactive Era', value: cd.inactiveEra || '—' },
+          { name: 'Claimed By', value: `<@${interaction.user.id}>` }
         );
 
-      return interaction.editReply({ embeds: [embed] });
+      const files = [];
+      if (cd.localImagePath && fs.existsSync(cd.localImagePath)) {
+        // Use color image on claim
+        const ext = path.extname(cd.localImagePath) || '.png';
+        const attachName = `cd_${cd._id}_color${ext}`;
+        files.push(new AttachmentBuilder(cd.localImagePath, { name: attachName }));
+        embed.setImage(`attachment://${attachName}`);
+      }
+
+      return interaction.editReply({ embeds: [embed], files });
     } catch (err) {
       console.error('Error in /claimcd:', err);
       if (!interaction.replied && !interaction.deferred) {
