@@ -58,9 +58,9 @@ async function buildSingleCdPage({ cd, owned, ownedCount, totalCount, pageIdx, t
   const lines = [
     `${progressBar(ownedCount, totalCount)}`,
     '',
-    `${owned ? '**Owned**' : '*Not owned*'} • **Available:** ${cd.available ? 'Yes' : 'No'}`,
+    `${owned ? '**Owned**' : '*Not owned*'}\n**Available:** ${cd.available ? 'Yes' : 'No'}`,
     `**Requires:** ${reqText(cd)}`,
-    `**Active Era:** ${cd.activeEra || '—'} • **Inactive Era:** ${cd.inactiveEra || '—'}`
+    `**Active Era:** ${cd.activeEra || '—'}\n**Inactive Era:** ${cd.inactiveEra || '—'}`
   ];
 
   const embed = new EmbedBuilder()
