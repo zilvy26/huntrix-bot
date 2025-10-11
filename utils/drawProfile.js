@@ -83,7 +83,7 @@ const bio = (profile.aboutMe && profile.aboutMe.trim()) ? profile.aboutMe : 'No 
 const m = ctx.measureText('Mg|jyÅあ家'); // wide asc/desc coverage
 const lineHeight = Math.ceil((m.actualBoundingBoxAscent || 18) + (m.actualBoundingBoxDescent || 5)) + 6;
 
-const box = { x: 120, y: 470, w: 570, h: 440 }; // h = ~11 lines at ~30px
+const box = { x: 120, y: 470, w: 525, h: 440 }; // h = ~11 lines at ~30px
 
 const lines = wrapText(ctx, bio, box.w);
 
