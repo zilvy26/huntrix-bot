@@ -4,7 +4,8 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  PermissionFlagsBits
 } = require('discord.js');
 const Card = require('../../models/Card');
 const InventoryItem = require('../../models/InventoryItem'); // ✅ NEW
@@ -19,7 +20,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('grantrandom')
     .setDescription('Grant OR remove random cards with filters and limits (use negative amount to remove)')
-    .setDefaultMemberPermissions('0')
+    .setDefaultMemberPermissions(PermissionFlagsBits.DeafenMembers)
     .addUserOption(o => o.setName('user').setDescription('Recipient').setRequired(true))
     .addIntegerOption(o =>
       o.setName('amount')
