@@ -87,7 +87,7 @@ async function buildSingleCdPage({ cd, owned, ownedCount, totalCount, pageIdx, t
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('viewcds')
-    .setDescription('View CDs: one CD per page (single-embed), showcase-style controls'),
+    .setDescription('View CDs'),
 
   async execute(interaction) {
     // Load all CDs + ownership for the viewer

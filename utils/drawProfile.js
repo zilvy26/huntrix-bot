@@ -78,18 +78,20 @@ module.exports = async function drawProfile(user, profile, favoriteCardImageURL 
   ctx.font = '18px "Segoe UI", sans-serif';
 ctx.fillStyle = '#2f1b39';
 
-const bio = (profile.aboutMe && profile.aboutMe.trim())
-  ? profile.aboutMe
-  : 'No bio set.';
+const bio = (profile.aboutMe && profile.aboutMe.trim()) ? profile.aboutMe : 'No bio set.';
 
-// Wrap the text into lines
-const lines = wrapText(ctx, bio, 600); // 600 = max width of your “about me” box
-const lineHeight = 30;
-const startX = 120;
-let startY = 470;
+const m = ctx.measureText('Mg|jyÅあ家'); // wide asc/desc coverage
+const lineHeight = Math.ceil((m.actualBoundingBoxAscent || 18) + (m.actualBoundingBoxDescent || 5)) + 6;
 
-for (let i = 0; i < lines.length && i < 50; i++) { // limit to 50 lines max
-  ctx.fillText(lines[i], startX, startY + (i * lineHeight));
+const box = { x: 120, y: 470, w: 600, h: 345 }; // h = ~11 lines at ~30px
+
+const lines = wrapText(ctx, bio, box.w);
+
+let y = box.y;
+for (const line of lines) {
+  if (y + lineHeight - box.y > box.h) break; // don’t overrun box; prevents overlap with next section
+  ctx.fillText(line, box.x, y);
+  y += lineHeight;
 }
 
   // favorite card slot (optional image)

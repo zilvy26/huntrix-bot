@@ -14,7 +14,7 @@ const { safeReply } = require('../../../utils/safeReply');
 // ===== Config =====
 const DEFAULT_PER_PAGE = 6;
 const MAX_PER_PAGE = 6;
-const MAX_DEFAULT_PAGES = 200; // cap pages when no filters to avoid scanning forever
+const MAX_DEFAULT_PAGES = 100; // cap pages when no filters to avoid scanning forever
 
 // ===== Utilities =====
 const clampPerPage = (n) => {
