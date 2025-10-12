@@ -30,8 +30,8 @@ module.exports = {
     // 🧮 Step 1: Generate outcomes with weighted probabilities
     const rewardWeights = {
       card_gain: 20,
-      currency_gain: 30,
-      currency_loss: 12,
+      currency_gain: 28,
+      currency_loss: 14,
       nothing: 38
     };
     const weightedPool = Object.entries(rewardWeights)
