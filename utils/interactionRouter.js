@@ -485,9 +485,9 @@ const newRows = message.components.map(row => {
   return newRow;
 });
 
-  const isFinal = session.clicks.length >= 3;
+  const isFinal = updatedSession.clicks.length >= 3;
 
-  if (isFinal) {
+if (isFinal) {
   const final = await MysterySession.findOne({ sessionId });
 
   const resultFields = await Promise.all(final.clicks.map(async (c, i) => {
@@ -535,6 +535,11 @@ const newRows = message.components.map(row => {
   });
 
   await MysterySession.deleteOne({ sessionId });
+} else {
+  // show updated buttons (with emoji for what they clicked so far)
+  await interaction.editReply({
+    components: newRows
+  });
 }
 }
 
