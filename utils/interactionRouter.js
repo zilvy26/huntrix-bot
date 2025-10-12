@@ -473,7 +473,7 @@ if (interaction.customId?.startsWith('mystery:')) {
     const newRow = new ActionRowBuilder();
     for (const btn of row.components) {
       const thisIdx = parseInt(btn.customId.split(':')[2], 10);
-      const clicked = updates.find(c => c.idx === thisIdx);
+      const clicked = newClick.find(c => c.idx === thisIdx);
       const newBtn = ButtonBuilder.from(btn)
         .setDisabled(!!clicked);
       if (clicked) {
