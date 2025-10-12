@@ -445,8 +445,8 @@ if (interaction.customId?.startsWith('mystery:')) {
   if (['currency_gain', 'currency_loss'].includes(outcome)) {
     const userDoc = await User.findOne({ userId: session.userId }) || new User({ userId: session.userId });
     const gain = outcome === 'currency_gain'
-  ? Math.floor(Math.random() * (900 - 700 + 1)) + 700  // 700–900
-  : -1 * (Math.floor(Math.random() * (800 - 600 + 1)) + 600); // -600 to -800
+  ? Math.floor(Math.random() * (525 - 300 + 1)) + 300  // 700–900
+  : -1 * (Math.floor(Math.random() * (400 - 300 + 1)) + 300); // -300 to -500
     userDoc.patterns = (userDoc.patterns || 0) + gain;
     await userDoc.save();
     newClick.amount = gain;
