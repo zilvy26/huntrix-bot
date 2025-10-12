@@ -45,7 +45,7 @@ module.exports = {
     const sessionId = crypto.randomBytes(6).toString('hex');
     const embed = new EmbedBuilder()
       .setTitle('Mystery\'s Karaoke Game')
-      .setDescription('Choose 3 buttons to uncover how good the singing notes Mystery hit. Will you get cards, currency, or nothing as a result?');
+      .setDescription('Choose 3 buttons to uncover how good the singing notes\nMystery hit. Will you get cards, currency, or nothing as \na result?');
 
     const rows = [0, 1, 2].map(i => {
       return new ActionRowBuilder().addComponents(

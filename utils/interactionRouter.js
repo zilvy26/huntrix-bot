@@ -399,9 +399,6 @@ function escapeRegex(s) {
 }
 
 const MysterySession = require('../models/MysterySession');
-const InventoryItem = require('../models/InventoryItem');
-const User = require('../models/User');
-const UserRecord = require('../models/UserRecord');
 const pickRarity = require('../utils/rarityPicker');
 const getRandomCardByRarity = require('../utils/randomCardFromRarity');
 const generateStars = require('../utils/starGenerator');
