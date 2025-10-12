@@ -18,11 +18,11 @@ const isSpecialR5 = (card) =>
 
 // ---- ERA CAPS CONFIG ----
 const ERA_PRICE_CAPS_RAW = {
-  'VIR25': 18000,
-  'LEO25': 23000,
+  'VIR25': 20000,
+  'LEO25': 26000,
   'LIB25': 15000,
-  'Candy Festival (Demo)': 19000,
-  'Candy Festival (Album)': 15000
+  'Candy Festival (Demo)': 21000,
+  'Candy Festival (Album)': 18000
 };
 const ERA_PRICE_CAPS = Object.fromEntries(
   Object.entries(ERA_PRICE_CAPS_RAW).map(([k, v]) => [String(k).trim().toLowerCase(), Number(v)])
@@ -230,17 +230,62 @@ module.exports = async function sell(interaction) {
     await InventoryItem.deleteMany({ userId, cardCode: { $in: uniqueCodes }, quantity: { $lte: 0 } });
   }
 
-  const totalListed = created.reduce((a, c) => a + c.qty, 0);
-  const summaryLines = created.map(item => {
+  const {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
+} = require('discord.js');
+const awaitUserButton = require('../../../utils/awaitUserButton'); // ⚠️ make sure this is available!
+
+let current = 0;
+const perPage = 5;
+const totalPages = Math.ceil(created.length / perPage);
+
+const renderEmbed = () => {
+  const pageItems = created.slice(current * perPage, (current + 1) * perPage);
+  const desc = pageItems.map(item => {
     const codesList = item.buyCodes.map(b => `\`${b}\``).join(', ');
     return `• **${item.name}** \`${item.code}\` × **${item.qty}** @ **${item.price}** <:ehx_patterns:1389584144895315978> — Buy Codes: ${codesList}`;
-    // you can also include price emoji/tokens here as you had before
-  });
+  }).join('\n');
 
-  return safeReply(interaction, {
-    content: [
-      `<@${userId}> listed **${totalListed}** card(s):`,
-      ...summaryLines
-    ].join('\n')
-  });
+  return new EmbedBuilder()
+    .setTitle('Listing Summary')
+    .setDescription(desc)
+    .setColor('#00BFA5')
+    .setFooter({ text: `Page ${current + 1} of ${totalPages}` });
+};
+
+const renderRow = () => new ActionRowBuilder().addComponents(
+  new ButtonBuilder().setCustomId('first').setStyle(ButtonStyle.Secondary).setDisabled(current === 0).setEmoji({ id: '1390467720142651402', name: 'ehx_leftff' }),
+  new ButtonBuilder().setCustomId('prev').setStyle(ButtonStyle.Primary).setDisabled(current === 0).setEmoji({ id: '1390462704422096957', name: 'ehx_leftarrow' }),
+  new ButtonBuilder().setCustomId('next').setStyle(ButtonStyle.Primary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390462706544410704', name: 'ehx_rightarrow' }),
+  new ButtonBuilder().setCustomId('last').setStyle(ButtonStyle.Secondary).setDisabled(current >= totalPages - 1).setEmoji({ id: '1390467723049439483', name: 'ehx_rightff' }),
+  new ButtonBuilder().setCustomId('copy').setStyle(ButtonStyle.Success).setLabel('Copy Codes')
+);
+
+await safeReply(interaction, { embeds: [renderEmbed()], components: [renderRow()] });
+
+while (true) {
+  const btn = await awaitUserButton(interaction, userId, ['first', 'prev', 'next', 'last', 'copy'], 120000);
+  if (!btn) break;
+  if (!btn.deferred && !btn.replied) await btn.deferUpdate();
+
+  if (btn.customId === 'first') current = 0;
+  if (btn.customId === 'prev')  current = Math.max(0, current - 1);
+  if (btn.customId === 'next')  current = Math.min(totalPages - 1, current + 1);
+  if (btn.customId === 'last')  current = totalPages - 1;
+  if (btn.customId === 'copy') {
+    const slice = created.slice(current * perPage, (current + 1) * perPage);
+    const codes = slice.flatMap(i => i.buyCodes).join(', ');
+    await interaction.followUp({ content: codes, flags: 1 << 6 });
+    continue;
+  }
+
+  await interaction.editReply({ embeds: [renderEmbed()], components: [renderRow()] });
+}
+
+try {
+  await interaction.editReply({ components: [] });
+} catch {}
 };

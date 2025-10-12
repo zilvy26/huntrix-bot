@@ -398,6 +398,105 @@ function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+const MysterySession = require('../models/MysterySession');
+const InventoryItem = require('../models/InventoryItem');
+const User = require('../models/User');
+const UserRecord = require('../models/UserRecord');
+const pickRarity = require('../utils/rarityPicker');
+const getRandomCardByRarity = require('../utils/randomCardFromRarity');
+const generateStars = require('../utils/starGenerator');
+
+// 🎯 MYSTERY BUTTON HANDLER
+if (interaction.customId?.startsWith('mystery:')) {
+  const [, sessionId, idxStr] = interaction.customId.split(':');
+  const idx = parseInt(idxStr, 10);
+  const session = await MysterySession.findOne({ sessionId });
+  const message = interaction.message;
+
+  if (!session || session.userId !== interaction.user.id) {
+    return interaction.followUp({ content: "This isn't your mystery session or it's expired.", flags: 1 << 6 });
+  }
+
+  if (session.clicks.length >= 3 || session.clicks.some(c => c.idx === idx)) {
+    return interaction.followUp({ content: "You've already clicked this or used all 3 picks.", flags: 1 << 6 });
+  }
+
+  const outcome = session.outcomes[idx];
+  const updates = [...session.clicks, { idx, outcome }];
+
+  // 📦 CARD GAIN
+  if (outcome === 'card_gain') {
+    const rarity = await pickRarity();
+    const card = await getRandomCardByRarity(rarity);
+    if (card) {
+      await InventoryItem.findOneAndUpdate(
+        { userId: session.userId, cardCode: card.cardCode },
+        { $inc: { quantity: 1 } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      await UserRecord.create({
+        userId: session.userId,
+        type: 'mystery_card',
+        detail: `Gained ${card.name} (${card.cardCode}) [${card.rarity}] from karaoke`
+      });
+    }
+  }
+
+  // 💰 CURRENCY GAIN/LOSS
+  if (['currency_gain', 'currency_loss'].includes(outcome)) {
+    const userDoc = await User.findOne({ userId: session.userId }) || new User({ userId: session.userId });
+    const gain = outcome === 'currency_gain'
+  ? Math.floor(Math.random() * (900 - 700 + 1)) + 700  // 700–900
+  : -1 * (Math.floor(Math.random() * (800 - 600 + 1)) + 600); // -600 to -800
+    userDoc.patterns = (userDoc.patterns || 0) + gain;
+    await userDoc.save();
+    await UserRecord.create({
+  userId: session.userId,
+  type: 'mystery_currency',
+  detail: `${gain > 0 ? 'Gained' : 'Lost'} ${Math.abs(gain)} Patterns from karaoke`
+});
+  }
+
+  // 🧠 Update session in DB
+  await MysterySession.updateOne({ sessionId }, { $set: { clicks: updates } });
+
+  // 🎭 Emoji Map
+  const emojiMap = {
+    card_gain: '<:e_pull:1393002254499581982>',
+    currency_gain: '<:ehx_patterns:1389584144895315978>',
+    currency_loss: '<:rhx_crosspink:1388193594724323550>',
+    nothing: '<a:hx_barks:1388132672651526294>'
+  };
+
+  // 🎨 Update buttons to show clicked emojis
+  const newRows = message.components.map(row => {
+    const newRow = new ActionRowBuilder();
+    for (const btn of row.components) {
+      const thisIdx = parseInt(btn.customId.split(':')[2], 10);
+      const clicked = updates.find(c => c.idx === thisIdx);
+      const newBtn = ButtonBuilder.from(btn)
+        .setDisabled(!!clicked);
+      if (clicked) {
+        newBtn.setEmoji(emojiMap[clicked.outcome]);
+      }
+      newRow.addComponents(newBtn);
+    }
+    return newRow;
+  });
+
+  const summary = updates.map(c => `#${c.idx + 1} → ${emojiMap[c.outcome]}`).join('\n');
+
+  // Final edit if all 3 picked
+  const isFinal = updates.length >= 3;
+  await interaction.editReply({
+    content: isFinal ? `Karaoke results:\n${summary}` : undefined,
+    components: newRows
+  });
+
+  if (isFinal) await MysterySession.deleteOne({ sessionId });
+  return;
+}
+
     /* ⬇️ Template select menu (kept) */
     if (customId === 'select_template') {
       await autoDefer(interaction, 'update');
