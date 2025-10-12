@@ -11,12 +11,13 @@ const emojiMap = {
   Battle: '<:e_battle:1393020277671329822>',
   Daily: '<:e_daily:1393021981808656424>',
   Perform: '<:e_perform:1393015619162472459>',
-  Vote: `<:e_vote:1401719014828408832>`
+  Vote: `<:e_vote:1401719014828408832>`,
+  Karaoke: '<:e_karaoke:1426885516694917261>'
 };
 
 const categories = {
   Cards: ['Pull', 'Pull10', 'Rehearsal', 'List'],
-  Games: ['Battle'],
+  Games: ['Battle', 'Karaoke'],
   Economy: ['Daily', 'Perform', 'Vote']
 };
 
