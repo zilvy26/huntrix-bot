@@ -467,22 +467,23 @@ if (interaction.customId?.startsWith('mystery:')) {
     currency_loss: '<:rhx_crosspink:1388193594724323550>',
     nothing: '<a:hx_barks:1388132672651526294>'
   };
+// 🧠 Get latest session with newClick included
+const updatedSession = await MysterySession.findOne({ sessionId });
 
-  // 🎨 Update buttons to show clicked emojis
-  const newRows = message.components.map(row => {
-    const newRow = new ActionRowBuilder();
-    for (const btn of row.components) {
-      const thisIdx = parseInt(btn.customId.split(':')[2], 10);
-      const clicked = (session.clicks || []).find(c => c.idx === thisIdx);
-      const newBtn = ButtonBuilder.from(btn)
-        .setDisabled(!!clicked);
-      if (clicked) {
-        newBtn.setEmoji(emojiMap[clicked.outcome]);
-      }
-      newRow.addComponents(newBtn);
+// 🎨 Update buttons to show clicked emojis
+const newRows = message.components.map(row => {
+  const newRow = new ActionRowBuilder();
+  for (const btn of row.components) {
+    const thisIdx = parseInt(btn.customId.split(':')[2], 10);
+    const clicked = updatedSession.clicks.find(c => c.idx === thisIdx);
+    const newBtn = ButtonBuilder.from(btn).setDisabled(!!clicked);
+    if (clicked) {
+      newBtn.setEmoji(emojiMap[clicked.outcome]);
     }
-    return newRow;
-  });
+    newRow.addComponents(newBtn);
+  }
+  return newRow;
+});
 
   const isFinal = session.clicks.length >= 3;
 
