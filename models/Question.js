@@ -6,7 +6,8 @@ const questionSchema = new mongoose.Schema({
   question: { type: String, required: true },
   options: [{ type: String, required: true }],
   correct: { type: String, required: true },
-  localImagePath: { type: String }
+  localImagePath: { type: String },
+  questionCode: { type: String, unique: true, sparse: true }
 });
 
 module.exports = mongoose.model('Question', questionSchema);
