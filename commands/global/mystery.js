@@ -59,11 +59,11 @@ module.exports = {
       );
     });
 
-    const reply = await interaction.reply({
-      embeds: [embed],
-      components: rows,
-      fetchReply: true
-    });
+    const reply = await safeReply(interaction, {
+  embeds: [embed],
+  components: rows,
+  fetchReply: true
+});
 
     await MysterySession.create({
       sessionId,
