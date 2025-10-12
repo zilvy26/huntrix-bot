@@ -7,9 +7,11 @@ const mysterySessionSchema = new mongoose.Schema({
   messageId: { type: String, required: true },
   outcomes: { type: [String], required: true }, // e.g. ['currency_gain', 'card_gain', ...]
   clicks: [{
-    idx: Number,
-    outcome: String
-  }],
+  idx: Number,
+  outcome: String,
+  cardCode: String,
+  amount: Number
+}],
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: false });
 

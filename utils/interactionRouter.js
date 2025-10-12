@@ -419,25 +419,27 @@ if (interaction.customId?.startsWith('mystery:')) {
   }
 
   const outcome = session.outcomes[idx];
-  const updates = [...session.clicks, { idx, outcome }];
+  let newClick = { idx, outcome };
 
   // 📦 CARD GAIN
   if (outcome === 'card_gain') {
-    const rarity = await pickRarity();
-    const card = await getRandomCardByRarity(rarity);
-    if (card) {
-      await InventoryItem.findOneAndUpdate(
-        { userId: session.userId, cardCode: card.cardCode },
-        { $inc: { quantity: 1 } },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
-      await UserRecord.create({
-        userId: session.userId,
-        type: 'mystery_card',
-        detail: `Gained ${card.name} (${card.cardCode}) [${card.rarity}] from karaoke`
-      });
-    }
+  const rarity = await pickRarity();
+  const card = await getRandomCardByRarity(rarity);
+  if (card) {
+    await InventoryItem.findOneAndUpdate(
+      { userId: session.userId, cardCode: card.cardCode },
+      { $inc: { quantity: 1 } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    newClick.cardCode = card.cardCode;
+
+    await UserRecord.create({
+      userId: session.userId,
+      type: 'mystery_card',
+      detail: `Gained ${card.name} (${card.cardCode}) [${card.rarity}] from karaoke`
+    });
   }
+}
 
   // 💰 CURRENCY GAIN/LOSS
   if (['currency_gain', 'currency_loss'].includes(outcome)) {
@@ -447,6 +449,7 @@ if (interaction.customId?.startsWith('mystery:')) {
   : -1 * (Math.floor(Math.random() * (800 - 600 + 1)) + 600); // -600 to -800
     userDoc.patterns = (userDoc.patterns || 0) + gain;
     await userDoc.save();
+    newClick.amount = gain;
     await UserRecord.create({
   userId: session.userId,
   type: 'mystery_currency',
@@ -455,7 +458,7 @@ if (interaction.customId?.startsWith('mystery:')) {
   }
 
   // 🧠 Update session in DB
-  await MysterySession.updateOne({ sessionId }, { $set: { clicks: updates } });
+  await MysterySession.updateOne({ sessionId }, { $push: { clicks: newClick } });
 
   // 🎭 Emoji Map
   const emojiMap = {
@@ -481,17 +484,55 @@ if (interaction.customId?.startsWith('mystery:')) {
     return newRow;
   });
 
-  const summary = updates.map(c => `#${c.idx + 1} → ${emojiMap[c.outcome]}`).join('\n');
+  if (isFinal) {
+  const final = await MysterySession.findOne({ sessionId });
 
-  // Final edit if all 3 picked
-  const isFinal = updates.length >= 3;
+  const resultFields = await Promise.all(final.clicks.map(async (c, i) => {
+    const label = `#${c.idx + 1}`;
+    if (c.outcome === 'card_gain' && c.cardCode) {
+      const card = await Card.findOne({ cardCode: c.cardCode });
+      if (!card) return null;
+
+      const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji });
+      const owned = await InventoryItem.findOne({ userId: session.userId, cardCode: card.cardCode });
+      const copies = owned?.quantity || 1;
+
+      return {
+        name: `${label} • ${stars} ${card.name}`,
+        value: `Code: \`${card.cardCode}\`\nGroup: **${card.group}**\nCopies: **${copies}**`,
+        inline: false
+      };
+    }
+
+    if (['currency_gain', 'currency_loss'].includes(c.outcome)) {
+      return {
+        name: `${label} • ${emojiMap[c.outcome]} ${c.amount > 0 ? 'Gained' : 'Lost'}`,
+        value: `**${Math.abs(c.amount)} Patterns**`,
+        inline: false
+      };
+    }
+
+    return {
+      name: `${label} • ${emojiMap[c.outcome]} Nothing`,
+      value: '_No reward from this one._',
+      inline: false
+    };
+  }));
+
+  const resultEmbed = new EmbedBuilder()
+    .setTitle('Mystery\'s Karaoke Results')
+    .setDescription('Here’s what you received from your 3 choices!')
+    .addFields(resultFields.filter(Boolean))
+    .setColor(0xff90b3)
+    .setFooter({ text: `Session completed • ${new Date().toLocaleTimeString()}` });
+
   await interaction.editReply({
-    content: isFinal ? `Karaoke results:\n${summary}` : undefined,
+    embeds: [resultEmbed],
     components: newRows
   });
 
-  if (isFinal) await MysterySession.deleteOne({ sessionId });
-  return;
+  await MysterySession.deleteOne({ sessionId });
+}
 }
 
     /* ⬇️ Template select menu (kept) */

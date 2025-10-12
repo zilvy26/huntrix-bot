@@ -29,10 +29,10 @@ module.exports = {
 
     // 🧮 Step 1: Generate outcomes with weighted probabilities
     const rewardWeights = {
-      card_gain: 30,
-      currency_gain: 40,
-      currency_loss: 20,
-      nothing: 10
+      card_gain: 25,
+      currency_gain: 35,
+      currency_loss: 10,
+      nothing: 30
     };
     const weightedPool = Object.entries(rewardWeights)
       .flatMap(([type, weight]) => Array(weight).fill(type));
@@ -45,7 +45,7 @@ module.exports = {
     const sessionId = crypto.randomBytes(6).toString('hex');
     const embed = new EmbedBuilder()
       .setTitle('Mystery\'s Karaoke Game')
-      .setDescription('Choose 3 buttons to uncover how good the singing notes\nMystery hit. Will you get cards, currency, or nothing as \na result?');
+      .setDescription('Choose 3 buttons to uncover how good the singing \nnotes Mystery hit. Will you get cards, currency, or nothing \nas a result?');
 
     const rows = [0, 1, 2].map(i => {
       return new ActionRowBuilder().addComponents(
