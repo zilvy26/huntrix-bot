@@ -484,6 +484,8 @@ if (interaction.customId?.startsWith('mystery:')) {
     return newRow;
   });
 
+  const isFinal = session.clicks.length >= 3;
+
   if (isFinal) {
   const final = await MysterySession.findOne({ sessionId });
 
