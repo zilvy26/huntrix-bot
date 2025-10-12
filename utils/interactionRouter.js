@@ -405,6 +405,13 @@ const generateStars = require('../utils/starGenerator');
 
 // 🎯 MYSTERY BUTTON HANDLER
 if (interaction.customId?.startsWith('mystery:')) {
+  try {
+    await interaction.deferUpdate(); // 🛡️ Prevent Unknown Interaction error
+  } catch (err) {
+    console.warn('Interaction already acknowledged or expired.');
+    return;
+  }
+
   const [, sessionId, idxStr] = interaction.customId.split(':');
   const idx = parseInt(idxStr, 10);
   const session = await MysterySession.findOne({ sessionId });
