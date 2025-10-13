@@ -54,7 +54,7 @@ module.exports = {
   Karaoke: {
     default: 15 * 60 * 1000,
     reductions: [
-      { id: '1394448143206322267', percent: 5 }, // Huntrixbot
+      { id: '1394448143206322267', percent: 10 }, // Huntrixbot
     ]
   },
   // Add more as needed
