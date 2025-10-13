@@ -60,7 +60,7 @@ module.exports = {
           )
         );
 
-      const reply = await interaction.reply({
+      const reply = await safeReply(interaction, {
         embeds: [getEmbed()],
         components: [getButtons()],
         ephemeral: true,
