@@ -29,8 +29,8 @@ module.exports = {
 
     // 🧮 Step 1: Generate outcomes with weighted probabilities
     const rewardWeights = {
-      card_gain: 20,
-      currency_gain: 30,
+      card_gain: 21,
+      currency_gain: 29,
       currency_loss: 13,
       nothing: 37
     };
