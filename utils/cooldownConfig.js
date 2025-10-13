@@ -4,6 +4,7 @@ module.exports = {
   Pull: {
     default: 120 * 1000,
     reductions: [
+      { id: '1386797424953135156', percent: 5 }, // Hearties
       { id: '1387230787929243780', percent: 15 }, // Booster
       { id: '1394845122180677662', percent: 20 }, // Maknae
       { id: '1394846623971938465', percent: 25 }, // Visual
@@ -16,7 +17,7 @@ module.exports = {
   Perform: {
     default: 30 * 60 * 1000,
     reductions: [
-      { id: '1386797424953135156', percent: 10 }, // Hearties
+      { id: '1386797424953135156', percent: 5 }, // Hearties
       { id: '1394847239557615666', percent: 25 }, // Leader
       { id: '1412071548881473598', percent: 35 }, // All Rounder
     ]
@@ -50,6 +51,11 @@ module.exports = {
   },
   Vote: 12 * 60 * 60 * 1000,
   List: 8 * 60 * 1000,
-  Karaoke: 15 * 60 * 1000,
+  Karaoke: {
+    default: 15 * 60 * 1000,
+    reductions: [
+      { id: '1394448143206322267', percent: 5 }, // Huntrixbot
+    ]
+  },
   // Add more as needed
 };
