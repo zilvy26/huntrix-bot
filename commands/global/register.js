@@ -13,7 +13,7 @@ const CATEGORY_MAP = {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('register')
-    .setDescription('Register a new user for Huntrix'),
+    .setDescription('Register a user and/or card preferences for Huntrix'),
 
   async execute(interaction) {
     const user = await getOrCreateUser(interaction);
@@ -21,8 +21,8 @@ module.exports = {
     const allLabels = Object.keys(CATEGORY_MAP);
 
     const embed = new EmbedBuilder()
-      .setTitle(`Welcome, ${user.username}!`)
-      .setDescription('Toggle your preferred card categories below.\nIf none are selected, all categories will be available by default.')
+      .setTitle(`Hello Hunter, ${user.username}!`)
+      .setDescription('Toggle your preferred card categories below.\nIf none are selected, all categories will be available by default.\n**MUSIC** - Kpop, Jpop, etc\n**ANIME** - Manga, Donghua, etc\n**GAME** - Gacha, Fighting, etc\n**FRANCHISE** - Dramas, Manhwas, etc')
       .addFields({
         name: 'Current Preferences',
         value: initial.size
