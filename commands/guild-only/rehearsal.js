@@ -44,7 +44,7 @@ module.exports = {
     
     // pick 3 cards
     const rarities = await Promise.all(Array.from({ length: 3 }, () => pickRarity()));
-    const pulls = (await Promise.all(rarities.map(r => getRandomCardByRarity(r)))).filter(Boolean);
+    const pulls = (await Promise.all(rarities.map(r => getRandomCardByRarity(r, userId)))).filter(Boolean);
     if (pulls.length < 3) return safeReply(interaction, { content: 'Not enough cards to show.' });
 
     // preload quantities

@@ -450,7 +450,7 @@ if (interaction.customId?.startsWith('mystery:')) {
   // 📦 CARD GAIN
   if (outcome === 'card_gain') {
   const rarity = await pickRarity();
-  const card = await getRandomCardByRarity(rarity);
+  const card = await getRandomCardByRarity(rarity, userId);
   if (card) {
     await InventoryItem.findOneAndUpdate(
       { userId: session.userId, cardCode: card.cardCode },

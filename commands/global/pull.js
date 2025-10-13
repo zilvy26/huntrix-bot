@@ -36,7 +36,7 @@ module.exports = {
     await cooldowns.setCooldown(userId, commandName, cooldownMs);
 
     const rarity = await pickRarity();
-    const card = await getRandomCardByRarity(rarity);
+    const card = await getRandomCardByRarity(rarity, userId);
 
     if (!card) {
       return safeReply(interaction, { content: `No pullable cards found for rarity ${rarity}.` });

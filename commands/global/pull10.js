@@ -39,7 +39,7 @@ module.exports = {
 );
 
 const pulls = (await Promise.all(
-  rarities.map(async (rarity) => getRandomCardByRarity(rarity))
+  rarities.map(async (rarity) => getRandomCardByRarity(rarity, userId))
 )).filter(Boolean);
 
 if (pulls.length < 10) {

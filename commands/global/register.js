@@ -37,7 +37,6 @@ module.exports = {
           .setCustomId(`catpref:${CATEGORY_MAP[label]}`)
           .setLabel(label)
           .setStyle(ButtonStyle.Secondary)
-          .setEmoji('📌')
           .setDisabled(false)
       )
     );

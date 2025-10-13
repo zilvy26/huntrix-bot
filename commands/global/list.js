@@ -57,7 +57,7 @@ module.exports = {
     const slots = [];
     for (let idx = 1; idx <= 5; idx++) {
       const rarity = await pickRarity();
-      const card = await getRandomCardByRarity(rarity);
+      const card = await getRandomCardByRarity(rarity, userId);
       if (!card) return safeReply(interaction, { content: 'No pullable cards found right now.' });
       slots.push({ idx, cardId: card._id });
     }
