@@ -1,18 +1,22 @@
+// utils/randomCardFromRarity.js
 const { getGlobalPullConfig } = require('./globalPullConfig');
 const { weightedPick } = require('./weightedPick');
 const Card = require('../models/Card');
+const User = require('../models/User');
 
-const ALWAYS_INCLUDED_CATEGORIES = ['zodiac', 'event', 'others'];
+async function getRandomCardByRarity(rarity, userId) {
+  const user = await User.findOne({ userId });
 
-async function getRandomCardByRarity(rarity, preferredCategories = []) {
-  const categories = preferredCategories.length
-    ? [...new Set([...preferredCategories, ...ALWAYS_INCLUDED_CATEGORIES])]
-    : []; // empty = pull from all
+  const alwaysInclude = ['zodiac', 'event', 'others'];
+  const prefs = user?.preferredCategories ?? [];
+  const categories = prefs.length
+    ? [...new Set([...prefs, ...alwaysInclude])]
+    : undefined; // undefined = allow all
 
   const filter = {
     rarity,
     pullable: true,
-    ...(categories.length ? { category: { $in: categories } } : {})
+    ...(categories ? { category: { $in: categories } } : {})
   };
 
   const cards = await Card.find(filter).lean();
@@ -33,7 +37,7 @@ async function getRandomCardByRarity(rarity, preferredCategories = []) {
 
   const picked = weightedPick(cards, weights);
   if (!picked) return null;
-  return await Card.findById(picked._id);
+  return await Card.findById(picked._id); // hydrate
 }
 
 module.exports = getRandomCardByRarity;

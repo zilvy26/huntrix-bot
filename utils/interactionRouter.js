@@ -53,10 +53,6 @@ module.exports = async function interactionRouter(interaction) {
   // A) COMPONENTS (Buttons / Menus)
   // ─────────────────────────────────────────
   if (interaction.isButton?.() || interaction.isStringSelectMenu?.()) {
-    // 🔥 Bypass deferral for category buttons in /register
-    if (interaction.isButton() && interaction.customId.startsWith('cat_')) {
-      return; // let /register.js collector handle it
-    }
     // Ack once for components
     if (!interaction.deferred && !interaction.replied) {
       try {
@@ -282,6 +278,32 @@ module.exports = async function interactionRouter(interaction) {
       await interaction.editReply({ embeds: [embed], components: [makeRow(page)] });
       return;
     }
+
+    if (customId?.startsWith('catpref:')) {
+  const cat = customId.split(':')[1];
+  const userDoc = await User.findOne({ userId: user.id }) || new User({ userId: user.id });
+
+  const currentPrefs = new Set(userDoc.preferredCategories || []);
+  currentPrefs.has(cat) ? currentPrefs.delete(cat) : currentPrefs.add(cat);
+
+  userDoc.preferredCategories = Array.from(currentPrefs);
+  await userDoc.save();
+
+  const embed = EmbedBuilder.from(interaction.message.embeds?.[0]);
+  embed.spliceFields(0, 1, {
+    name: 'Current Preferences',
+    value: userDoc.preferredCategories.length
+      ? userDoc.preferredCategories.map(c => `• ${c}`).join('\n')
+      : '_All categories (default)_'
+  });
+
+  await interaction.editReply({
+    embeds: [embed],
+    components: [interaction.message.components[0]]
+  });
+  return;
+}
+
 
     /* Universal simple pager (kept) */
     const navPattern = /^(first|prev|next|last|copy)$/;

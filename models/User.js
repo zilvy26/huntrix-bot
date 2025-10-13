@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema({
 },
 preferredCategories: {
     type: [String],
-    enum: ['KPOP', 'ANIME', 'GAME', 'FRANCHISE'],
+    enum: ['kpop', 'anime', 'game', 'franchise'],
     default: []
   },
   correctStreak: { type: Number, default: 0 },
