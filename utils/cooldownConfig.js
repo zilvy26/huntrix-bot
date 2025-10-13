@@ -25,7 +25,7 @@ module.exports = {
   Rehearsal: {
     default: 45 * 60 * 1000,
     reductions: [
-      { id: '1386797424953135156', percent: 10 }, // Hearties
+      { id: '1386797424953135156', percent: 5 }, // Hearties
       { id: '1412071548881473598', percent: 20 }, // All Rounder
     ]
   },

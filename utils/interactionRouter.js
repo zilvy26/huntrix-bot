@@ -446,6 +446,7 @@ if (interaction.customId?.startsWith('mystery:')) {
 
   const outcome = session.outcomes[idx];
   let newClick = { idx, outcome };
+  const userId = interaction.user.id;
 
   // 📦 CARD GAIN
   if (outcome === 'card_gain') {
