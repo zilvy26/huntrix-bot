@@ -4,7 +4,6 @@ module.exports = {
   Pull: {
     default: 120 * 1000,
     reductions: [
-      { id: '1386797424953135156', percent: 10 }, // Hearties
       { id: '1387230787929243780', percent: 15 }, // Booster
       { id: '1394845122180677662', percent: 20 }, // Maknae
       { id: '1394846623971938465', percent: 25 }, // Visual
@@ -30,7 +29,7 @@ module.exports = {
     ]
   },
   Pull10: {
-    default: 90 * 60 * 1000,
+    default: 85 * 60 * 1000,
     reductions: [
       { id: '1394448143206322267', percent: 10 }, // Huntrixbot
       { id: '1387230787929243780', percent: 15 }, // Booster
@@ -43,6 +42,7 @@ module.exports = {
   Battle: {
     default: 20 * 60 * 1000,
     reductions: [
+      { id: '1394448143206322267', percent: 5 }, // Huntrixbot
       { id: '1394846623971938465', percent: 15 }, // Visual
       { id: '1394847239557615666', percent: 25 }, // Leader
       { id: '1412071548881473598', percent: 35 }, // All Rounder
