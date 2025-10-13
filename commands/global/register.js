@@ -22,7 +22,7 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setTitle(`Hello Hunter, ${user.username}!`)
-      .setDescription('Toggle your preferred card categories below.\nIf none are selected, all categories will be available by default.\n**MUSIC** - Kpop, Jpop, etc\n**ANIME** - Manga, Donghua, etc\n**GAME** - Gacha, Fighting, etc\n**FRANCHISE** - Dramas, Manhwas, etc')
+      .setDescription('Toggle your preferred card categories below.\nIf none are selected, all categories will be available by default.\n\n**MUSIC** - Kpop, Jpop, etc\n**ANIME** - Manga, Donghua, etc\n**GAME** - Gacha, Fighting, etc\n**FRANCHISE** - Dramas, Manhwas, etc')
       .addFields({
         name: 'Current Preferences',
         value: initial.size
