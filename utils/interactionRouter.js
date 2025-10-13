@@ -53,6 +53,10 @@ module.exports = async function interactionRouter(interaction) {
   // A) COMPONENTS (Buttons / Menus)
   // ─────────────────────────────────────────
   if (interaction.isButton?.() || interaction.isStringSelectMenu?.()) {
+    // 🔥 Bypass deferral for category buttons in /register
+    if (interaction.isButton() && interaction.customId.startsWith('cat_')) {
+      return; // let /register.js collector handle it
+    }
     // Ack once for components
     if (!interaction.deferred && !interaction.replied) {
       try {
