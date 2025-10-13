@@ -25,7 +25,7 @@ const BUTTONS = Object.keys(DISPLAY_TO_DB); // ['MUSIC', 'ANIME', 'GAME', 'FRANC
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('register')
-    .setDescription('Register or update your card category preferences'),
+    .setDescription('Register a new user or select/update your card category preferences'),
 
   async execute(interaction) {
     try {
