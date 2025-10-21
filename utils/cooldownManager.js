@@ -56,7 +56,7 @@ async function getEffectiveCooldown(interaction, commandName) {
     }
   }
 
-  const cap = 80;
+  const cap = 70;
   totalReduction = Math.min(totalReduction, cap);
 
   return Math.floor(duration * (1 - totalReduction / 100));

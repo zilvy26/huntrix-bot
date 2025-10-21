@@ -102,7 +102,7 @@ module.exports = {
     if (ops.length) await InventoryItem.bulkWrite(ops, { ordered: false });
 
     // Currency rewards
-    const patterns = getRandomInt(2385, 2585);
+    const patterns = getRandomInt(2400, 2800);
     const sopop = shouldDropSopop() ? 2 : 1;
     const user = await giveCurrency(userId, { patterns, sopop });
 
