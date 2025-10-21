@@ -196,7 +196,7 @@ module.exports = async function interactionRouter(interaction) {
             if (Math.random() < 0.23) rewardSopop = 1;
           } else if (selected.difficulty === 'impossible') {
             rewardPatterns = getRandomInt(1085, 1175);
-            if (Math.random() < 0.28) rewardSopop = 1;
+            if (Math.random() < 0.27) rewardSopop = 1;
           }
 
           let streakBonus = '';
@@ -662,7 +662,7 @@ if (interaction.customId?.startsWith('rehearsal_')) {
 
   // proceed with reward & inventory
   const selected = session.pulls[index] || session.pulls[0];
-  const sopop = Math.random() < 0.32 ? (Math.random() < 0.65 ? 1 : 2) : 0;
+  const sopop = Math.random() < 0.28 ? (Math.random() < 0.65 ? 1 : 2) : 0;
 
   // give currency (your existing helper)
   const giveCurrency = require('../utils/giveCurrency');

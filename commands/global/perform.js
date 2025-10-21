@@ -10,8 +10,8 @@ function getRandomInt(min, max) {
 }
 
 function shouldDropSopop() {
-  // ~36% chance to get sopop
-  return Math.random() < 0.36;
+  // ~38% chance to get sopop
+  return Math.random() < 0.38;
 }
 
 module.exports = {
