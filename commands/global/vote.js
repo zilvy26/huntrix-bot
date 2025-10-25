@@ -16,7 +16,7 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 function shouldDropSopop() {
-  return Math.random() < 0.46;
+  return Math.random() < 0.55;
 }
 
 module.exports = {
@@ -102,7 +102,7 @@ module.exports = {
     if (ops.length) await InventoryItem.bulkWrite(ops, { ordered: false });
 
     // Currency rewards
-    const patterns = getRandomInt(2400, 2800);
+    const patterns = getRandomInt(2856, 3332);
     const sopop = shouldDropSopop() ? 2 : 1;
     const user = await giveCurrency(userId, { patterns, sopop });
 

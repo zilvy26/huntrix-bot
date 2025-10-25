@@ -189,14 +189,14 @@ module.exports = async function interactionRouter(interaction) {
           let rewardPatterns = 0;
           let rewardSopop = 0;
           if (selected.difficulty === 'easy') {
-            rewardPatterns = getRandomInt(815, 900);
-            if (Math.random() < 0.19) rewardSopop = 1;
-          } else if (selected.difficulty === 'hard') {
-            rewardPatterns = getRandomInt(950, 1035);
+            rewardPatterns = getRandomInt(969, 1071);
             if (Math.random() < 0.23) rewardSopop = 1;
-          } else if (selected.difficulty === 'impossible') {
-            rewardPatterns = getRandomInt(1085, 1175);
+          } else if (selected.difficulty === 'hard') {
+            rewardPatterns = getRandomInt(1130, 1231);
             if (Math.random() < 0.27) rewardSopop = 1;
+          } else if (selected.difficulty === 'impossible') {
+            rewardPatterns = getRandomInt(1291, 1398);
+            if (Math.random() < 0.32) rewardSopop = 1;
           }
 
           let streakBonus = '';
@@ -472,8 +472,8 @@ if (interaction.customId?.startsWith('mystery:')) {
   if (['currency_gain', 'currency_loss'].includes(outcome)) {
     const userDoc = await User.findOne({ userId: session.userId }) || new User({ userId: session.userId });
     const gain = outcome === 'currency_gain'
-  ? Math.floor(Math.random() * (525 - 475 + 1)) + 475  // 700–900
-  : -1 * (Math.floor(Math.random() * (350 - 300 + 1)) + 300); // -300 to -500
+  ? Math.floor(Math.random() * (625 - 565 + 1)) + 565  // 700–900
+  : -1 * (Math.floor(Math.random() * (415 - 375 + 1)) + 375); // -300 to -500
     userDoc.patterns = (userDoc.patterns || 0) + gain;
     await userDoc.save();
     newClick.amount = gain;
@@ -662,7 +662,7 @@ if (interaction.customId?.startsWith('rehearsal_')) {
 
   // proceed with reward & inventory
   const selected = session.pulls[index] || session.pulls[0];
-  const sopop = Math.random() < 0.28 ? (Math.random() < 0.65 ? 1 : 2) : 0;
+  const sopop = Math.random() < 0.33 ? (Math.random() < 0.65 ? 1 : 2) : 0;
 
   // give currency (your existing helper)
   const giveCurrency = require('../utils/giveCurrency');
