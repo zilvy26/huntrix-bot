@@ -13,6 +13,7 @@ const RARITY_WEIGHTS = {
 const ERA_MULTIPLIERS = {
   'sco25': 0.045,
   'fox tale (demo)': 1,
+  'fox tale (album)': 0.2,
 };
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
