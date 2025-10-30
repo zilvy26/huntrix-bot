@@ -20,6 +20,7 @@ module.exports = {
         .setDescription('(Optional) Choose a card code if allowed')),
 
   async execute(interaction) {
+    await interaction.deferReply({ ephemeral: true });
     const userId = interaction.user.id;
     const codeInput = (interaction.options.getString('code') || '').trim().toUpperCase();
     const selectedCardInput = (interaction.options.getString('cardcode') || '').trim().toUpperCase() || null;
