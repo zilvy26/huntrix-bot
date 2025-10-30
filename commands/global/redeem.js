@@ -25,17 +25,17 @@ module.exports = {
     const selectedCardInput = (interaction.options.getString('cardcode') || '').trim().toUpperCase() || null;
 
     const code = await RedeemCode.findOne({ code: codeInput });
-    if (!code) return safeReply(interaction, { content: '❌ Invalid code.' });
+    if (!code) return safeReply(interaction, { content: 'Invalid code.' });
 
     const now = new Date();
     if (code.expiresAt && code.expiresAt < now) {
-      return safeReply(interaction, { content: '⚠️ This code has expired.' });
+      return interaction.followUp({ content: 'This code has expired.', flags: 1 << 6 }).catch(()=>{});
     }
     if (code.maxUses && code.usedBy.length >= code.maxUses) {
-      return safeReply(interaction, { content: '⚠️ This code has reached its usage limit.' });
+      return interaction.followUp({ content: 'This code has reached its usage limit.', flags: 1 << 6 }).catch(()=>{});
     }
     if (code.usedBy.includes(userId)) {
-      return safeReply(interaction, { content: '⚠️ You already used this code.' });
+      return interaction.followUp({ content: 'You already used this code.', flags: 1 << 6 }).catch(()=>{});
     }
 
     // --- Currency rewards (unchanged)
@@ -134,6 +134,6 @@ if (code.allowCardChoice) {
       code.cardCode ? `• Card Code: ${String(code.cardCode).trim().toUpperCase()}` : null
     ].filter(Boolean).join('\n');
 
-    return safeReply(interaction, { content: summary || 'Redeemed successfully.' });
+    return interaction.followUp({ content: summary || 'Redeemed successfully.', flags: 1 << 6 }).catch(()=>{});
   }
 };
