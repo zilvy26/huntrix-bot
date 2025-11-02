@@ -148,17 +148,13 @@ if (!isSelfView) {
       })
       .sort((a, b) => {
   if (b.rarity !== a.rarity) return b.rarity - a.rarity;
-
   const groupCompare = a.group.localeCompare(b.group, undefined, { sensitivity: 'base' });
   if (groupCompare !== 0) return groupCompare;
-
   const nameCompare = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
   if (nameCompare !== 0) return nameCompare;
 
-  // Safely handle missing _id values
-  const aId = a._id?.toString() || '';
-  const bId = b._id?.toString() || '';
-  return aId.localeCompare(bId);
+  // fallback: if no _id, keep original array order
+  return 0;
 });
 
     if (!entries.length) {
