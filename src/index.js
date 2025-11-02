@@ -141,6 +141,7 @@ const statuses = [
   "STAN SAJA BOYS",
   "IM NOT SITTING WITH NO SAJA- hehe what's up~",
   "This is what it sounds like",
+  "Redeem Code: SUSIESUPREMACY",
   "Heels 👠 , Nails 💅 , Blade 🗡️, Mascara",
   "FIT CHECK FOR MY NAPALM ERA"
 ];
