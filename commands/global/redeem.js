@@ -1,5 +1,5 @@
 // commands/global/redeem.js
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, InteractionContextType } = require('discord.js');
 const RedeemCode = require('../../models/RedeemCode');
 const Card = require('../../models/Card');
 const User = require('../../models/User');
@@ -11,6 +11,8 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('redeem')
     .setDescription('Redeem a code for rewards!')
+    .setContexts([InteractionContextType.BotDM])
+    .setDefaultMemberPermissions(0)
     .addStringOption(opt =>
       opt.setName('code')
         .setDescription('Your redeem code')
@@ -118,9 +120,6 @@ if (code.allowCardChoice) {
     { upsert: true, new: true, projection: { quantity: 1, _id: 0 } }
   );
 
-  code.usedBy.push(userId);
-  await code.save();
-
   const total = updated?.quantity ?? 1;
   return safeReply(interaction, {
     content: `Redeemed and received **${selectedCardInput}**! (Total copies: **${total}**)`
@@ -133,6 +132,11 @@ if (code.allowCardChoice) {
       code.reward?.sopop ? `• ${code.reward.sopop} Sopop` : null,
       code.cardCode ? `• Card Code: ${String(code.cardCode).trim().toUpperCase()}` : null
     ].filter(Boolean).join('\n');
+
+    if (!code.usedBy.includes(userId)) {
+  code.usedBy.push(userId);
+  await code.save();
+}
 
     return safeReply(interaction, { content: summary || 'Redeemed successfully.' });
   }

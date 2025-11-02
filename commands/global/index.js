@@ -146,7 +146,17 @@ if (!isSelfView) {
         if (show === 'dupes')   return e.copies > 1;
         return true;
       })
-      .sort((a, b) => b.rarity - a.rarity);
+      .sort((a, b) => {
+  // Keep rarity descending (same as before)
+  if (b.rarity !== a.rarity) return b.rarity - a.rarity;
+
+  // Then sort by group alphabetically (A → Z)
+  const groupCompare = a.group.localeCompare(b.group, undefined, { sensitivity: 'base' });
+  if (groupCompare !== 0) return groupCompare;
+
+  // Finally, sort by name alphabetically (A → Z)
+  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+});
 
     if (!entries.length) {
       return interaction.editReply({ content: 'No cards match your filters.' });
