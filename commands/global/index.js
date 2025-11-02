@@ -127,7 +127,7 @@ if (!isSelfView) {
 
     // build entries
     const entries = cards
-      .map(c => {
+      .map(c, idx => {
         const qty = invMap.get(c.cardCode) || 0;
         return {
           name: c.name,
@@ -137,7 +137,8 @@ if (!isSelfView) {
           cardCode: c.cardCode,
           rarity: Number(c.rarity),
           copies: qty,
-          stars: generateStars({ rarity: Number(c.rarity), overrideEmoji: c.emoji })
+          stars: generateStars({ rarity: Number(c.rarity), overrideEmoji: c.emoji }),
+          originalIndex: idx // 🧩 store the “oldest first” order
         };
       })
       .filter(e => {
