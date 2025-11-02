@@ -127,7 +127,7 @@ if (!isSelfView) {
 
     // build entries
     const entries = cards
-      .map(c, idx => {
+      .map((c, idx) => {
         const qty = invMap.get(c.cardCode) || 0;
         return {
           name: c.name,
