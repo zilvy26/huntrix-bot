@@ -27,17 +27,17 @@ module.exports = {
     const selectedCardInput = (interaction.options.getString('cardcode') || '').trim().toUpperCase() || null;
 
     const code = await RedeemCode.findOne({ code: codeInput });
-    if (!code) return safeReply(interaction, { content: '❌ Invalid code.' });
+    if (!code) return safeReply(interaction, { content: 'Invalid code.' });
 
     const now = new Date();
     if (code.expiresAt && code.expiresAt < now) {
-      return safeReply(interaction, { content: '⚠️ This code has expired.' });
+      return safeReply(interaction, { content: 'This code has expired.' });
     }
     if (code.maxUses && code.usedBy.length >= code.maxUses) {
-      return safeReply(interaction, { content: '⚠️ This code has reached its usage limit.' });
+      return safeReply(interaction, { content: 'This code has reached its usage limit.' });
     }
     if (code.usedBy.includes(userId)) {
-      return safeReply(interaction, { content: '⚠️ You already used this code.' });
+      return safeReply(interaction, { content: 'You already used this code.' });
     }
 
     // --- Currency rewards (unchanged)

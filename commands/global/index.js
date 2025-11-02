@@ -147,15 +147,19 @@ if (!isSelfView) {
         return true;
       })
       .sort((a, b) => {
-  // Keep rarity descending (same as before)
+  // 1️⃣ Sort by rarity (descending)
   if (b.rarity !== a.rarity) return b.rarity - a.rarity;
 
-  // Then sort by group alphabetically (A → Z)
+  // 2️⃣ Sort by group (alphabetically)
   const groupCompare = a.group.localeCompare(b.group, undefined, { sensitivity: 'base' });
   if (groupCompare !== 0) return groupCompare;
 
-  // Finally, sort by name alphabetically (A → Z)
-  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  // 3️⃣ Sort by name (alphabetically)
+  const nameCompare = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  if (nameCompare !== 0) return nameCompare;
+
+  // 4️⃣ Finally, preserve the order it was added (MongoDB _id ascending)
+  return a._id.toString().localeCompare(b._id.toString());
 });
 
     if (!entries.length) {
