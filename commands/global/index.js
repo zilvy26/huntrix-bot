@@ -147,15 +147,20 @@ if (!isSelfView) {
         return true;
       })
       .sort((a, b) => {
-  if (b.rarity !== a.rarity) return b.rarity - a.rarity;
-  const groupCompare = a.group.localeCompare(b.group, undefined, { sensitivity: 'base' });
-  if (groupCompare !== 0) return groupCompare;
-  const nameCompare = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-  if (nameCompare !== 0) return nameCompare;
+    // 1️⃣ rarity descending
+    if (b.rarity !== a.rarity) return b.rarity - a.rarity;
 
-  // fallback: if no _id, keep original array order
-  return 0;
-});
+    // 2️⃣ group alphabetical
+    const groupCompare = a.group.localeCompare(b.group, undefined, { sensitivity: 'base' });
+    if (groupCompare !== 0) return groupCompare;
+
+    // 3️⃣ name alphabetical
+    const nameCompare = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    if (nameCompare !== 0) return nameCompare;
+
+    // 4️⃣ finally, preserve original DB order
+    return a.originalIndex - b.originalIndex;
+      });
 
     if (!entries.length) {
       return interaction.editReply({ content: 'No cards match your filters.' });
