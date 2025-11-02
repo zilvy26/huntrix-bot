@@ -148,20 +148,20 @@ if (!isSelfView) {
         return true;
       })
       .sort((a, b) => {
-    // 1️⃣ rarity descending
-    if (b.rarity !== a.rarity) return b.rarity - a.rarity;
+  // 1️⃣ Sort by rarity (descending)
+  if (b.rarity !== a.rarity) return b.rarity - a.rarity;
 
-    // 2️⃣ group alphabetical
-    const groupCompare = a.group.localeCompare(b.group, undefined, { sensitivity: 'base' });
-    if (groupCompare !== 0) return groupCompare;
+  // 2️⃣ Then by when it was added (oldest first)
+  const indexCompare = a.originalIndex - b.originalIndex;
+  if (indexCompare !== 0) return indexCompare;
 
-    // 3️⃣ name alphabetical
-    const nameCompare = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-    if (nameCompare !== 0) return nameCompare;
+  // 3️⃣ Then by group (alphabetically)
+  const groupCompare = (a.group || '').localeCompare(b.group || '', undefined, { sensitivity: 'base' });
+  if (groupCompare !== 0) return groupCompare;
 
-    // 4️⃣ finally, preserve original DB order
-    return a.originalIndex - b.originalIndex;
-      });
+  // 4️⃣ Finally by name (alphabetically)
+  return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+});
 
     if (!entries.length) {
       return interaction.editReply({ content: 'No cards match your filters.' });
