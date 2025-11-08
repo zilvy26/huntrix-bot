@@ -662,7 +662,7 @@ if (interaction.customId?.startsWith('rehearsal_')) {
 
   // proceed with reward & inventory
   const selected = session.pulls[index] || session.pulls[0];
-  const patterns = getRandomInt(2500, 6000);
+  const patterns = getRandomInt(2500, 4500);
 
   // give currency (your existing helper)
   const giveCurrency = require('../utils/giveCurrency');
