@@ -34,9 +34,9 @@ module.exports = async function boutiqueTemplate(interaction) {
     let user = await User.findOne({ userId });
     let costOK = false;
     if (!eligible && gates.price != null) {
-      const balance = user?.sopop ?? 0;
+      const balance = user?.patterns ?? 0;
       if (balance >= gates.price) { eligible = true; costOK = true; reason = ''; }
-      else reason = `Not enough Sopop. Need ${gates.price.toLocaleString()}.`;
+      else reason = `Not enough Patterns. Need ${gates.price.toLocaleString()}.`;
     }
 
     // roles
@@ -59,11 +59,11 @@ module.exports = async function boutiqueTemplate(interaction) {
 
     // 4) charge if needed
     if (gates.price != null) {
-      const balance = user?.sopop ?? 0;
+      const balance = user?.patterns ?? 0;
       if (balance < gates.price) {
-        return safeReply(interaction, { content: `Not enough Sopop.` });
+        return safeReply(interaction, { content: `Not enough Patterns.` });
       }
-      user.sopop = balance - gates.price;
+      user.patterns = balance - gates.price;
       await user.save();
     }
 

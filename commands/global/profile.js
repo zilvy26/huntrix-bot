@@ -44,7 +44,6 @@ module.exports = {
     // Currency from User model (unchanged)
     const userData = await User.findOne({ userId: user.id });
     const patterns = userData?.patterns || 0;
-    const sopop = userData?.sopop || 0;
 
     // Favorite card lookup using InventoryItem
     let favoriteCardImageURL = null;
@@ -66,7 +65,7 @@ module.exports = {
     try {
       const buffer = await drawProfile(
         user,
-        { ...profile.toObject(), patterns, sopop },
+        { ...profile.toObject(), patterns},
         favoriteCardImageURL
       );
       const attachment = new AttachmentBuilder(buffer, { name: 'profile.png' });

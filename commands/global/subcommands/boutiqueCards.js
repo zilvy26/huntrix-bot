@@ -65,10 +65,10 @@ if (shopType !== 'choice10' && filtersUsed) {
 
   // ➖ Determine cost
   let patternCost = 0, sopopCost = 0;
-  if (shopType === 'random20') patternCost = 12500 * amount;
-  if (shopType === 'choice10') patternCost = 8500 * amount;
-  if (shopType === 'zodiac1') sopopCost = 4 * amount;
-  if (shopType === 'event1')  sopopCost = 4 * amount;
+  if (shopType === 'random20') patternCost = 16000 * amount;
+  if (shopType === 'choice10') patternCost = 12000 * amount;
+  if (shopType === 'zodiac1') patternCost = 20000 * amount;
+  if (shopType === 'event1')  patternCost = 20000 * amount;
 
   if (currency.patterns < patternCost) {
     return safeReply(interaction, `You need ${patternCost} Patterns (have ${currency.patterns}).`);
@@ -186,7 +186,7 @@ if (shopType !== 'choice10' && filtersUsed) {
   await UserRecord.create({
     userId,
     type: 'cardboutique',
-    detail: `Spent ${patternCost} Patterns & ${sopopCost} Sopop on ${shopType} x${amount}`
+    detail: `Spent ${patternCost} Patterns on ${shopType} x${amount}`
   });
 
   // ================================

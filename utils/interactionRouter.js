@@ -189,20 +189,20 @@ module.exports = async function interactionRouter(interaction) {
           let rewardPatterns = 0;
           let rewardSopop = 0;
           if (selected.difficulty === 'easy') {
-            rewardPatterns = getRandomInt(969, 1071);
-            if (Math.random() < 0.23) rewardSopop = 1;
+            rewardPatterns = getRandomInt(2000, 2500);
+            if (Math.random() < 0.23) rewardSopop = 0;
           } else if (selected.difficulty === 'hard') {
-            rewardPatterns = getRandomInt(1130, 1231);
-            if (Math.random() < 0.27) rewardSopop = 1;
+            rewardPatterns = getRandomInt(2700, 3150);
+            if (Math.random() < 0.27) rewardSopop = 0;
           } else if (selected.difficulty === 'impossible') {
-            rewardPatterns = getRandomInt(1291, 1398);
-            if (Math.random() < 0.32) rewardSopop = 1;
+            rewardPatterns = getRandomInt(3300, 3750);
+            if (Math.random() < 0.32) rewardSopop = 0;
           }
 
           let streakBonus = '';
           if (userDoc.correctStreak % 20 === 0) {
-            rewardPatterns += 750;
-            rewardSopop += 1;
+            rewardPatterns += 2750;
+            rewardSopop += 0;
             streakBonus = '\n**Bonus rewards granted!**';
           }
 
@@ -211,7 +211,7 @@ module.exports = async function interactionRouter(interaction) {
           await userDoc.save();
 
           await interaction.editReply({
-            content: `Correct! You earned <:ehx_patterns:1389584144895315978> **${rewardPatterns} Patterns**${rewardSopop ? ` and <:ehx_sopop:1389584273337618542> **${rewardSopop} Sopop**` : ''}.\n${streakBonus}`,
+            content: `Correct! You earned <:ehx_patterns:1389584144895315978> **${rewardPatterns} Patterns**.\n${streakBonus}`,
             embeds: [],
             components: [],
             files: []
@@ -588,13 +588,13 @@ if (isFinal) {
         return interaction.editReply({ content: `You already own **${template.name}**.` });
       }
 
-      if (userDoc.sopop < template.price) {
+      if (userDoc.patterns < template.price) {
         return interaction.editReply({
-          content: `You need ${template.price.toLocaleString()} Sopop (you have ${userDoc.sopop.toLocaleString()}).`,
+          content: `You need ${template.price.toLocaleString()} Pattern (you have ${userDoc.patterns.toLocaleString()}).`,
         });
       }
 
-      userDoc.sopop -= template.price;
+      userDoc.patterns -= template.price;
       userDoc.templatesOwned = [...(userDoc.templatesOwned || []), template.id];
       await userDoc.save();
 
@@ -605,7 +605,7 @@ if (isFinal) {
       });
 
       await interaction.editReply({
-        content: `You bought **${template.name}** for ${template.price.toLocaleString()} Sopop!`,
+        content: `You bought **${template.name}** for ${template.price.toLocaleString()} Patterns!`,
       });
       return;
     }
@@ -662,11 +662,11 @@ if (interaction.customId?.startsWith('rehearsal_')) {
 
   // proceed with reward & inventory
   const selected = session.pulls[index] || session.pulls[0];
-  const sopop = Math.random() < 0.33 ? (Math.random() < 0.65 ? 1 : 2) : 0;
+  const patterns = getRandomInt(1500, 3000);
 
   // give currency (your existing helper)
   const giveCurrency = require('../utils/giveCurrency');
-  await giveCurrency(session.userId, { sopop });
+  await giveCurrency(session.userId, { patterns });
 
   // inventory +1 (atomic upsert)
   const updated = await InventoryItem.findOneAndUpdate(
@@ -702,7 +702,7 @@ if (interaction.customId?.startsWith('rehearsal_')) {
       ...(showEraFor.has((selected.category || '').toLowerCase()) && selected.era ? [`**Era:** ${selected.era}`] : []),
       `**Code:** \`${selected.cardCode}\``,
       `**Copies Owned:** ${copies > 0 ? copies : 'Unowned'}`,
-      `\n__Reward__:\n${sopop ? `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop` : '• <:ehx_sopop:1389584273337618542> 0 Sopop'}`
+      `\n__Reward__:\n${patterns ? `• <:ehx_patterns:1389584144895315978> **${patterns}** Patterns` : '• <:ehx_patterns:1389584144895315978> 0 Patterns'}`
     ].join('\n'))
     .setColor('#FFD700');
 

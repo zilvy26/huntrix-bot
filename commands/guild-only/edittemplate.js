@@ -110,7 +110,7 @@ module.exports = {
     .addBooleanOption(o => o.setName('visible').setDescription('Show in /boutique preview? default unchanged'))
 
     // acquire rules (set or clear)
-    .addIntegerOption(o => o.setName('price').setDescription('Set price in Sopop'))
+    .addIntegerOption(o => o.setName('price').setDescription('Set price in Patterns'))
     .addBooleanOption(o => o.setName('clear_price').setDescription('Clear the price'))
     .addStringOption(o => o.setName('roles').setDescription('Set required role IDs (comma/space separated)'))
     .addBooleanOption(o => o.setName('clear_roles').setDescription('Clear roles requirement'))

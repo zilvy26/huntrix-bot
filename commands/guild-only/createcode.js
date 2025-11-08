@@ -13,9 +13,6 @@ module.exports = {
     .addIntegerOption(opt =>
       opt.setName('patterns')
         .setDescription('Patterns reward'))
-    .addIntegerOption(opt =>
-      opt.setName('sopop')
-        .setDescription('Sopop reward'))
     .addStringOption(opt =>
       opt.setName('cardcode')
         .setDescription('Card code to grant (optional)'))
@@ -44,7 +41,6 @@ module.exports = {
 
     const reward = {
       patterns: interaction.options.getInteger('patterns') || 0,
-      sopop: interaction.options.getInteger('sopop') || 0
     };
 
     const cardCode = interaction.options.getString('cardcode');
@@ -71,7 +67,6 @@ module.exports = {
     const summary = [
       `**Code:** \`${newCode.code}\``,
       newCode.reward.patterns ? `• ${newCode.reward.patterns} Patterns` : null,
-      newCode.reward.sopop ? `• ${newCode.reward.sopop} Sopop` : null,
       newCode.cardCode ? `• Card Code: ${newCode.cardCode}` : null,
       newCode.allowCardChoice ? `• User can choose a card` : null,
       newCode.expiresAt ? `• Expires: ${newCode.expiresAt.toLocaleString()}` : null,

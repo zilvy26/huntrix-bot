@@ -32,7 +32,7 @@ function formatRoles(interaction, roleIds = []) {
 
 function requirementLines(interaction, acq = {}) {
   const lines = [];
-  if (acq.price != null) lines.push(`**• Price:** <:ehx_sopop:1389584273337618542> ${acq.price.toLocaleString()}`);
+  if (acq.price != null) lines.push(`**• Price:** <:ehx_patterns:1389584144895315978> ${acq.price.toLocaleString()}`);
   if (Array.isArray(acq.roles) && acq.roles.length) {
     const r = formatRoles(interaction, acq.roles);
     if (r) lines.push(`**• Role(s):** ${r}`);
@@ -80,10 +80,10 @@ module.exports = async function boutiquePreview(interaction) {
   if (type === 'cards') {
     // Inline single-embed, like your existing price list
     const cardOptions = [
-      { name: '20x Random Cards + Guaranteed 5S', price: '12,500 Patterns' },
-      { name: '10x Cards of Choice',              price: '8,500 Patterns'  },
-      { name: '1x Zodiac Pull',                   price: '4 Sopop'         },
-      { name: '1x Event Pull',                    price: '4 Sopop'         }
+      { name: '20x Random Cards + Guaranteed 5S', price: '16,000 Patterns' },
+      { name: '10x Cards of Choice',              price: '12,000 Patterns'  },
+      { name: '1x Zodiac Pull',                   price: '20,000 Patterns'         },
+      { name: '1x Event Pull',                    price: '20,000 Patterns'         }
     ];
 
     const embed = new EmbedBuilder()

@@ -7,8 +7,8 @@ const userSchema = new mongoose.Schema({
   remindInChannel: { type: Boolean, default: true }
 },
   username: String,
-  patterns: { type: Number, default: 5000 }, // primary grindable currency
-  sopop: { type: Number, default: 1 },    // premium/rare currency
+  patterns: { type: Number, default: 15000 }, // primary grindable currency
+  sopop: { type: Number, default: 0 },    // premium/rare currency
   dailystreak: {
     count: { type: Number, default: 0},
     lastClaim: { type: Date, default: null }

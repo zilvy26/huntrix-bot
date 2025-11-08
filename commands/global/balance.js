@@ -20,8 +20,7 @@ module.exports = {
     if (!userData) {
       userData = await User.create({
         userId,
-        patterns: 5000,
-        sopop: 2
+        patterns: 15000,
       });
     }
 
@@ -31,11 +30,6 @@ module.exports = {
     { 
       name: '__Patterns__', 
       value: `<:ehx_patterns:1389584144895315978> ${userData.patterns.toLocaleString()}`, 
-      inline: true 
-    },
-    { 
-      name: '__Sopop__', 
-      value: `<:ehx_sopop:1389584273337618542> ${userData.sopop.toLocaleString()}`, 
       inline: true 
     }
   )

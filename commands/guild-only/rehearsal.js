@@ -20,7 +20,7 @@ const getRandomCardByRarity = require('../../utils/randomCardFromRarity');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('rehearsal')
-    .setDescription('Pick a rehearsal card and earn rare sopop!')
+    .setDescription('Select a rehearsal card & earn patterns!')
     .addBooleanOption(opt =>
       opt.setName('reminder').setDescription('Remind when cooldown ends').setRequired(false))
     .addBooleanOption(opt =>

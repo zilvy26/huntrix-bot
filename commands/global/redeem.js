@@ -41,13 +41,12 @@ module.exports = {
     }
 
     // --- Currency rewards (unchanged)
-    if (code.reward && (code.reward.patterns || code.reward.sopop)) {
+    if (code.reward && (code.reward.patterns)) {
       await User.findOneAndUpdate(
         { userId },
         {
           $inc: {
             patterns: code.reward.patterns || 0,
-            sopop: code.reward.sopop || 0
           }
         },
         { upsert: true }
@@ -129,7 +128,6 @@ if (code.allowCardChoice) {
     const summary = [
       `Redeemed **${code.code}**!`,
       code.reward?.patterns ? `• ${code.reward.patterns} Patterns` : null,
-      code.reward?.sopop ? `• ${code.reward.sopop} Sopop` : null,
       code.cardCode ? `• Card Code: ${String(code.cardCode).trim().toUpperCase()}` : null
     ].filter(Boolean).join('\n');
 

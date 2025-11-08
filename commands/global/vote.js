@@ -15,9 +15,6 @@ const topgg = require('../../topgg'); // your top.gg setup
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-function shouldDropSopop() {
-  return Math.random() < 0.55;
-}
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -102,9 +99,8 @@ module.exports = {
     if (ops.length) await InventoryItem.bulkWrite(ops, { ordered: false });
 
     // Currency rewards
-    const patterns = getRandomInt(2856, 3332);
-    const sopop = shouldDropSopop() ? 2 : 1;
-    const user = await giveCurrency(userId, { patterns, sopop });
+    const patterns = getRandomInt(5500, 8500);
+    const user = await giveCurrency(userId, { patterns });
 
     // Embeds
     const embeds = [
@@ -118,8 +114,7 @@ module.exports = {
         .setDescription([
           `Thanks for voting! You received:`,
           `• <:ehx_patterns:1389584144895315978> **${patterns}** Patterns`,
-          `• <:ehx_sopop:1389584273337618542> **${sopop}** Sopop`,
-          `\nYour balance:\n• Patterns: ${user.patterns}\n• Sopop: ${user.sopop}`
+          `\nYour balance:\n• Patterns: ${user.patterns}`
         ].join('\n'))
         .setColor('#f9a825')
     ];
@@ -128,7 +123,7 @@ module.exports = {
     await UserRecord.create({
       userId,
       type: 'vote',
-      detail: `Voted & received 3 cards + ${patterns} patterns + ${sopop} sopop`
+      detail: `Voted & received 3 cards + ${patterns} patterns`
     });
 
     return safeReply(interaction, { embeds });

@@ -42,8 +42,8 @@ if (await cooldowns.isOnCooldown(userId, commandName)) {
 await cooldowns.setCooldown(userId, commandName, cooldownMs);
 
     // Generate randomized rewards
-    const patterns = getRandomInt(1368, 1487);
-    const sopop = shouldDropSopop() ? 1 : 0;
+    const patterns = getRandomInt(3000, 4750);
+    const sopop = shouldDropSopop() ? 0 : 0;
 
     // Give currency
     const user = await giveCurrency(userId, { patterns, sopop });
@@ -55,8 +55,7 @@ await cooldowns.setCooldown(userId, commandName, cooldownMs);
       .setTitle('🎤 Performance Complete!')
       .setDescription([
         `You earned:\n• <:ehx_patterns:1389584144895315978> **${patterns}** Patterns`,
-        sopop ? `• <:ehx_sopop:1389584273337618542> **1** Sopop` : `• <:ehx_sopop:1389584273337618542> **0** Sopop`,
-        `\n__Your Balance__:\n• <:ehx_patterns:1389584144895315978> ${user.patterns} Patterns\n• <:ehx_sopop:1389584273337618542> ${user.sopop} Sopop`
+        `\n__Your Balance__:\n• <:ehx_patterns:1389584144895315978> ${user.patterns} Patterns`
       ].join('\n'))
       .setColor('#f9a825');
 

@@ -59,8 +59,8 @@ module.exports = {
     // Calculate scaling reward
     // Calculate tiered reward scaling
     function calculateDailyReward(streak) {
-  const sopop = 5 + Math.min(8, Math.floor(streak / 60));       // +1 per 60 days, max +8
-  const patterns = 4760 + Math.min(12500, Math.floor(streak / 15) * 325);  // +400 per 15 days, max +12000
+  const sopop = 0 + Math.min(8, Math.floor(streak / 0));       // +1 per 60 days, max +8
+  const patterns = 25000 + Math.min(75000, Math.floor(streak / 15) * 1250);  // +400 per 15 days, max +12000
   return { sopop, patterns };
   }
 
@@ -80,8 +80,8 @@ module.exports = {
       .setTitle('Daily Reward Claimed!')
       .setDescription([
         `Current Streak: **${streak} days**`,
-        `You've received:\n• <:ehx_patterns:1389584144895315978> **${reward.patterns}** Patterns\n• <:ehx_sopop:1389584273337618542> **${reward.sopop}** Sopop`,
-        `\n__Your Balance__:\n• <:ehx_patterns:1389584144895315978> ${user.patterns} Patterns\n• <:ehx_sopop:1389584273337618542> ${user.sopop} Sopop`
+        `You've received:\n• <:ehx_patterns:1389584144895315978> **${reward.patterns}** Patterns\n`,
+        `\n__Your Balance__:\n• <:ehx_patterns:1389584144895315978> ${user.patterns} Patterns`
       ].join('\n'))
       .setColor('#78c5f1');
 
