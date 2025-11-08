@@ -29,7 +29,7 @@ module.exports = {
   .addFields(
     { 
       name: '__Patterns__', 
-      value: `<:ehx_patterns:1389584144895315978> ${userData.patterns.toLocaleString()}`, 
+      value: `# <:ehx_patterns:1389584144895315978> ${userData.patterns.toLocaleString()}`, 
       inline: true 
     }
   )
