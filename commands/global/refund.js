@@ -13,10 +13,10 @@ const { registerRefundSession } = require('../../utils/refundSession');
 
 // Values for R1–R4; R5 handled in session (specials vs main)
 const REFUND_VALUES = Object.freeze({
-  1: 75,
-  2: 125,
-  3: 200,
-  4: 300
+  1: 200,
+  2: 425,
+  3: 650,
+  4: 875
   // 5 is computed in refundSession (2500 / 3750) like your original, only when include_specials = true
 });
 

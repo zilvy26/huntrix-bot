@@ -127,7 +127,7 @@ async function handleRefundButtons(interaction, { Card, User, InventoryItem }) {
       const isR5Main  = card.rarity === 5 && ['kpop', 'anime', 'game'].includes(category);
 
       // utils/refundSession.js (inside confirm branch)
-const values = state.refundValues || { 1: 75, 2: 125, 3: 200, 4: 300 }; // fallback
+const values = state.refundValues || { 1: 200, 2: 425, 3: 650, 4: 875 }; // fallback
 
 // ...
 const r = Number(card.rarity);          // <- coerce just in case
@@ -135,8 +135,8 @@ let amount = 0;
 
 if (r === 5) {
   if (state.includeSpecials) {
-    if (isSpecial)      amount = 3750 * it.qty;
-    else if (isR5Main)  amount = 2500 * it.qty;
+    if (isSpecial)      amount = 7500 * it.qty;
+    else if (isR5Main)  amount = 3000 * it.qty;
     else                amount = 0;
   } else {
     // skip r5 entirely when specials not allowed
