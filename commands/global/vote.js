@@ -99,7 +99,7 @@ module.exports = {
     if (ops.length) await InventoryItem.bulkWrite(ops, { ordered: false });
 
     // Currency rewards
-    const patterns = getRandomInt(5500, 8500);
+    const patterns = getRandomInt(6000, 9000);
     const user = await giveCurrency(userId, { patterns });
 
     // Embeds

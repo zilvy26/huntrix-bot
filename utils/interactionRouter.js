@@ -192,10 +192,10 @@ module.exports = async function interactionRouter(interaction) {
             rewardPatterns = getRandomInt(2000, 2500);
             if (Math.random() < 0.23) rewardSopop = 0;
           } else if (selected.difficulty === 'hard') {
-            rewardPatterns = getRandomInt(2700, 3150);
+            rewardPatterns = getRandomInt(2700, 3250);
             if (Math.random() < 0.27) rewardSopop = 0;
           } else if (selected.difficulty === 'impossible') {
-            rewardPatterns = getRandomInt(3300, 3750);
+            rewardPatterns = getRandomInt(3400, 4000);
             if (Math.random() < 0.32) rewardSopop = 0;
           }
 
@@ -472,8 +472,8 @@ if (interaction.customId?.startsWith('mystery:')) {
   if (['currency_gain', 'currency_loss'].includes(outcome)) {
     const userDoc = await User.findOne({ userId: session.userId }) || new User({ userId: session.userId });
     const gain = outcome === 'currency_gain'
-  ? Math.floor(Math.random() * (625 - 565 + 1)) + 565  // 700–900
-  : -1 * (Math.floor(Math.random() * (325 - 235 + 1)) + 235); // -300 to -500
+  ? Math.floor(Math.random() * (2000 - 1250 + 1)) + 1250  // 700–900
+  : -1 * (Math.floor(Math.random() * (900 - 600 + 1)) + 600); // -300 to -500
     userDoc.patterns = (userDoc.patterns || 0) + gain;
     await userDoc.save();
     newClick.amount = gain;
@@ -662,7 +662,7 @@ if (interaction.customId?.startsWith('rehearsal_')) {
 
   // proceed with reward & inventory
   const selected = session.pulls[index] || session.pulls[0];
-  const patterns = getRandomInt(1500, 3000);
+  const patterns = getRandomInt(2500, 6000);
 
   // give currency (your existing helper)
   const giveCurrency = require('../utils/giveCurrency');

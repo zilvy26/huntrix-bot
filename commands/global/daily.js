@@ -80,7 +80,7 @@ module.exports = {
       .setTitle('Daily Reward Claimed!')
       .setDescription([
         `Current Streak: **${streak} days**`,
-        `You've received:\n• <:ehx_patterns:1389584144895315978> **${reward.patterns}** Patterns\n`,
+        `You've received:\n• <:ehx_patterns:1389584144895315978> **${reward.patterns}** Patterns`,
         `\n__Your Balance__:\n• <:ehx_patterns:1389584144895315978> ${user.patterns} Patterns`
       ].join('\n'))
       .setColor('#78c5f1');
