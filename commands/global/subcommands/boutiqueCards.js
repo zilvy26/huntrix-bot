@@ -65,8 +65,8 @@ if (shopType !== 'choice10' && filtersUsed) {
 
   // ➖ Determine cost
   let patternCost = 0, sopopCost = 0;
-  if (shopType === 'random20') patternCost = 16000 * amount;
-  if (shopType === 'choice10') patternCost = 12000 * amount;
+  if (shopType === 'random20') patternCost = 18000 * amount;
+  if (shopType === 'choice10') patternCost = 14000 * amount;
   if (shopType === 'zodiac1') patternCost = 20000 * amount;
   if (shopType === 'event1')  patternCost = 20000 * amount;
 

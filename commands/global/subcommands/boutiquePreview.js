@@ -80,8 +80,8 @@ module.exports = async function boutiquePreview(interaction) {
   if (type === 'cards') {
     // Inline single-embed, like your existing price list
     const cardOptions = [
-      { name: '20x Random Cards + Guaranteed 5S', price: '16,000 Patterns' },
-      { name: '10x Cards of Choice',              price: '12,000 Patterns'  },
+      { name: '20x Random Cards + Guaranteed 5S', price: '18,000 Patterns' },
+      { name: '10x Cards of Choice',              price: '14,000 Patterns'  },
       { name: '1x Zodiac Pull',                   price: '20,000 Patterns'         },
       { name: '1x Event Pull',                    price: '20,000 Patterns'         }
     ];
