@@ -10,7 +10,7 @@ const { customAlphabet } = require('nanoid');
 const nano = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8);
 
 // Rarity-based caps (unchanged)
-const RARITY_CAPS = { 1: 300, 2: 600, 3: 900, 4: 1200 };
+const RARITY_CAPS = { 1: 500, 2: 1000, 3: 1500, 4: 2000 };
 
 const isSpecialR5 = (card) =>
   Number(card.rarity) === 5 &&
