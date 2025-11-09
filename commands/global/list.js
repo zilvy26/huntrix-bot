@@ -4,8 +4,11 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle, 
+  AttachmentBuilder
 } = require('discord.js');
+const Canvas = require('canvas');
+const Card = require('../../models/Card'); // if not already required
 
 const {safeReply} = require('../../utils/safeReply');
 const pickRarity = require('../../utils/rarityPicker');                    // same as /pull
