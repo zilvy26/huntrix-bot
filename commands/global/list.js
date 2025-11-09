@@ -68,7 +68,7 @@ module.exports = {
 
 // 🖼️ Assume each card has an image file like ./images/cards/<cardId>.png
 // Adjust the path or use card.image if you have URLs
-const cardImages = slots.map(s => path.resolve(`attachment://${card._id}.png`));
+const cardImages = slots.map(s => path.resolve(`attachment://${s.card._id}.png`));
 
 // Load, resize, and blur each card image
 const blurredBuffers = await Promise.all(
