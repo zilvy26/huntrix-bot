@@ -18,7 +18,7 @@ const ERA_MULTIPLIERS = {
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
 const CODE_MULTIPLIERS = {
-  'gi-elsco25': 40,
+  'gi-elsco25': 20,
   'kpdh-dpft25': 6,
 };
 
