@@ -4,8 +4,11 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  AttachmentBuilder
 } = require('discord.js');
+    const sharp = require('sharp');
+const path = require('path');
 
 const {safeReply} = require('../../utils/safeReply');
 const pickRarity = require('../../utils/rarityPicker');                    // same as /pull
@@ -62,6 +65,43 @@ module.exports = {
       slots.push({ idx, cardId: card._id });
     }
 
+
+// 🖼️ Assume each card has an image file like ./images/cards/<cardId>.png
+// Adjust the path or use card.image if you have URLs
+const cardImages = slots.map(s => path.resolve(`./images/cards/${s.cardId}.png`));
+
+// Load, resize, and blur each card image
+const blurredBuffers = await Promise.all(
+  cardImages.map(async img =>
+    await sharp(img)
+      .resize(300, 420)  // make all same size
+      .blur(25)          // adjust blur intensity (10–30 looks good)
+      .toBuffer()
+  )
+);
+
+// Combine all blurred images horizontally
+const totalWidth = blurredBuffers.length * 300;
+const composite = await sharp({
+  create: {
+    width: totalWidth,
+    height: 420,
+    channels: 4,
+    background: { r: 0, g: 0, b: 0, alpha: 0 }
+  }
+})
+  .composite(
+    blurredBuffers.map((buf, i) => ({
+      input: buf,
+      left: i * 300,
+      top: 0
+    }))
+  )
+  .png()
+  .toBuffer();
+
+const blurredAttachment = new AttachmentBuilder(composite, { name: 'blurred-list.png' });
+
     // 2) Start cooldown
     await cooldowns.setCooldown(userId, COMMAND_NAME, cooldownMs);
     // 2b) Schedule cooldown reminder like /pull & /pull10
@@ -102,17 +142,22 @@ module.exports = {
 
     const where = interaction.inGuild() ? 'this channel' : 'this DM';
     const embed = new EmbedBuilder()
-      .setTitle('Mystery Card List')
-      .setColor('#2f3136')
-      .setDescription([
-        `Click **one** number to claim a hidden card in ${where}.`,
-        `You won’t know which card until after you click.`,
-        '',
-        `Expires in **${minutes} minutes** or when all are claimed.`
-      ].join('\n'))
-      .setFooter({ text: `Created by ${interaction.user.username}` });
+  .setTitle('Mystery Card List')
+  .setColor('#2f3136')
+  .setDescription([
+    `Click **one** number to claim a hidden card in ${where}.`,
+    `You won’t know which card until after you click.`,
+    '',
+    `Expires in **${minutes} minutes** or when all are claimed.`
+  ].join('\n'))
+  .setImage('attachment://blurred-list.png') // 🔥 Add this line
+  .setFooter({ text: `Created by ${interaction.user.username}` });
 
-    const msg = await safeReply(interaction, { embeds: [embed], components: [buildRow()] });
+const msg = await safeReply(interaction, {
+  embeds: [embed],
+  files: [blurredAttachment],  // 🖼️ send the image
+  components: [buildRow()]
+});
 
     // 5) Save message id and schedule auto‑disable on expiry
     if (msg?.id) {
