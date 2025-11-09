@@ -115,9 +115,19 @@ for (let i = 0; i < slots.length; i++) {
     if (src) {
       const img = await Canvas.loadImage(src);
       // apply blur + slight darken so the image can't be read
-      ctx.filter = 'blur(50px) brightness(1.5)'; // tune blur value
-      ctx.drawImage(img, x, y, cardW, cardH);
-      ctx.filter = 'none';
+      // --- STRONG BLUR EFFECT ---
+const blurScale = 0.05; // smaller = blurrier (0.05–0.15 works nicely)
+const offCanvas = Canvas.createCanvas(cardW * blurScale, cardH * blurScale);
+const offCtx = offCanvas.getContext('2d');
+
+// Draw the image at a smaller scale
+offCtx.drawImage(img, 0, 0, offCanvas.width, offCanvas.height);
+
+// Then draw it back enlarged on main canvas for a strong fuzzy look
+ctx.save();
+ctx.globalAlpha = 0.9;
+ctx.drawImage(offCanvas, x, y, cardW, cardH);
+ctx.restore();
       // overlay and stroke for style
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.fillRect(x, y, cardW, cardH);

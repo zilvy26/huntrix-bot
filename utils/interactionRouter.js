@@ -1081,11 +1081,18 @@ const cat = (card.category || '').toLowerCase();
             : new EmbedBuilder().setTitle(allClaimed ? 'Mystery Card List — all claimed' : 'Mystery Card List');
 
           // Re-attach the blurred image so it stays inside the embed
+
+// if the embed originally had an image, re-declare it explicitly
+if (embed0?.image?.url?.startsWith('attachment://')) {
+  updatedEmbed.setImage(embed0.image.url);
+}
+
 await msg.edit({
   embeds: [updatedEmbed],
   components: rows,
-  files: msg.attachments.map(a => a)  // re-include original attachment(s)
+  files: msg.attachments.map(a => ({ attachment: a.url, name: a.name }))
 });
+
 
         }
       } catch (e) {
