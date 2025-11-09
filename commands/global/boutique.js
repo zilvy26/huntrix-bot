@@ -50,7 +50,7 @@ module.exports = {
     // Preview flow (NOW with a type selector)
     .addSubcommand(sub =>
       sub.setName('preview')
-        .setDescription('Preview boutique offerings')
+        .setDescription('Preview boutique prices')
         .addStringOption(o =>
           o.setName('type')
             .setDescription('What to preview')
