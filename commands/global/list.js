@@ -212,6 +212,7 @@ const blurredAttachment = new AttachmentBuilder(buffer, { name: 'list-blurred.pn
 
     const msg = await safeReply(interaction, {
   embeds: [embed],
+  files: [blurredAttachment],  // 🖼️ include blurred composite
   components: [buildRow()]
 });
 

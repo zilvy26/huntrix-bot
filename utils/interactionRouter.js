@@ -1080,7 +1080,13 @@ const cat = (card.category || '').toLowerCase();
             ? EmbedBuilder.from(embed0).setTitle(allClaimed ? 'Mystery Card List — all claimed' : (embed0.title || 'Mystery Card List'))
             : new EmbedBuilder().setTitle(allClaimed ? 'Mystery Card List — all claimed' : 'Mystery Card List');
 
-          await msg.edit({ embeds: [updatedEmbed], components: rows });
+          // Re-attach the blurred image so it stays inside the embed
+await msg.edit({
+  embeds: [updatedEmbed],
+  components: rows,
+  files: msg.attachments.map(a => a)  // re-include original attachment(s)
+});
+
         }
       } catch (e) {
         console.warn('listclaim: failed to update message:', e.message);
