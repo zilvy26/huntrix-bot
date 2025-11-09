@@ -1079,6 +1079,8 @@ const cat = (card.category || '').toLowerCase();
           const updatedEmbed = embed0
             ? EmbedBuilder.from(embed0).setTitle(allClaimed ? 'Mystery Card List — all claimed' : (embed0.title || 'Mystery Card List'))
             : new EmbedBuilder().setTitle(allClaimed ? 'Mystery Card List — all claimed' : 'Mystery Card List');
+          updatedEmbed.setImage('attachment://list-blurred.png');
+
 
           // Re-attach the blurred image so it stays inside the embed
 
@@ -1099,7 +1101,6 @@ if (listSet?.blurredBuffer) {
 await msg.edit({
   embeds: [updatedEmbed],
   components: rows,
-  files
 });
 
 
