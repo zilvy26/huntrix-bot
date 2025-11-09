@@ -4,11 +4,8 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle,
-  AttachmentBuilder
+  ButtonStyle
 } = require('discord.js');
-    const sharp = require('sharp');
-const path = require('path');
 
 const {safeReply} = require('../../utils/safeReply');
 const pickRarity = require('../../utils/rarityPicker');                    // same as /pull
@@ -65,54 +62,97 @@ module.exports = {
       slots.push({ idx, cardId: card._id });
     }
 
+    // === Create blurred composite image for the exact slot cards ===
+// slots is an array like [{ idx, cardId }, ...] (preserve order)
 
-// 🧩 After building slots[]
-const Canvas = require('canvas');
+// 1) Fetch the card docs in order matching slots
+const cardIds = slots.map(s => s.cardId);
+const cards = await Card.find({ _id: { $in: cardIds } }).lean();
 
-const cols = 5;             // 5 cards in one row
-const rows = 1;
-const cardW = 160;
-const cardH = 240;
-const padding = 10;
+// Create a lookup so we can preserve slots order
+const cardById = Object.fromEntries(cards.map(c => [String(c._id), c]));
 
+// Build ordered array of card docs corresponding to slots[]
+const orderedCards = slots.map(s => cardById[String(s.cardId)] || null);
+
+// 2) Canvas geometry (match your pull10 proportions or adjust)
+const cols = 5, rows = 1;
+const cardW = 160, cardH = 240, padding = 10;
 const canvasW = cols * (cardW + padding) + padding;
 const canvasH = rows * (cardH + padding) + padding;
 
 const canvas = Canvas.createCanvas(canvasW, canvasH);
 const ctx = canvas.getContext('2d');
 
-// Background color same as embeds
+// background to match embed
 ctx.fillStyle = '#2f3136';
 ctx.fillRect(0, 0, canvasW, canvasH);
 
-// Draw each blurred card
+// 3) Draw each card blurred (use localImagePath if present, otherwise a URL)
+// If any card is missing, draw a placeholder box.
 for (let i = 0; i < slots.length; i++) {
+  const slot = slots[i];
+  const cdoc = orderedCards[i];
+
+  const x = padding + (i % cols) * (cardW + padding);
+  const y = padding + Math.floor(i / cols) * (cardH + padding);
+
   try {
-    // Assuming your cards have local images like pull10 uses
-    const card = await getRandomCardByRarity(await pickRarity(), userId);
-    const img = await Canvas.loadImage(card.localImagePath);
+    let src;
+    if (cdoc && cdoc.localImagePath) {
+      // local path on disk (preferred)
+      src = cdoc.localImagePath;
+    } else if (cdoc && (cdoc.discordPermalinkImage || cdoc.imgurImageLink)) {
+      // remote url fallback
+      src = cdoc.discordPermalinkImage || cdoc.imgurImageLink;
+    } else {
+      src = null;
+    }
 
-    const x = padding + (i % cols) * (cardW + padding);
-    const y = padding + Math.floor(i / cols) * (cardH + padding);
-
-    // Apply blur (draw blurred version)
-    ctx.filter = 'blur(12px) brightness(0.8)';
-    ctx.drawImage(img, x, y, cardW, cardH);
-    ctx.filter = 'none';
-
-    // Optional: add an overlay so they all look mysterious
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(x, y, cardW, cardH);
-    ctx.strokeStyle = '#ffffff33';
-    ctx.strokeRect(x, y, cardW, cardH);
-
+    if (src) {
+      const img = await Canvas.loadImage(src);
+      // apply blur + slight darken so the image can't be read
+      ctx.filter = 'blur(30px) brightness(1)'; // tune blur value
+      ctx.drawImage(img, x, y, cardW, cardH);
+      ctx.filter = 'none';
+      // overlay and stroke for style
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(x, y, cardW, cardH);
+      ctx.strokeStyle = '#ffffff33';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 1, y + 1, cardW - 2, cardH - 2);
+    } else {
+      // missing image: draw simple placeholder
+      ctx.fillStyle = '#1f2124';
+      ctx.fillRect(x, y, cardW, cardH);
+      ctx.fillStyle = '#ffffff66';
+      ctx.font = '16px Sans';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Image missing', x + cardW / 2, y + cardH / 2);
+      ctx.strokeStyle = '#ffffff33';
+      ctx.strokeRect(x + 1, y + 1, cardW - 2, cardH - 2);
+    }
   } catch (err) {
-    console.warn(`Failed to load or blur image for card ${i + 1}:`, err.message);
+    console.warn(`list: failed to load/draw image for slot ${slot.idx}`, err?.message || err);
+    // Draw fallback box so layout stays consistent
+    ctx.fillStyle = '#1f2124';
+    ctx.fillRect(x, y, cardW, cardH);
+    ctx.fillStyle = '#ffffff66';
+    ctx.font = '16px Sans';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Image error', x + cardW / 2, y + cardH / 2);
+    ctx.strokeStyle = '#ffffff33';
+    ctx.strokeRect(x + 1, y + 1, cardW - 2, cardH - 2);
   }
 }
 
+// 4) Export buffer & create AttachmentBuilder
 const buffer = canvas.toBuffer();
 const blurredAttachment = new AttachmentBuilder(buffer, { name: 'list-blurred.png' });
+
+// Now when you send the embed below, attach `blurredAttachment` and set embed image to 'attachment://list-blurred.png'
 
 
     // 2) Start cooldown
@@ -155,22 +195,24 @@ const blurredAttachment = new AttachmentBuilder(buffer, { name: 'list-blurred.pn
 
     const where = interaction.inGuild() ? 'this channel' : 'this DM';
     const embed = new EmbedBuilder()
-  .setTitle('Mystery Card List')
-  .setColor('#2f3136')
-  .setDescription([
-    `Click **one** number to claim a hidden card in ${where}.`,
-    `You won’t know which card until after you click.`,
-    '',
-    `Expires in **${minutes} minutes** or when all are claimed.`
-  ].join('\n'))
-  .setImage('attachment://list-blurred.png')
-  .setFooter({ text: `Created by ${interaction.user.username}` });
+      .setTitle('Mystery Card List')
+      .setColor('#2f3136')
+      .setDescription([
+        `Click **one** number to claim a hidden card in ${where}.`,
+        `You won’t know which card until after you click.`,
+        '',
+        `Expires in **${minutes} minutes** or when all are claimed.`
+      ].join('\n'))
+      .setFooter({ text: `Created by ${interaction.user.username}` });
+      embed.setImage('attachment://list-blurred.png');
 
-const msg = await safeReply(interaction, {
+
+    const msg = await safeReply(interaction, {
   embeds: [embed],
-  files: [blurredAttachment],
+  files: [blurredAttachment],  // 🖼️ include blurred composite
   components: [buildRow()]
 });
+
 
     // 5) Save message id and schedule auto‑disable on expiry
     if (msg?.id) {
