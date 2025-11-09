@@ -1087,10 +1087,19 @@ if (embed0?.image?.url?.startsWith('attachment://')) {
   updatedEmbed.setImage(embed0.image.url);
 }
 
+// 🆕 Fetch blurred buffer from DB and attach it again
+const listSet = await ListSet.findById(setId);
+let files = [];
+
+if (listSet?.blurredBuffer) {
+  const buffer = Buffer.from(listSet.blurredBuffer, 'base64');
+  files = [{ attachment: buffer, name: 'list-blurred.png' }];
+}
+
 await msg.edit({
   embeds: [updatedEmbed],
   components: rows,
-  files: msg.attachments.map(a => ({ attachment: a.url, name: a.name }))
+  files
 });
 
 

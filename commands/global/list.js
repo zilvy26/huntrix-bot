@@ -165,6 +165,19 @@ ctx.restore();
 const buffer = canvas.toBuffer();
 const blurredAttachment = new AttachmentBuilder(buffer, { name: 'list-blurred.png' });
 
+// Save blurred buffer to DB for later (convert to base64)
+const setDoc = {
+  guildId: interaction.guildId ?? null,
+  channelId: interaction.channelId,
+  ownerId: userId,
+  slots,
+  expiresAt,
+  blurredBuffer: buffer.toString('base64')  // 🆕 store buffer as base64
+};
+
+const set = await ListSet.create(setDoc);
+
+
 // Now when you send the embed below, attach `blurredAttachment` and set embed image to 'attachment://list-blurred.png'
 
 
@@ -182,15 +195,6 @@ const blurredAttachment = new AttachmentBuilder(buffer, { name: 'list-blurred.pn
         console.warn('list: handlerReminders failed:', e?.message || e);
       }
     }
-
-    // 3) Create the ListSet (messageId filled after send)
-    const set = await ListSet.create({
-      guildId: interaction.guildId ?? null,
-      channelId: interaction.channelId,
-      ownerId: userId,
-      slots,
-      expiresAt
-    });
 
     // 4) Buttons 1..5
     const buildRow = (disableAll = false, claimedIdx = null) =>
@@ -253,6 +257,7 @@ const blurredAttachment = new AttachmentBuilder(buffer, { name: 'list-blurred.pn
         } catch (e) {
           console.warn('list: auto-disable skipped:', e?.message || e);
         }
+        await ListSet.findByIdAndUpdate(set._id, { $unset: { blurredBuffer: 1 } });
       }, msUntilExpire + 500);
     }
   }

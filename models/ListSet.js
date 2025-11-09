@@ -16,7 +16,8 @@ const ListSetSchema = new mongoose.Schema({
   slots: { type: [SlotSchema], required: true },                // 5 slots
   claimers: { type: [String], default: [] },                    // userIds who’ve already claimed 1
   createdAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date, required: true }                     // TTL
+  expiresAt: { type: Date, required: true },                     // TTL
+  blurredBuffer: { type: String, required: false }
 });
 
 // Fast lookups + TTL
