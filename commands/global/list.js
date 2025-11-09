@@ -66,41 +66,54 @@ module.exports = {
     }
 
 
-// 🖼️ Assume each card has an image file like ./images/cards/<cardId>.png
-// Adjust the path or use card.image if you have URLs
-const cardImages = slots.map(s => path.resolve(`attachment://${s.card._id}.png`));
+// 🧩 After building slots[]
+const Canvas = require('canvas');
 
-// Load, resize, and blur each card image
-const blurredBuffers = await Promise.all(
-  cardImages.map(async img =>
-    await sharp(img)
-      .resize(300, 420)  // make all same size
-      .blur(25)          // adjust blur intensity (10–30 looks good)
-      .toBuffer()
-  )
-);
+const cols = 5;             // 5 cards in one row
+const rows = 1;
+const cardW = 160;
+const cardH = 240;
+const padding = 10;
 
-// Combine all blurred images horizontally
-const totalWidth = blurredBuffers.length * 300;
-const composite = await sharp({
-  create: {
-    width: totalWidth,
-    height: 420,
-    channels: 4,
-    background: { r: 0, g: 0, b: 0, alpha: 0 }
+const canvasW = cols * (cardW + padding) + padding;
+const canvasH = rows * (cardH + padding) + padding;
+
+const canvas = Canvas.createCanvas(canvasW, canvasH);
+const ctx = canvas.getContext('2d');
+
+// Background color same as embeds
+ctx.fillStyle = '#2f3136';
+ctx.fillRect(0, 0, canvasW, canvasH);
+
+// Draw each blurred card
+for (let i = 0; i < slots.length; i++) {
+  try {
+    // Assuming your cards have local images like pull10 uses
+    const card = await getRandomCardByRarity(await pickRarity(), userId);
+    const img = await Canvas.loadImage(card.localImagePath);
+
+    const x = padding + (i % cols) * (cardW + padding);
+    const y = padding + Math.floor(i / cols) * (cardH + padding);
+
+    // Apply blur (draw blurred version)
+    ctx.filter = 'blur(12px) brightness(0.8)';
+    ctx.drawImage(img, x, y, cardW, cardH);
+    ctx.filter = 'none';
+
+    // Optional: add an overlay so they all look mysterious
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(x, y, cardW, cardH);
+    ctx.strokeStyle = '#ffffff33';
+    ctx.strokeRect(x, y, cardW, cardH);
+
+  } catch (err) {
+    console.warn(`Failed to load or blur image for card ${i + 1}:`, err.message);
   }
-})
-  .composite(
-    blurredBuffers.map((buf, i) => ({
-      input: buf,
-      left: i * 300,
-      top: 0
-    }))
-  )
-  .png()
-  .toBuffer();
+}
 
-const blurredAttachment = new AttachmentBuilder(composite, { name: 'blurred-list.png' });
+const buffer = canvas.toBuffer();
+const blurredAttachment = new AttachmentBuilder(buffer, { name: 'list-blurred.png' });
+
 
     // 2) Start cooldown
     await cooldowns.setCooldown(userId, COMMAND_NAME, cooldownMs);
@@ -150,12 +163,12 @@ const blurredAttachment = new AttachmentBuilder(composite, { name: 'blurred-list
     '',
     `Expires in **${minutes} minutes** or when all are claimed.`
   ].join('\n'))
-  .setImage('attachment://blurred-list.png') // 🔥 Add this line
+  .setImage('attachment://list-blurred.png')
   .setFooter({ text: `Created by ${interaction.user.username}` });
 
 const msg = await safeReply(interaction, {
   embeds: [embed],
-  files: [blurredAttachment],  // 🖼️ send the image
+  files: [blurredAttachment],
   components: [buildRow()]
 });
 
