@@ -115,7 +115,7 @@ for (let i = 0; i < slots.length; i++) {
     if (src) {
       const img = await Canvas.loadImage(src);
       // apply blur + slight darken so the image can't be read
-      ctx.filter = 'blur(30px) brightness(1)'; // tune blur value
+      ctx.filter = 'blur(50px) brightness(1.5)'; // tune blur value
       ctx.drawImage(img, x, y, cardW, cardH);
       ctx.filter = 'none';
       // overlay and stroke for style
@@ -212,7 +212,6 @@ const blurredAttachment = new AttachmentBuilder(buffer, { name: 'list-blurred.pn
 
     const msg = await safeReply(interaction, {
   embeds: [embed],
-  files: [blurredAttachment],  // 🖼️ include blurred composite
   components: [buildRow()]
 });
 
