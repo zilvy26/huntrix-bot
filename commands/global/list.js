@@ -116,7 +116,7 @@ for (let i = 0; i < slots.length; i++) {
       const img = await Canvas.loadImage(src);
       // apply blur + slight darken so the image can't be read
       // --- STRONG BLUR EFFECT ---
-const blurScale = 0.2; // smaller = blurrier (0.05–0.15 works nicely)
+const blurScale = 0.07; // smaller = blurrier (0.05–0.15 works nicely)
 const offCanvas = Canvas.createCanvas(cardW * blurScale, cardH * blurScale);
 const offCtx = offCanvas.getContext('2d');
 
