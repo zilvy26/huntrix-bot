@@ -249,6 +249,7 @@ const set = await ListSet.create(setDoc);
             : new EmbedBuilder().setColor('#2f3136');
 
           expiredEmbed.setTitle(allClaimed ? 'Mystery Card List all claimed' : 'Mystery Card List expired');
+          expiredEmbed.setImage('attachment://list-blurred.png');
 
           await liveMsg.edit({
             embeds: [expiredEmbed],
