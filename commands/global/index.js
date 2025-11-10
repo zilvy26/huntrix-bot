@@ -151,13 +151,13 @@ if (!isSelfView) {
   // 1️⃣ Sort by rarity (descending)
   if (b.rarity !== a.rarity) return b.rarity - a.rarity;
 
-  // 2️⃣ Then by when it was added (oldest first)
-  const indexCompare = a.originalIndex - b.originalIndex;
-  if (indexCompare !== 0) return indexCompare;
-
   // 3️⃣ Then by group (alphabetically)
   const groupCompare = (a.group || '').localeCompare(b.group || '', undefined, { sensitivity: 'base' });
   if (groupCompare !== 0) return groupCompare;
+
+  // 2️⃣ Then by when it was added (oldest first)
+  const indexCompare = a.originalIndex - b.originalIndex;
+  if (indexCompare !== 0) return indexCompare;
 
   // 4️⃣ Finally by name (alphabetically)
   return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
