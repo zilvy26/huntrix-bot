@@ -155,12 +155,11 @@ if (!isSelfView) {
   const groupCompare = (a.group || '').localeCompare(b.group || '', undefined, { sensitivity: 'base' });
   if (groupCompare !== 0) return groupCompare;
 
-  // 2️⃣ Then by when it was added (oldest first)
-  const indexCompare = a.originalIndex - b.originalIndex;
-  if (indexCompare !== 0) return indexCompare;
+  const nameCompare = (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+  if (nameCompare !== 0) return nameCompare;
 
   // 4️⃣ Finally by name (alphabetically)
-  return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+  return a.originalIndex - b.originalIndex;
 });
 
     if (!entries.length) {
