@@ -18,10 +18,11 @@ const isSpecialR5 = (card) =>
 
 // ---- ERA CAPS CONFIG ----
 const ERA_PRICE_CAPS_RAW = {
-  'VIR25': 40000,
-  'LEO25': 35000,
+  'LEO25': 40000,
+  'VIR25': 35000,
   'LIB25': 30000,
   'SCO25': 25000,
+  'SAG25': 25000,
   'Candy Festival (Demo)': 35000,
   'Candy Festival (Album)': 30000,
   'Fox Tale (Demo)': 30000,
