@@ -14,7 +14,7 @@ module.exports = {
       opt.setName('patterns')
         .setDescription('Amount of patterns to send')
         .setMinValue(1)
-        .setRequired(false)),
+        .setRequired(true)),
 
   async execute(interaction) {
     const senderId = interaction.user.id;

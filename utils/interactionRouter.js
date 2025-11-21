@@ -473,7 +473,7 @@ if (interaction.customId?.startsWith('mystery:')) {
     const userDoc = await User.findOne({ userId: session.userId }) || new User({ userId: session.userId });
     const gain = outcome === 'currency_gain'
   ? Math.floor(Math.random() * (2000 - 1250 + 1)) + 1250  // 700–900
-  : -1 * (Math.floor(Math.random() * (900 - 600 + 1)) + 600); // -300 to -500
+  : -1 * (Math.floor(Math.random() * (900 - 700 + 1)) + 700); // -300 to -500
     userDoc.patterns = (userDoc.patterns || 0) + gain;
     await userDoc.save();
     newClick.amount = gain;
