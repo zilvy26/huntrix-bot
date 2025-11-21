@@ -18,21 +18,21 @@ const isSpecialR5 = (card) =>
 
 // ---- ERA CAPS CONFIG ----
 const ERA_PRICE_CAPS_RAW = {
-  'LEO25': 40000,
-  'VIR25': 35000,
-  'LIB25': 30000,
-  'SCO25': 25000,
+  'LEO25': 50000,
+  'VIR25': 40000,
+  'LIB25': 35000,
+  'SCO25': 30000,
   'SAG25': 25000,
-  'Candy Festival (Demo)': 35000,
-  'Candy Festival (Album)': 30000,
-  'Fox Tale (Demo)': 30000,
+  'Candy Festival (Demo)': 40000,
+  'Candy Festival (Album)': 35000,
+  'Fox Tale (Demo)': 35000,
   'Fox Tale (Album)': 25000
 };
 const ERA_PRICE_CAPS = Object.fromEntries(
   Object.entries(ERA_PRICE_CAPS_RAW).map(([k, v]) => [String(k).trim().toLowerCase(), Number(v)])
 );
 
-const MAX_LISTINGS = 100;
+const MAX_LISTINGS = 300;
 
 // ---------- helpers ----------
 function parseCodes(raw) {

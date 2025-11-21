@@ -20,7 +20,6 @@ module.exports = {
         .addStringOption(o => o.setName('era').setDescription('Era, comma-separated for multiple'))
         .addStringOption(o => o.setName('rarities').setDescription('Rarity spec: 1 or 1,3 or 1-4 or 1,3-5'))
 // keep legacy too if you want backward compatibility
-        .addIntegerOption(o => o.setName('rarity').setDescription('Single rarity (legacy)'))
         .addBooleanOption(o => o.setName('unowned').setDescription('Only show cards you do not own'))
         .addBooleanOption(o => o.setName('cheapest').setDescription('Sort by cheapest first'))
         .addBooleanOption(o => o.setName('newest').setDescription('Sort by newest first'))

@@ -4,21 +4,10 @@ const {
   PermissionFlagsBits,
   EmbedBuilder
 } = require('discord.js');
-const UserInventory = require('../../models/UserInventory');
+const InventoryItem = require('../../models/InventoryItem');
 const User = require('../../models/User');
 const giveCurrency = require('../../utils/giveCurrency');
 const { safeReply } = require('../../utils/safeReply');
-
-/**
- * Transfer ALL cards + currency from one user to another (merge/add),
- * then empty the source user's inventory and zero their currency.
- * No Mongo transactions are used (works on standalone / free-tier Atlas).
- *
- * Currency keys moved via giveCurrency: { patterns, sopop }.
- * - Step 1: add to target
- * - Step 2: subtract from source (negative inc)
- * If Step 2 fails, Step 1 is compensated (reversed) to avoid mismatch.
- */
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -33,13 +22,14 @@ module.exports = {
     .addStringOption(opt =>
       opt.setName('note').setDescription('Optional note to include in the result')
     )
-    // Keep restricted; change/remove this line if you want broader access
     .setDefaultMemberPermissions('0'),
 
   async execute(interaction) {
+
+    // Permission check
     if (!interaction.member.roles.cache.has(process.env.MAIN_BYPASS_ID)) {
-        return safeReply(interaction, { content: 'You do not have permission to use this command.' });
-        }
+      return safeReply(interaction, { content: 'You do not have permission to use this command.' });
+    }
 
     const fromUser = interaction.options.getUser('from');
     const toUser = interaction.options.getUser('to');
@@ -49,71 +39,85 @@ module.exports = {
       return safeReply(interaction, { content: '`from` and `to` must be different users.' });
     }
 
-    // --- 1) Read source currency balances (defaults 0 if missing)
+    //
+    // 1. LOAD SOURCE USER CURRENCY
+    //
     const srcUserDoc = (await User.findOne({ userId: fromUser.id }).lean()) || {};
     const movePatterns = Number(srcUserDoc.patterns || 0);
     const moveSopop = Number(srcUserDoc.sopop || 0);
 
-    // --- 2) Move CARDS (sequential saves, no transactions)
-    let totalCodesMoved = 0;
-    let totalQtyMoved = 0;
+    //
+    //
+// 2. MOVE ALL CARDS USING InventoryItem WITH BULK OPS
+//
+let totalCodesMoved = 0;
+let totalQtyMoved = 0;
 
-    try {
-      const [fromInv, toInv] = await Promise.all([
-        UserInventory.findOne({ userId: fromUser.id }),
-        UserInventory.findOne({ userId: toUser.id })
-      ]);
-      // Build/ensure target doc
-      let targetInv = toInv;
-      if (!targetInv) {
-        targetInv = new UserInventory({ userId: toUser.id, cards: [] });
-      }
+try {
+  // Load all source user's items
+  const fromItems = await InventoryItem.find({ userId: fromUser.id });
 
-      // Merge cards from source -> target
-      const tMap = new Map((targetInv.cards || []).map(c => [c.cardCode, Number(c.quantity) || 0]));
+  if (fromItems.length > 0) {
+    const bulkOps = [];
 
-      for (const sc of (fromInv?.cards || [])) {
-        const code = sc.cardCode;
-        const qty = Number(sc.quantity) || 0;
-        if (!code || qty <= 0) continue;
-        totalCodesMoved += 1;
-        totalQtyMoved += qty;
-        tMap.set(code, (tMap.get(code) || 0) + qty);
-      }
+    for (const item of fromItems) {
+      const { cardCode, quantity } = item;
+      if (!quantity || quantity <= 0) continue;
 
-      // Persist target & wipe source cards
-      targetInv.cards = Array.from(tMap, ([cardCode, quantity]) => ({ cardCode, quantity }));
-      const writes = [targetInv.save()];
-      if (fromInv) {
-        fromInv.cards = [];
-        writes.push(fromInv.save());
-      }
-      await Promise.all(writes);
-    } catch (err) {
-      console.error('[transfer] card move failed:', err);
-      return safeReply(interaction, {
-        content: 'Card transfer failed. No changes were made to cards or currency.'
+      totalCodesMoved += 1;
+      totalQtyMoved += quantity;
+
+      // 1) Increase TO user's quantity (upsert)
+      bulkOps.push({
+        updateOne: {
+          filter: { userId: toUser.id, cardCode },
+          update: { $inc: { quantity } },
+          upsert: true
+        }
+      });
+
+      // 2) Zero out FROM user's quantity
+      bulkOps.push({
+        updateOne: {
+          filter: { userId: fromUser.id, cardCode },
+          update: { $set: { quantity: 0 } }
+        }
       });
     }
 
-    // --- 3) Move CURRENCY via your giveCurrency util (with compensation)
+    // Execute ALL operations in a single MongoDB call
+    if (bulkOps.length > 0) {
+      await InventoryItem.bulkWrite(bulkOps);
+    }
+  }
+} catch (err) {
+  console.error('[transfer] Inventory bulk move failed:', err);
+  return safeReply(interaction, {
+    content: 'Card transfer failed. No changes were made to cards or currency.'
+  });
+}
+
+
+    //
+    // 3. CURRENCY TRANSFER (your existing logic)
+    //
     let currencySummary = [];
     try {
       if (movePatterns > 0 || moveSopop > 0) {
-        // Add to target first
+        // Add to target
         await giveCurrency(toUser.id, {
           patterns: movePatterns,
           sopop: moveSopop
         });
 
         try {
-          // Subtract from source by adding negatives
+          // Subtract from source
           await giveCurrency(fromUser.id, {
             patterns: -movePatterns,
             sopop: -moveSopop
           });
         } catch (subErr) {
-          // Compensation: undo the add to target if the subtraction fails
+          // Compensation rollback
           try {
             await giveCurrency(toUser.id, {
               patterns: -movePatterns,
@@ -122,24 +126,23 @@ module.exports = {
           } catch (compErr) {
             console.error('[transfer] currency compensation failed:', compErr);
           }
-          console.error('[transfer] subtracting currency from source failed:', subErr);
+          console.error('[transfer] subtract error:', subErr);
           return safeReply(interaction, {
-            content:
-              'Cards moved, but currency transfer failed and was rolled back. Source balances unchanged.'
+            content: 'Cards moved, but currency transfer failed and was rolled back.'
           });
         }
 
         if (movePatterns > 0) currencySummary.push(`• <:ehx_patterns:1389584144895315978> **${movePatterns}** Patterns`);
         if (moveSopop > 0) currencySummary.push(`• <:ehx_sopop:1389584273337618542> **${moveSopop}** Sopop`);
       }
-    } catch (addErr) {
-      console.error('[transfer] adding currency to target failed:', addErr);
-      return safeReply(interaction, {
-        content: 'Cards moved successfully, but currency could not be transferred.'
-      });
+    } catch (err) {
+      console.error('[transfer] adding currency failed:', err);
+      return safeReply(interaction, { content: 'Cards moved, but currency could not be transferred.' });
     }
 
-    // --- 4) Confirmation embed
+    //
+    // 4. CONFIRM EMBED
+    //
     const embed = new EmbedBuilder()
       .setTitle('Transfer Complete')
       .setColor(0x3BA55D)

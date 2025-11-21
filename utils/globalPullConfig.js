@@ -12,14 +12,12 @@ const RARITY_WEIGHTS = {
 // Hardcoded multipliers for eras (always lowercased keys!)
 const ERA_MULTIPLIERS = {
   'sco25': 0.045,
-  'fox tale (demo)': 1,
-  'fox tale (album)': 0.17,
+  'sag25': 0.06,
 };
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
 const CODE_MULTIPLIERS = {
-  'gi-elsco25': 20,
-  'kpdh-dpft25': 6,
+  'act-zjqsag25': 16.5,
 };
 
 const MIN_WEIGHT = 0.00001;

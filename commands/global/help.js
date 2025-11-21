@@ -48,7 +48,7 @@ module.exports = {
         .setTitle('Stall, Shop & Economy')
         .setColor(0x2f3136)
         .addFields(
-          { name: 'Currency Earning', value: '`/perform` — earn currency for performing\n`/vote` — voting topgg rewards\n`/daily` — 24 hour rewards\n`/battle` — guessing questions for rewards' },
+          { name: 'Currency Earning', value: '`/perform` — earn currency for performing\n`/vote` — voting topgg rewards\n`/daily` — 24 hour rewards\n`/battle` — guessing questions for rewards\n`/karaoke` — choose 3 random buttons for risks or rewards' },
           { name: 'Boutique Shop', value: '`/boutique view` — Huntrix Shop prices & info\n`/boutique cards` — Huntrix Card Shop\n`/boutique template` — Huntrix Profile Template Shop' },
           { name: 'Huntrix Stall', value: '`/stall preview` — view Huntrix stall of cards\n`/stall buy` — purchase card(s) from stall\n`/stall sell` — list card(s) for sale on stall\n`/stall remove` — remove your card listing from stall' },
         ),

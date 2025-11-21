@@ -1,133 +1,217 @@
-const { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder } = require('discord.js');
-const {safeReply} = require('../../utils/safeReply');
-const UserInventory = require('../../models/UserInventory');
-const User = require('../../models/User');
-const Card = require('../../models/Card');
-const generateStars = require('../../utils/starGenerator');
+const {
+  SlashCommandBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+  EmbedBuilder
+} = require("discord.js");
+
+const { safeReply } = require("../../utils/safeReply");
+const InventoryItem = require("../../models/InventoryItem");
+const User = require("../../models/User");
+const Card = require("../../models/Card");
+const generateStars = require("../../utils/starGenerator");
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('spawn')
-    .setDescription('Drop a card or currency for the fastest person to claim')
-    .setDefaultMemberPermissions('0')
+    .setName("spawn")
+    .setDescription("Drop multi rewards for the fastest people to claim")
+    .setDefaultMemberPermissions("0")
     .addStringOption(opt =>
-      opt.setName('reward')
-        .setDescription('CardCode or currency name (patterns / sopop)')
+      opt
+        .setName("reward")
+        .setDescription("Comma list: card codes + currency (patterns, sopop)")
         .setRequired(true)
     )
     .addIntegerOption(opt =>
-      opt.setName('amount')
-        .setDescription('Amount of patterns/sopop (ignored for cards)')
+      opt
+        .setName("amount")
+        .setDescription("Default currency amount (used if specific amounts are not given)")
+        .setRequired(false)
+    )
+    .addIntegerOption(opt =>
+      opt
+        .setName("patterns_amount")
+        .setDescription("Custom amount of patterns to drop")
+        .setRequired(false)
+    )
+    .addIntegerOption(opt =>
+      opt
+        .setName("sopop_amount")
+        .setDescription("Custom amount of sopop to drop")
+        .setRequired(false)
+    )
+    .addIntegerOption(opt =>
+      opt
+        .setName("limit")
+        .setDescription("How many people can claim (default: 1)")
         .setRequired(false)
     ),
 
   async execute(interaction) {
-
-    // ✅ Optional: Admin check
-    const ALLOWED_ROLE_ID = '1386797486680703036'; // replace with your actual role ID
-
+    const ALLOWED_ROLE_ID = "1386797486680703036";
     if (!interaction.member.roles.cache.has(ALLOWED_ROLE_ID)) {
-    return safeReply(interaction, { content: 'Only authorized staff can use this command.' });
-}
-
-    const reward = interaction.options.getString('reward').toLowerCase();
-    const amount = interaction.options.getInteger('amount') ?? 1;
-
-    let isCurrency = reward === 'patterns' || reward === 'sopop';
-
-    if (isCurrency) {
-      const embed = new EmbedBuilder()
-        .setTitle('Currency Drop!')
-        .setDescription(`First to click gets **${amount} ${reward}**!`)
-        .setColor('#ffd700');
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('claim_reward').setLabel('Claim!').setStyle(ButtonStyle.Success)
-      );
-
-      const dropMsg = await safeReply(interaction, { embeds: [embed], components: [row] });
-
-      const collector = dropMsg.createMessageComponentCollector({ filter: i => !i.user.bot, max: 1, time: 15000 });
-
-      collector.on('collect', async i => {
-        await User.findOneAndUpdate(
-          { userId: i.user.id },
-          { $inc: { [reward]: amount } },
-          { upsert: true, new: true }
-        );
-
-        const claimed = new EmbedBuilder()
-          .setTitle('Claimed!')
-          .setDescription(`${i.user} claimed **${amount} ${reward}**!`)
-          .setColor('#00cc99');
-
-        await i.update({ embeds: [claimed], components: [] });
+      return safeReply(interaction, {
+        content: "Only authorized staff can use this command.",
       });
-
-      collector.on('end', (_, reason) => {
-        if (reason === 'time') {
-          interaction.editReply({ content: 'No one claimed in time.', components: [] });
-        }
-      });
-
-      return;
-    }
-    // Handle card drop
-    const card = await Card.findOne({ cardCode: { $regex: new RegExp(`^${reward}$`, 'i') } });
-    if (!card) {
-      return interaction.editReply({ content: 'Invalid cardCode or currency name.' });
     }
 
-    const stars = generateStars({ rarity: card.rarity, overrideEmoji: card.emoji || '<:fullstar:1387609456824680528>' });
+    // -------- INPUTS --------
+    const rewardInput = interaction.options.getString("reward");
+    const defaultAmount = interaction.options.getInteger("amount") ?? 1;
+    const patternsAmount = interaction.options.getInteger("patterns_amount");
+    const sopopAmount = interaction.options.getInteger("sopop_amount");
+    const claimLimit = interaction.options.getInteger("limit") ?? 1;
 
-    const imageSrc = card.localImagePath ? `attachment://${card._id}.png` :
-      card.discordPermalinkImage || card.imgurImageLink;
+    const rewardList = rewardInput
+      .split(",")
+      .map(v => v.trim().toLowerCase())
+      .filter(Boolean);
 
-    const files = card.localImagePath ? [{ attachment: card.localImagePath, name: `${card._id}.png` }] : [];
+    // Separate data
+    const cardCodes = [];
+    const currencyRewards = { patterns: 0, sopop: 0 };
 
-    const cardEmbed = new EmbedBuilder()
-      .setTitle(stars)
-      .setDescription([
-        `**Group:** ${card.group}`,
-        `**Name:** ${card.name}`,
-        ...(card.category?.toLowerCase() === 'kpop' ? [`**Era:** ${card.era}`] : []),
-        `**Code:** \`${card.cardCode}\``
-      ].join('\n'))
-      .setImage(imageSrc)
-      .setColor('#ff4444');
+    for (const entry of rewardList) {
+      if (entry === "patterns") {
+        currencyRewards.patterns += patternsAmount ?? defaultAmount;
+      } else if (entry === "sopop") {
+        currencyRewards.sopop += sopopAmount ?? defaultAmount;
+      } else {
+        cardCodes.push(entry);
+      }
+    }
+
+    // Load cards in one query
+    const cards = await Card.find({
+      cardCode: { $in: cardCodes }
+    });
+
+    if (cards.length !== cardCodes.length) {
+      return safeReply(interaction, {
+        content: "One or more card codes were invalid.",
+      });
+    }
+
+    // -------- BUILD DISPLAY EMBED --------
+    const rewardLines = [];
+
+    for (const c of cards) {
+      rewardLines.push(`• **${c.name}** (\`${c.cardCode}\`)`);
+    }
+
+    if (currencyRewards.patterns > 0)
+      rewardLines.push(`• **${currencyRewards.patterns} Patterns**`);
+
+    if (currencyRewards.sopop > 0)
+      rewardLines.push(`• **${currencyRewards.sopop} Sopop**`);
+
+    const embed = new EmbedBuilder()
+      .setTitle(`Reward Drop!`)
+      .setDescription(
+        [
+          `First **${claimLimit}** people to click will receive:\n`,
+          ...rewardLines
+        ].join("\n")
+      )
+      .setColor("#ff4444");
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('claim_card').setLabel('Claim!').setStyle(ButtonStyle.Success)
+      new ButtonBuilder()
+        .setCustomId("claim_multi")
+        .setLabel("Claim!")
+        .setStyle(ButtonStyle.Success)
     );
 
-    const dropMsg = await safeReply(interaction, { embeds: [cardEmbed], components: [row], files });
-
-    const collector = dropMsg.createMessageComponentCollector({ filter: i => !i.user.bot, max: 1, time: 15000 });
-
-    collector.on('collect', async i => {
-      const userId = i.user.id;
-      let inv = await UserInventory.findOne({ userId });
-      if (!inv) inv = new UserInventory({ userId, cards: [] });
-
-      const entry = inv.cards.find(c => c.cardCode === card.cardCode);
-      if (entry) entry.quantity += 1;
-      else inv.cards.push({ cardCode: card.cardCode, quantity: 1 });
-
-      await inv.save();
-
-      const confirmed = new EmbedBuilder()
-        .setTitle('Claimed!')
-        .setDescription(`${i.user} claimed **${card.name}** \`[${card.cardCode}]\`!`)
-        .setColor('#00cc99')
-        .setImage(imageSrc);
-
-      await i.update({ embeds: [confirmed], components: [], files });
+    const dropMsg = await safeReply(interaction, {
+      embeds: [embed],
+      components: [row],
     });
 
-    collector.on('end', (_, reason) => {
-      if (reason === 'time') {
-        interaction.editReply({ content: 'No one claimed in time.', components: [] });
+    // ---------- CLAIM LOGIC ----------
+    let claimedUsers = 0;
+
+    const collector = dropMsg.createMessageComponentCollector({
+      filter: i => !i.user.bot,
+      time: 15000,
+    });
+
+    collector.on("collect", async i => {
+      if (claimedUsers >= claimLimit) {
+        return i.reply({
+          content: "Claim limit reached!",
+          ephemeral: true,
+        });
+      }
+
+      claimedUsers++;
+
+      const userId = i.user.id;
+      const bulkOps = [];
+
+      // Add cards
+      for (const c of cards) {
+        bulkOps.push({
+          updateOne: {
+            filter: { userId, cardCode: c.cardCode },
+            update: { $inc: { quantity: 1 } },
+            upsert: true,
+          },
+        });
+      }
+
+      // Add currency
+      if (currencyRewards.patterns > 0 || currencyRewards.sopop > 0) {
+        bulkOps.push({
+          updateOne: {
+            filter: { userId },
+            update: {
+              $inc: {
+                patterns: currencyRewards.patterns,
+                sopop: currencyRewards.sopop,
+              },
+            },
+            upsert: true,
+          },
+        });
+      }
+
+      await InventoryItem.bulkWrite(bulkOps);
+
+      await i.reply({
+        content: `${i.user} claimed the drop!`,
+        ephemeral: true,
+      });
+
+      if (claimedUsers >= claimLimit) {
+        collector.stop("limit_reached");
       }
     });
-  }
+
+    collector.on("end", async (_, reason) => {
+      const disabledBtn = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("claim_multi")
+          .setLabel("Claim!")
+          .setStyle(ButtonStyle.Success)
+          .setDisabled(true)
+      );
+
+      if (reason === "time") {
+        return dropMsg.edit({
+          content: "Drop expired, nobody claimed in time.",
+          components: [disabledBtn],
+        });
+      }
+
+      if (reason === "limit_reached") {
+        return dropMsg.edit({
+          content: "Claim limit reached! Drop is closed.",
+          components: [disabledBtn],
+        });
+      }
+
+      dropMsg.edit({ components: [disabledBtn] }).catch(() => {});
+    });
+  },
 };
