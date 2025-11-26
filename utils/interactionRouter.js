@@ -189,19 +189,19 @@ module.exports = async function interactionRouter(interaction) {
           let rewardPatterns = 0;
           let rewardSopop = 0;
           if (selected.difficulty === 'easy') {
-            rewardPatterns = getRandomInt(2000, 2500);
+            rewardPatterns = getRandomInt(2250, 3000);
             if (Math.random() < 0.23) rewardSopop = 0;
           } else if (selected.difficulty === 'hard') {
-            rewardPatterns = getRandomInt(2700, 3250);
+            rewardPatterns = getRandomInt(3250, 3750);
             if (Math.random() < 0.27) rewardSopop = 0;
           } else if (selected.difficulty === 'impossible') {
-            rewardPatterns = getRandomInt(3400, 4000);
+            rewardPatterns = getRandomInt(4000, 4650);
             if (Math.random() < 0.32) rewardSopop = 0;
           }
 
           let streakBonus = '';
           if (userDoc.correctStreak % 20 === 0) {
-            rewardPatterns += 2750;
+            rewardPatterns += 3000;
             rewardSopop += 0;
             streakBonus = '\n**Bonus rewards granted!**';
           }
@@ -472,8 +472,8 @@ if (interaction.customId?.startsWith('mystery:')) {
   if (['currency_gain', 'currency_loss'].includes(outcome)) {
     const userDoc = await User.findOne({ userId: session.userId }) || new User({ userId: session.userId });
     const gain = outcome === 'currency_gain'
-  ? Math.floor(Math.random() * (2000 - 1250 + 1)) + 1250  // 700–900
-  : -1 * (Math.floor(Math.random() * (900 - 700 + 1)) + 700); // -300 to -500
+  ? Math.floor(Math.random() * (3000 - 1250 + 1)) + 1250  // 700–900
+  : -1 * (Math.floor(Math.random() * (1150 - 700 + 1)) + 700); // -300 to -500
     userDoc.patterns = (userDoc.patterns || 0) + gain;
     await userDoc.save();
     newClick.amount = gain;
@@ -662,7 +662,7 @@ if (interaction.customId?.startsWith('rehearsal_')) {
 
   // proceed with reward & inventory
   const selected = session.pulls[index] || session.pulls[0];
-  const patterns = getRandomInt(2500, 4500);
+  const patterns = getRandomInt(3000, 5500);
 
   // give currency (your existing helper)
   const giveCurrency = require('../utils/giveCurrency');

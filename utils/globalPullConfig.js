@@ -12,12 +12,13 @@ const RARITY_WEIGHTS = {
 // Hardcoded multipliers for eras (always lowercased keys!)
 const ERA_MULTIPLIERS = {
   'sco25': 0.045,
-  'sag25': 0.06,
+  'sag25': 0.07,
 };
 
 // Hardcoded multipliers for specific card codes (always lowercased keys!)
 const CODE_MULTIPLIERS = {
   'act-zjqsag25': 16.5,
+  'spc-tlzpc25' : 3.25
 };
 
 const MIN_WEIGHT = 0.00001;
